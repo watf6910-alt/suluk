@@ -51,7 +51,7 @@ header.top{padding-block:20px 12px;display:flex;align-items:flex-end;justify-con
 footer.credit{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center;line-height:1.8}
 footer.credit b{color:var(--fg);font-weight:600}
 nav.tabs{position:fixed;inset-inline:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
-nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:760px}
+nav.tabs .in{display:grid;grid-template-columns:repeat(var(--tabs,5),1fr);width:100%;max-width:760px}
 nav.tabs button{background:none;border:0;color:var(--muted);font:500 12px var(--body);padding:10px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="true"]{color:var(--accent)}
@@ -301,11 +301,12 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <select id="sort"><option value="recent">الأحدث رصداً</option><option value="score">الأقل درجة سلوك</option><option value="count">الأكثر مخالفات</option><option value="exc">الأكثر تميزاً</option></select>
     </div>
     <div class="panel" id="studList"></div>
-    <div class="actions"><button class="btn ghost" id="exportBtn" hidden>تصدير السجل (CSV يفتح في Excel)</button></div>
+    <div class="actions"><button class="btn ghost" id="exportBtn" hidden>تصدير السجل (CSV يفتح في Excel)</button><button class="btn ghost" id="teacherBackup" hidden>إرسال رصدي للموجّهة (نسخة احتياطية)</button></div>
   </section>
 
   <!-- الإعدادات -->
   <section id="v-set" hidden>
+    <div class="importbar" style="margin-top:16px"><span>الإعدادات مفتوحة لك على هذا الجهاز، ومخفية عن المعلمات.</span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" id="changePin">تغيير الرمز</button><button class="btn sm" id="lockAdmin">قفل الإعدادات</button></span></div>
     <h2>بيانات المدرسة</h2>
     <div style="display:grid;gap:12px">
       <div><label for="sSchool">اسم المدرسة</label><input id="sSchool"></div>
@@ -331,7 +332,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <p class="note">القوائم والإجراءات والدرجات مأخوذة من قواعد السلوك والمواظبة لطلبة التعليم العام، الإصدار الخامس 1447هـ، للمرحلتين المتوسطة والثانوية. مخالفات الدرجة الأولى لا يُحسم فيها إلا من الإجراء الثالث.</p>
   </section>
 
-  <footer class="credit">إعداد الموجّهة الطلابية <b>عواطف الحربي</b><br><span id="footSchool">الثانوية الأولى بقبة</span> · وفق قواعد السلوك والمواظبة 1447هـ</footer>
+  <footer class="credit" id="credit">إعداد الموجّهة الطلابية <b>عواطف الحربي</b><br><span id="footSchool">الثانوية الأولى بقبة</span> · وفق قواعد السلوك والمواظبة 1447هـ</footer>
 </div>
 
 <datalist id="names"></datalist>
@@ -341,7 +342,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <button data-v="stud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.5 3.5 5.2"/></svg>الطالبات</button>
   <button data-v="rec" class="rec"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></span>رصد مخالفة</button>
   <button data-v="exc" class="exc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>سلوك متميز</button>
-  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإعدادات</button>
+  <button data-v="set" id="setTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإعدادات</button>
 </div></nav>
 
 <div id="sheet" class="sheet" hidden><div class="card" dir="rtl" id="sheetCard"></div></div>
@@ -700,7 +701,7 @@ function recRow(r,showName=true){
   ${!showName?`<div class="actions" style="margin-top:6px">${r.notified?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
   <div style="display:grid;gap:4px;justify-items:end">${ded?`<span class="chip neg" dir="ltr">−${ded}</span>`:''}<span class="chip ${r.notified?'ok':'pend'}">${r.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div></div>`;
 }
-const delBtn=r=>`<button class="btn sm danger" data-del="${r.id}">حذف</button>`;
+const delBtn=r=>isAdmin?`<button class="btn sm danger" data-del="${r.id}">حذف</button>`:'';
 function renderAll(){
   const sch=settings.school||DEF_SCHOOL;
   $('#schoolLbl').textContent=sch+(settings.region?' · '+settings.region:'');
@@ -1119,6 +1120,57 @@ async function saveImport(){
   imp.busy=false;if(imp.open)drawImport();
 }
 
+
+/* ---------- counselor lock (settings hidden from teachers) ---------- */
+let isAdmin=false;
+try{isAdmin=localStorage.getItem('rasd_admin')==='1';}catch(e){}
+async function pinHash(p){
+  const txt='rasd-suluk:'+p;
+  try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+  catch(e){let h=5381;for(const c of txt)h=((h*33)^c.charCodeAt(0))>>>0;return 'h'+h.toString(16);}
+}
+function applyRole(){
+  $('#setTab').hidden=!isAdmin;
+  document.querySelector('nav.tabs .in').style.setProperty('--tabs',isAdmin?5:4);
+  $('#teacherBackup').hidden=isAdmin;
+  if(!isAdmin&&!$('#v-set').hidden)show('home');
+}
+let creditTaps=[];
+$('#credit').addEventListener('click',()=>{
+  const now=Date.now();creditTaps=creditTaps.filter(t=>now-t<3000);creditTaps.push(now);
+  if(creditTaps.length>=5){creditTaps=[];openPin(isAdmin?'change':'unlock');}
+});
+function openPin(mode){
+  let has=false;try{has=!!localStorage.getItem('rasd_pin');}catch(e){}
+  const setting=mode==='change'||!has;
+  openKey=null;imp.open=false;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>${setting?'إنشاء رمز الموجّهة':'دخول الموجّهة'}</h3><div class="hint">${setting?'رمز من 4 أرقام أو أكثر، يفتح الإعدادات على هذا الجهاز. لا تشاركيه مع المعلمات.':'أدخلي الرمز لفتح الإعدادات.'}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <form id="pinF" style="margin-top:14px;display:grid;gap:12px">
+    <div><label for="pin1">${setting?'الرمز الجديد':'الرمز'}</label><input id="pin1" type="password" inputmode="numeric" autocomplete="off" minlength="4" required dir="ltr"></div>
+    ${setting?'<div><label for="pin2">أعيدي كتابة الرمز</label><input id="pin2" type="password" inputmode="numeric" autocomplete="off" minlength="4" required dir="ltr"></div>':''}
+    <div class="actions" style="margin-top:0"><button class="btn" type="submit">${setting?'حفظ الرمز':'دخول'}</button></div>
+  </form>`;
+  $('#sheetCard').dataset.pinmode=setting?'set':'check';
+  $('#sheet').hidden=false;setTimeout(()=>$('#pin1').focus(),50);
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='pinF')return;e.preventDefault();
+  const p=$('#pin1').value.trim();
+  if(p.length<4){toast('الرمز 4 أرقام على الأقل');return;}
+  if($('#sheetCard').dataset.pinmode==='set'){
+    if(p!==$('#pin2').value.trim()){toast('الرمزان غير متطابقين');return;}
+    try{localStorage.setItem('rasd_pin',await pinHash(p));}catch(x){}
+  }else{
+    let stored='';try{stored=localStorage.getItem('rasd_pin')||'';}catch(x){}
+    if(await pinHash(p)!==stored){toast('الرمز غير صحيح');$('#pin1').value='';return;}
+  }
+  isAdmin=true;try{localStorage.setItem('rasd_admin','1');}catch(x){}
+  closeSheet();applyRole();renderAll();show('set');toast('فُتحت الإعدادات');
+});
+$('#lockAdmin').addEventListener('click',()=>{isAdmin=false;try{localStorage.setItem('rasd_admin','0');}catch(e){}applyRole();renderAll();show('home');toast('قُفلت الإعدادات. لفتحها: اضغطي سطر «إعداد الموجّهة» أسفل الصفحة 5 مرات');});
+$('#changePin').addEventListener('click',()=>openPin('change'));
+$('#teacherBackup').addEventListener('click',()=>$('#backupBtn').click());
+
 /* ---------- navigation & delegation ---------- */
 function show(v){
   for(const s of ['home','rec','exc','stud','set'])$('#v-'+s).hidden=s!==v;
@@ -1164,7 +1216,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
 
 if(!hosted&&(location.protocol==='https:'||location.hostname==='localhost')&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
-initForm();fillSettings();renderAll();
+initForm();fillSettings();applyRole();renderAll();
 store.init().then(()=>{if(SYNC._invited)toast('تم ربطك بسجل المدرسة');});
 </script>
 
