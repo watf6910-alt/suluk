@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6b60">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="رصد السلوك">
+<meta name="description" content="منصة رصد السلوك المخالف والسلوك المتميز لطالبات الثانوية الأولى بقبة وفق قواعد السلوك والمواظبة 1447هـ — إعداد الموجهة الطلابية عواطف الحربي">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>رصد سلوك الطالبات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* Layout: one narrow working column (max 760px), five-tab bar pinned to the bottom; records are rows with a degree stripe (violations) or a green stripe (excellence). */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --sunk:#e8eeec; --line:#d5dfdc;
+  --fg:#16302d; --muted:#5b716d; --accent:#0d6b60; --accent-ink:#ffffff; --accent-soft:#dcefeb;
+  --d1:#8a9a1f; --d2:#b08a12; --d3:#c96a14; --d4:#c2410c; --d5:#a51d2d;
+  --star:#2f7d3a; --star-soft:#e2f2e3;
+  --ok:#1f7a4d; --ok-soft:#ddf1e6; --warn-soft:#fbeedd; --warn-ink:#9a5410;
+  --display:"Readex Pro","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --body:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1716; --surface:#16211f; --sunk:#1c2a28; --line:#2a3b38;
+  --fg:#e3eeeb; --muted:#93a8a3; --accent:#3fb3a2; --accent-ink:#06201c; --accent-soft:#18332f;
+  --d1:#b3c447; --d2:#d9b33a; --d3:#e88d3a; --d4:#f0703a; --d5:#ef5a60;
+  --star:#6fcf7c; --star-soft:#173320;
+  --ok:#5fcf93; --ok-soft:#173326; --warn-soft:#33281a; --warn-ink:#f0b061; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1716; --surface:#16211f; --sunk:#1c2a28; --line:#2a3b38;
+  --fg:#e3eeeb; --muted:#93a8a3; --accent:#3fb3a2; --accent-ink:#06201c; --accent-soft:#18332f;
+  --d1:#b3c447; --d2:#d9b33a; --d3:#e88d3a; --d4:#f0703a; --d5:#ef5a60;
+  --star:#6fcf7c; --star-soft:#173320;
+  --ok:#5fcf93; --ok-soft:#173326; --warn-soft:#33281a; --warn-ink:#f0b061; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6}
+.app{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:0 104px}
+header.top{padding-block:20px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand small{display:block;color:var(--muted);font-size:12.5px;letter-spacing:.02em}
+.brand h1{font-family:var(--display);font-size:22px;margin:0;line-height:1.3;text-wrap:balance}
+.status{font-size:12px;color:var(--muted);background:var(--sunk);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.status.live{color:var(--ok);background:var(--ok-soft)}
+footer.credit{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center;line-height:1.8}
+footer.credit b{color:var(--fg);font-weight:600}
+nav.tabs{position:fixed;inset-inline:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:760px}
+nav.tabs button{background:none;border:0;color:var(--muted);font:500 12px var(--body);padding:10px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="true"]{color:var(--accent)}
+nav.tabs button.rec span.dot{background:var(--accent);color:var(--accent-ink);width:42px;height:42px;border-radius:50%;display:grid;place-items:center;margin-top:-22px;box-shadow:0 4px 12px rgb(0 0 0 / .18)}
+nav.tabs button.exc[aria-current="true"]{color:var(--star)}
+h2{font-family:var(--display);font-size:17px;margin:22px 0 10px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.tile b{display:block;font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile span{color:var(--muted);font-size:12.5px}
+.tile.star b{color:var(--star)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:flex;gap:12px;align-items:center;padding:11px 14px;border-top:1px solid var(--line);position:relative}
+.row:first-child{border-top:0}
+.row.click{cursor:pointer}
+.row.click:hover{background:var(--sunk)}
+.stripe{width:4px;align-self:stretch;border-radius:4px;flex:none}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600}
+.row .s{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.chip{font-size:12px;border-radius:999px;padding:2px 9px;white-space:nowrap;font-weight:500}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.pend{background:var(--warn-soft);color:var(--warn-ink)}
+.chip.star{background:var(--star-soft);color:var(--star)}
+.chip.neg{background:var(--sunk);color:var(--fg);font-variant-numeric:tabular-nums}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--fg);font-family:var(--display);font-size:16px;margin-bottom:4px}
+.bars{display:grid;gap:8px;padding:14px}
+.bar{display:grid;grid-template-columns:88px 1fr 32px;gap:10px;align-items:center;font-size:13px}
+.bar .track{height:10px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;border-radius:6px}
+.bar .n{font-variant-numeric:tabular-nums;text-align:left;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.fgrid{grid-template-columns:1fr}}
+.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+label i{font-style:normal;color:var(--muted);font-weight:400}
+input,select,textarea{width:100%;font:15px var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.degs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.degs button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:7px 0 6px;font:600 15px var(--display);cursor:pointer;line-height:1.3}
+.degs button small{display:block;font:11px var(--body);opacity:.85}
+.degs button[aria-pressed="true"]{color:#fff;border-color:transparent}
+.vlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vlist button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:14px var(--body);cursor:pointer;text-align:right}
+.vlist button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.vlist.star button[aria-pressed="true"]{background:var(--star-soft);border-color:var(--star);color:var(--star)}
+.vgroup{margin-top:12px}
+.vgroup>span{font-size:12.5px;color:var(--muted)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px}
+.proc{background:var(--sunk);border-radius:var(--r);padding:12px 14px;font-size:14px}
+.proc .ph{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.proc .ph b{font-family:var(--display)}
+.proc ul{margin:0;padding-inline-start:18px;display:grid;gap:2px}
+.proc .alert{margin-top:8px;color:var(--d5);font-size:13px}
+.btn{border:0;border-radius:10px;padding:11px 18px;font:600 15px var(--body);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.starbtn{background:var(--star);color:#fff}
+.btn.ghost{background:var(--sunk);color:var(--fg)}
+.btn.danger{background:transparent;color:var(--d5);border:1px solid var(--d5)}
+.btn.sm{padding:7px 12px;font-size:13.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.seg{display:inline-grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:10px;padding:3px;margin-bottom:14px}
+.seg button{border:0;background:none;padding:7px 16px;border-radius:8px;font:500 14px var(--body);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgb(0 0 0 / .1)}
+.checks{max-height:340px;overflow:auto}
+.checks label{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line);font-weight:500;margin:0;cursor:pointer}
+.checks label:first-child{border-top:0}
+.checks input{width:20px;height:20px;flex:none;accent-color:var(--star)}
+.checks .m{color:var(--muted);font-variant-numeric:tabular-nums;min-width:22px}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.toolbar input{flex:1;min-width:180px}
+.toolbar select{width:auto}
+.score{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:18px;min-width:52px;text-align:center}
+.score small{display:block;font:11px var(--body);color:var(--muted)}
+.sheet{position:fixed;inset:0;background:rgb(0 0 0 / .4);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet .card{background:var(--bg);width:100%;max-width:760px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet .head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sheet h3{font-family:var(--display);margin:0;font-size:19px}
+.x{background:var(--sunk);border:0;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;color:var(--fg);flex:none}
+.notice{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;white-space:pre-wrap;font-size:14.5px;line-height:1.9}
+.confirm{background:var(--warn-soft);border-radius:10px;padding:10px 12px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.toast{position:fixed;bottom:88px;inset-inline:16px;margin:0 auto;max-width:420px;background:var(--fg);color:var(--bg);border-radius:10px;padding:10px 14px;text-align:center;z-index:60;font-size:14px}
+.note{font-size:13px;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 12px;margin-top:10px}
+.rules{display:grid;gap:0}
+.rules .row{align-items:baseline}
+.rules .row .score{font-size:15px}
+.steps{margin:10px 0 0;padding-inline-start:20px;color:var(--muted);font-size:13.5px;display:grid;gap:4px}
+.steps b{color:var(--fg)}
+.drop{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pv{overflow-x:auto}
+.pv table{width:100%;border-collapse:collapse;font-size:13.5px}
+.pv th,.pv td{padding:7px 12px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.pv th{color:var(--muted);font-weight:500;background:var(--sunk);border-top:0}
+.pv td.n{font-variant-numeric:tabular-nums}
+.importbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;font-size:13.5px}
+.split{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+#printArea{display:none}
+.wa{background:#1f9d55;color:#fff;text-decoration:none;display:inline-flex;align-items:center}
+@media print{
+  body{background:#fff;color:#000}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block;font-family:var(--body);color:#000;font-size:14px;line-height:1.9}
+  #printArea .ph{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px;font-weight:600}
+  #printArea h3{text-align:center;font-family:var(--display);margin:8px 0 14px}
+  #printArea table{width:100%;border-collapse:collapse;font-size:13px}
+  #printArea th,#printArea td{border:1px solid #555;padding:5px 8px;text-align:right;vertical-align:top}
+  #printArea .sig{display:flex;justify-content:space-between;margin-top:40px}
+  #printArea .pre{white-space:pre-wrap}
+  #printArea .foot{margin-top:30px;font-size:11px;color:#444;text-align:center}
+}
+@media (prefers-reduced-motion:no-preference){.sheet .card{animation:up .2s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+
+
+<div class="app" dir="rtl">
+  <header class="top">
+    <div class="brand">
+      <small id="schoolLbl">الثانوية الأولى بقبة</small>
+      <h1>رصد سلوك الطالبات</h1>
+    </div>
+    <span class="status" id="status">محفوظ على هذا الجهاز</span>
+  </header>
+
+  <!-- الرئيسية -->
+  <section id="v-home">
+    <div class="tiles">
+      <div class="tile"><b id="kToday">0</b><span>مخالفات اليوم</span></div>
+      <div class="tile"><b id="kMonth">0</b><span>مخالفات هذا الشهر</span></div>
+      <div class="tile"><b id="kPend">0</b><span>بانتظار إشعار ولي الأمر</span></div>
+      <div class="tile star"><b id="kExc">0</b><span>سلوك متميز هذا الشهر</span></div>
+    </div>
+    <h2>آخر ما رُصد</h2>
+    <div class="panel" id="latest"></div>
+    <h2>المخالفات حسب الدرجة</h2>
+    <div class="panel"><div class="bars" id="bars"></div></div>
+    <h2>تكررت مخالفاتهن</h2>
+    <div class="panel" id="topStud"></div>
+    <h2>الأكثر تميزاً</h2>
+    <div class="panel" id="topExc"></div>
+  </section>
+
+  <!-- رصد مخالفة -->
+  <section id="v-rec" hidden>
+    <h2>رصد مخالفة سلوكية</h2>
+    <form id="f" autocomplete="off">
+      <div class="fgrid">
+        <div class="full">
+          <label for="fName">اسم الطالبة</label>
+          <input id="fName" list="names" required placeholder="اكتبي أول الاسم">
+        </div>
+        <div>
+          <label for="fGrade">الصف</label>
+          <select id="fGrade" required></select>
+        </div>
+        <div>
+          <label for="fSec">الفصل <i>(اختياري)</i></label>
+          <input id="fSec" placeholder="مثل: 2">
+        </div>
+        <div class="full">
+          <label>درجة المخالفة</label>
+          <div class="degs" id="degBtns"></div>
+        </div>
+        <div class="full">
+          <label>المخالفة</label>
+          <div id="vList"></div>
+        </div>
+        <div class="full" id="procBox" hidden></div>
+        <div>
+          <label for="fDate">التاريخ</label>
+          <input id="fDate" type="date" required>
+          <div class="hint" id="hijri"></div>
+        </div>
+        <div>
+          <label for="fPeriod">الحصة / الوقت <i>(اختياري)</i></label>
+          <select id="fPeriod">
+            <option value="">—</option>
+            <option>الاصطفاف الصباحي</option><option>الحصة الأولى</option><option>الحصة الثانية</option><option>الحصة الثالثة</option><option>الفسحة</option><option>الحصة الرابعة</option><option>الحصة الخامسة</option><option>الحصة السادسة</option><option>الحصة السابعة</option><option>نهاية الدوام</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="fNote">وصف الموقف <i>(اختياري)</i></label>
+          <textarea id="fNote" placeholder="وصف مختصر لما حدث"></textarea>
+        </div>
+        <div class="full">
+          <label for="fBy">الراصدة <i>(اختياري)</i></label>
+          <input id="fBy" placeholder="اسم المعلمة أو الوكيلة">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="submit" id="saveBtn">حفظ المخالفة</button>
+        <button class="btn ghost" type="reset">تفريغ</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- السلوك المتميز -->
+  <section id="v-exc" hidden>
+    <h2>رصد السلوك المتميز</h2>
+    <p class="hint" style="margin-top:-4px">درجات السلوك المتميز تعوّض ما حُسم من السلوك الإيجابي، ثم تُضاف حتى تكتمل درجة السلوك 100.</p>
+    <div class="seg" role="group" aria-label="طريقة الرصد"><button type="button" id="mOne" aria-pressed="true">طالبة واحدة</button><button type="button" id="mClass" aria-pressed="false">فصل كامل</button></div>
+    <form id="e" autocomplete="off">
+      <div class="fgrid">
+        <div class="full" id="eOneBox">
+          <div class="fgrid">
+            <div class="full"><label for="eName">اسم الطالبة</label><input id="eName" list="names" placeholder="اكتبي أول الاسم"></div>
+            <div><label for="eGrade">الصف</label><select id="eGrade"></select></div>
+            <div><label for="eSec">الفصل <i>(اختياري)</i></label><input id="eSec" placeholder="مثل: 2"></div>
+          </div>
+        </div>
+        <div class="full" id="eClassBox" hidden>
+          <label for="eClass">الفصل</label>
+          <select id="eClass"></select>
+          <div id="eChecks" style="margin-top:10px"></div>
+        </div>
+        <div class="full">
+          <label>الممارسة</label>
+          <div id="xList"></div>
+          <div class="fgrid" id="xOther" style="margin-top:10px" hidden>
+            <div><label for="xOtherT">السلوك المتميز</label><input id="xOtherT" placeholder="صفي السلوك"></div>
+            <div><label for="xOtherP">الدرجة <i>(بتوصية لجنة التوجيه، حتى 6)</i></label><input id="xOtherP" type="number" min="1" max="6" value="2" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div><label for="eDate">تاريخ التنفيذ</label><input id="eDate" type="date" required><div class="hint" id="eHijri"></div></div>
+        <div><label for="eEvid">الشواهد <i>(اختياري)</i></label><input id="eEvid" placeholder="شهادة، صورة، خطاب جهة…"></div>
+        <div class="full"><label for="eBy">الراصدة <i>(اختياري)</i></label><input id="eBy" placeholder="اسم المعلمة أو الرائدة"></div>
+      </div>
+      <div class="actions">
+        <button class="btn starbtn" type="submit" id="eSave">حفظ السلوك المتميز</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- الطالبات -->
+  <section id="v-stud" hidden>
+    <h2>سجل الطالبات</h2>
+    <div class="importbar"><span id="rosterInfo">لم تُستورد قائمة الطالبات بعد</span><button class="btn sm" id="openImport">استيراد الأسماء من نور</button></div>
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="ابحثي باسم الطالبة">
+      <select id="gFilter"><option value="">كل الصفوف</option></select>
+      <select id="sort"><option value="recent">الأحدث رصداً</option><option value="score">الأقل درجة سلوك</option><option value="count">الأكثر مخالفات</option><option value="exc">الأكثر تميزاً</option></select>
+    </div>
+    <div class="panel" id="studList"></div>
+    <div class="actions"><button class="btn ghost" id="exportBtn" hidden>تصدير السجل (CSV يفتح في Excel)</button></div>
+  </section>
+
+  <!-- الإعدادات -->
+  <section id="v-set" hidden>
+    <h2>بيانات المدرسة</h2>
+    <div style="display:grid;gap:12px">
+      <div><label for="sSchool">اسم المدرسة</label><input id="sSchool"></div>
+      <div><label for="sRegion">إدارة التعليم</label><input id="sRegion" placeholder="مثل: الإدارة العامة للتعليم بمنطقة …"></div>
+      <div><label for="sPrincipal">اسم مديرة المدرسة</label><input id="sPrincipal"></div>
+    </div>
+    <div class="actions"><button class="btn" id="saveSet">حفظ البيانات</button></div>
+    <h2>الربط بين المعلمات</h2>
+    <div class="panel" id="syncPanel"></div>
+    <h2>حفظ البيانات ونقلها</h2>
+    <div class="panel">
+      <div class="row"><div class="main"><div class="t">تنزيل نسخة احتياطية</div><div class="s">ملف يحفظ كل السجلات والأسماء والإعدادات. احتفظي به، أو أرسليه لزميلة لتسترجعه على جهازها.</div></div><button class="btn sm" id="backupBtn">تنزيل</button></div>
+      <div class="row"><div class="main"><div class="t">استرجاع نسخة أو دمج سجلات زميلة</div><div class="s">اختاري ملف النسخة الاحتياطية. تُضاف السجلات الجديدة دون تكرار ما هو موجود.</div><div data-confirm="restore"></div></div><label class="btn sm ghost filebtn" for="restoreFile">اختيار ملف<input id="restoreFile" type="file" accept=".json,application/json"></label></div>
+    </div>
+    <p class="note" id="saveNote"></p>
+    <h2>توزيع درجة السلوك (100)</h2>
+    <div class="panel rules">
+      <div class="row"><div class="main"><div class="t">السلوك الإيجابي</div><div class="s">تستحقها كل طالبة تلقائياً بداية الفصل، ويُحسم منها عند المخالفة</div></div><div class="score">80</div></div>
+      <div class="row"><div class="main"><div class="t">السلوك المتميز</div><div class="s">تكتسبها الطالبة بممارسات السلوك المتميز، وتعوّض المحسوم</div></div><div class="score">20</div></div>
+    </div>
+    <h2>درجات الحسم</h2>
+    <div class="panel rules" id="ptsTable"></div>
+    <p class="note">القوائم والإجراءات والدرجات مأخوذة من قواعد السلوك والمواظبة لطلبة التعليم العام، الإصدار الخامس 1447هـ، للمرحلتين المتوسطة والثانوية. مخالفات الدرجة الأولى لا يُحسم فيها إلا من الإجراء الثالث.</p>
+  </section>
+
+  <footer class="credit">إعداد الموجّهة الطلابية <b>عواطف الحربي</b><br><span id="footSchool">الثانوية الأولى بقبة</span> · وفق قواعد السلوك والمواظبة 1447هـ</footer>
+</div>
+
+<datalist id="names"></datalist>
+
+<nav class="tabs" dir="rtl"><div class="in">
+  <button data-v="home" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</button>
+  <button data-v="stud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.5 3.5 5.2"/></svg>الطالبات</button>
+  <button data-v="rec" class="rec"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></span>رصد مخالفة</button>
+  <button data-v="exc" class="exc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>سلوك متميز</button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإعدادات</button>
+</div></nav>
+
+<div id="sheet" class="sheet" hidden><div class="card" dir="rtl" id="sheetCard"></div></div>
+<div id="toast" class="toast" hidden></div>
+<div id="printArea" dir="rtl"></div>
+
+<script>
+document.documentElement.lang='ar';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ===== قواعد السلوك والمواظبة 1447هـ — المرحلتان المتوسطة والثانوية ===== */
+const DEGNAMES=['','الأولى','الثانية','الثالثة','الرابعة','الخامسة'];
+const DEGPTS=[0,1,2,3,10,15];
+const VIOL={
+ 1:['التأخر الصباحي','عدم حضور الاصطفاف الصباحي مع وجودها في المدرسة','التأخر عن الاصطفاف الصباحي أو العبث أثناءه','التأخر في الدخول إلى الحصص','إعاقة سير الحصص (الحديث الجانبي، المقاطعة، الأكل أثناء الدرس)','النوم داخل الفصل','تكرار الخروج والدخول من البوابة قبل وقت الحضور والانصراف','التجمهر أمام بوابة المدرسة'],
+ 2:['عدم حضور الحصة الدراسية أو الهروب منها','الدخول أو الخروج من الفصل دون استئذان','دخول فصل آخر دون استئذان','إثارة الفوضى داخل الفصل أو المدرسة أو في وسائل النقل المدرسي'],
+ 3:['عدم التقيد بالزي المدرسي','الشجار أو الاشتراك في مضاربة جماعية','الإشارة بحركات مخلة بالأدب تجاه الطالبات','التلفظ بكلمات نابية على الطالبات أو تهديدهن أو السخرية منهن','إلحاق الضرر المتعمد بممتلكات الطالبات','العبث بتجهيزات المدرسة أو مبانيها','إحضار المواد أو الألعاب الخطرة دون استخدامها','حيازة السجائر بأنواعها','حيازة المواد الإعلامية الممنوعة','التوقيع عن ولي الأمر دون علمه على المكاتبات','امتهان الكتب الدراسية'],
+ 4:['تعمد إصابة إحدى الطالبات بالضرب أو بأداة','سرقة شيء من ممتلكات الطالبات أو المدرسة','التصوير أو التسجيل الصوتي للطالبات','إلحاق الضرر المتعمد بتجهيزات المدرسة أو مبانيها','التدخين بأنواعه داخل المدرسة','الهروب من المدرسة','إحضار أو استخدام المواد أو الألعاب الخطرة','عرض أو توزيع المواد الإعلامية الممنوعة'],
+ '4s':['تهديد المعلمات أو الإداريات','التلفظ بألفاظ غير لائقة تجاه المعلمات أو الإداريات','السخرية من المعلمات أو الإداريات قولاً أو فعلاً','التوقيع عن أحد منسوبات المدرسة على المكاتبات','تصوير المعلمات أو الإداريات أو التسجيل الصوتي لهن دون إذن'],
+ 5:['الإساءة أو الاستهزاء بشيء من شعائر الإسلام','الإساءة للدولة أو رموزها','بث أو ترويج أفكار متطرفة أو إلحادية','الإساءة للأديان أو إثارة العنصرية أو الفتن القبلية أو الطائفية','التزوير أو الاستخدام غير المشروع للوثائق والأختام الرسمية','التحرش الجنسي','المظاهر أو الصور أو الشعارات الدالة على الشذوذ أو الترويج لها','إشعال النار داخل المدرسة','حيازة الأسلحة أو ما في حكمها أو التهديد بها','حيازة أو تعاطي أو ترويج المخدرات أو المسكرات','الجرائم المعلوماتية بأنواعها','ابتزاز الطالبات','التنمر بجميع أنواعه وأشكاله'],
+ '5s':['إلحاق الضرر بممتلكات المعلمات أو الإداريات أو سرقتها','الإشارة بحركات مخلة بالأدب تجاه المعلمات أو الإداريات','الاعتداء بالضرب على المعلمات أو الإداريات','ابتزاز المعلمات أو الإداريات','الجرائم المعلوماتية تجاه المعلمات أو الإداريات']
+};
+/* الإجراءات المتدرجة: يُطبق الإجراء التالي عند تكرار المخالفة نفسها */
+const PROCS={
+ 1:[
+  {pts:0,steps:['تنبيه شفهي أول من المعلمة أو إدارة المدرسة بأسلوب تربوي']},
+  {pts:0,steps:['تنبيه شفهي ثانٍ عند مباشرة الموقف','ملاحظة الطالبة وحصر أسباب السلوك والحد منها وتعزيز السلوك الإيجابي']},
+  {pts:1,steps:['تدوين المشكلة في سجل المشكلات السلوكية وتوقيع الطالبة','إشعار ولي الأمر هاتفياً والتنسيق معه','حسم درجة من السلوك الإيجابي مع تمكينها من فرص التعويض','تحويل الطالبة إلى الموجّهة الطلابية لدراسة حالتها']},
+  {pts:1,steps:['دعوة ولي الأمر والاتفاق على خطة تعديل السلوك','حسم درجة من السلوك الإيجابي مع فرص التعويض','التحويل إلى لجنة التوجيه الطلابي','متابعة الموجّهة الطلابية للحالة']}],
+ 2:[
+  {pts:2,steps:['إشعار ولي الأمر هاتفياً بالمشكلة والإجراءات المتخذة','حسم درجتين مع فرص التعويض وإشعار ولي الأمر','أخذ تعهد خطي على الطالبة بعدم التكرار','تحويل الطالبة إلى الموجّهة الطلابية لدراسة حالتها']},
+  {pts:2,steps:['جميع ما ورد في الإجراء الأول','دعوة ولي الأمر حضورياً ومناقشة خطة تعديل السلوك ووضع برنامج وقائي وتوقيعه بالعلم']},
+  {pts:2,steps:['جميع ما ورد في الإجراء الثاني','نقل الطالبة إلى فصل آخر بقرار لجنة التوجيه الطلابي','التحويل إلى لجنة التوجيه الطلابي وفق تقرير دراسة الحالة']}],
+ 3:[
+  {pts:3,steps:['دعوة ولي الأمر ومناقشة خطة تعديل السلوك وأخذ تعهد خطي وتوقيعه بالعلم','حسم ثلاث درجات مع فرص التعويض وإشعار ولي الأمر','الاعتذار لمن أساءت إليه، وإصلاح ما أتلفته أو إحضار بديل','مصادرة ما بحوزتها من مواد ممنوعة بمحضر','تحويل الطالبة إلى الموجّهة الطلابية لدراسة حالتها']},
+  {pts:3,steps:['جميع ما ورد في الإجراء الأول','إنذار الطالبة كتابياً بالنقل إلى مدرسة أخرى عند التكرار وتوقيع ولي الأمر بالعلم','التحويل إلى لجنة التوجيه الطلابي','نقلها إلى فصل آخر بقرار لجنة التوجيه']},
+  {pts:3,steps:['جميع ما ورد في الإجراء الأول','رفع محضر اجتماع لجنة التوجيه إلى إدارة التعليم بصفة عاجلة','نقل الطالبة إلى مدرسة أخرى بقرار مدير التعليم مع الأخذ برأي ولي الأمر']}],
+ 4:[
+  {pts:10,steps:['إحالة الطالبة إلى لجنة التوجيه الطلابي مباشرة','دعوة ولي الأمر ووضع خطة تعديل السلوك وأخذ تعهد خطي وإنذارها بالنقل عند التكرار','حسم عشر درجات مع فرص التعويض وإشعار ولي الأمر','الاعتذار لمن أساءت إليه، وإصلاح ما أتلفته، ومصادرة الممنوعات بمحضر','نقلها إلى فصل آخر بقرار لجنة التوجيه']},
+  {pts:10,steps:['جميع ما ورد في الإجراء الأول عدا النقل من الفصل','رفع محضر اجتماع لجنة التوجيه إلى إدارة التعليم بصفة عاجلة','نقل الطالبة إلى مدرسة أخرى بقرار مدير التعليم مع الأخذ برأي ولي الأمر']}],
+ 5:[
+  {pts:15,steps:['تدوين محضر لإثبات الواقعة','دعوة ولي الأمر وتبليغه بالمشكلة والإجراءات','حسم خمس عشرة درجة مع فرص التعويض في المدرسة المنقولة إليها','اجتماع لجنة التوجيه الطلابي مباشرة ورفع المحضر إلى إدارة التعليم بصفة عاجلة','نقل الطالبة إلى مدرسة أخرى بقرار مدير التعليم مع الأخذ برأي ولي الأمر']}]
+};
+const PROCNAMES=['','الأول','الثاني','الثالث','الرابع'];
+/* ممارسات السلوك المتميز */
+const EXC=[
+ {pts:6,label:'ست درجات',items:['الانضباط وعدم الغياب بدون عذر خلال الفصل الدراسي','المشاركة في الخدمة المجتمعية خارج المدرسة','تقديم فعالية حوارية','المشاركة في حملة توعوية','عرض تجارب شخصية ناجحة','الالتحاق ببرنامج أو دورة']},
+ {pts:4,label:'أربع درجات',items:['مهارات الاتصال (العمل الجماعي، التعلم بالأقران)','مهارات القيادة والمسؤولية','المهارات الرقمية','مهارة إدارة الوقت']},
+ {pts:2,label:'درجتان',items:['كتابة رسالة شكر','المشاركة في الإذاعة','تقديم مقترح لصالح المجتمع المدرسي','التعاون مع الزميلات والمعلمات وإدارة المدرسة']}
+];
+const GRADES=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
+const DEF_SCHOOL='الثانوية الأولى بقبة';
+const DEF_SET={school:DEF_SCHOOL,region:'',principal:''};
+
+const hosted=!!(window.claude&&window.claude.use); // داخل Claude أم ملف مستقل
+let settings={...DEF_SET};
+let records=[], roster=[], rosterIdx=new Map();
+let canWrite=true;
+let deg=1, viol='', exc=null, excMode='one';
+
+/* ---------- storage: shared db when available, this device otherwise ---------- */
+const store={mode:'pending',db:null,
+  async init(){
+    let db=null;
+    if(hosted){
+      try{ db=await Promise.race([window.claude.use('db'),new Promise(r=>setTimeout(()=>r(null),4000))]);}catch(e){db=null}
+    }
+    if(db){
+      this.db=db; this.mode='db';
+      setStatus('محفوظ ومشترك','live');
+      try{const u=await window.claude.use('user'); if(u){const c=await u.can('data.write'); if(c===false){canWrite=false;applyWrite();}}}catch(e){}
+      db.collection('records').onSnapshot(s=>{records=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();},()=>toast('تعذّر تحديث السجل، أعيدي فتح الصفحة'));
+      db.collection('roster').onSnapshot(s=>{roster=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();},()=>{});
+      db.doc('config/settings').onSnapshot(s=>{if(s.exists){const d=s.data();settings={...DEF_SET,...d,school:d.school||DEF_SCHOOL};fillSettings();renderAll();}},()=>{});
+    }else if(!hosted&&SYNC.url){
+      this.mode='sheet';
+      loadCache();SYNC.queue=lsGet('rasd_queue',[]);
+      setStatus('جارٍ الاتصال…','');
+      fillSettings();renderAll();
+      flush();
+      setInterval(()=>{if(!document.hidden)flush();},45000);
+    }else{
+      this.mode='local';
+      setStatus('محفوظ على هذا الجهاز','');
+      loadCache();
+      fillSettings();renderAll();
+    }
+    addEventListener('online',()=>{if(store.mode==='sheet')flush();});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&store.mode==='sheet')flush();});
+    setSaveNote();drawSyncPanel();
+  },
+  async put(r){
+    const{id,...body}=r;
+    if(this.mode==='db'){await this.db.doc('records/'+id).set(body);}
+    else{const i=records.findIndex(x=>x.id===id);if(i>=0)records[i]=r;else records.push(r);if(this.mode==='sheet')queueOp({op:'put',rec:r});}
+  },
+  saveLocal(){cacheAll();},
+  async add(r){
+    if(this.mode==='db'){await this.db.collection('records').add(r);return;}
+    r.id='r'+Date.now()+Math.random().toString(36).slice(2,6);records.push(r);
+    if(this.mode==='sheet')queueOp({op:'put',rec:r});else{cacheAll();renderAll();}
+  },
+  async update(id,p){
+    if(this.mode==='db'){await this.db.doc('records/'+id).update(p);return;}
+    const r=records.find(x=>x.id===id);Object.assign(r,p);
+    if(this.mode==='sheet')queueOp({op:'put',rec:r});else{cacheAll();renderAll();}
+  },
+  async remove(id){
+    if(this.mode==='db'){await this.db.doc('records/'+id).delete();return;}
+    records=records.filter(x=>x.id!==id);
+    if(this.mode==='sheet')queueOp({op:'del',id});else{cacheAll();renderAll();}
+  },
+  async saveClass(c){
+    if(this.mode==='db'){const{id,...body}=c;await this.db.doc('roster/'+id).set(body);return;}
+    roster=roster.filter(x=>x.id!==c.id).concat([c]);
+    if(this.mode==='sheet')queueOp({op:'class',cls:c});else{cacheAll();renderAll();}
+  },
+  async removeClass(id){
+    if(this.mode==='db'){await this.db.doc('roster/'+id).delete();return;}
+    roster=roster.filter(x=>x.id!==id);
+    if(this.mode==='sheet')queueOp({op:'delclass',id});else{cacheAll();renderAll();}
+  },
+  async saveSettings(s){
+    if(this.mode==='db'){await this.db.doc('config/settings').set(s);return;}
+    settings=s;fillSettings();
+    if(this.mode==='sheet')queueOp({op:'settings',settings:s});else{cacheAll();renderAll();}
+  }
+};
+
+/* ---------- Google Sheets link (shared school record) ---------- */
+const SYNC={url:'',queue:[],busy:false,last:null};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function loadCache(){
+  records=lsGet('rasd_records',[]);roster=lsGet('rasd_roster',[]);
+  const s=lsGet('rasd_settings',null);if(s)settings={...DEF_SET,...s,school:s.school||DEF_SCHOOL};
+}
+function cacheAll(){lsSet('rasd_records',records);lsSet('rasd_roster',roster);lsSet('rasd_settings',settings);lsSet('rasd_queue',SYNC.queue);}
+function queueOp(op){SYNC.queue.push(op);cacheAll();renderAll();syncStatus(false,true);flush();}
+async function getRemote(url){
+  const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now());
+  const j=await r.json();if(!j||!j.ok)throw new Error('bad');return j;
+}
+async function flush(){
+  if(!SYNC.url||SYNC.busy)return;
+  if(!SYNC.queue.length)return pull();
+  SYNC.busy=true;const ops=SYNC.queue.slice(0,40);
+  try{
+    const r=await fetch(SYNC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({ops})});
+    const j=await r.json();if(!j.ok)throw 0;
+    SYNC.queue=SYNC.queue.slice(ops.length);cacheAll();SYNC.busy=false;
+    if(SYNC.queue.length)return flush();
+    return pull();
+  }catch(e){SYNC.busy=false;syncStatus(false);}
+}
+async function pull(){
+  if(!SYNC.url||SYNC.busy)return;SYNC.busy=true;
+  try{
+    const j=await getRemote(SYNC.url);
+    const m=new Map((j.records||[]).map(x=>[x.id,x]));
+    const cm=new Map((j.roster||[]).map(x=>[x.id,x]));
+    let ps=null;
+    for(const op of SYNC.queue){
+      if(op.op==='put')m.set(op.rec.id,op.rec);else if(op.op==='del')m.delete(op.id);
+      else if(op.op==='class')cm.set(op.cls.id,op.cls);else if(op.op==='delclass')cm.delete(op.id);
+      else if(op.op==='settings')ps=op.settings;
+    }
+    records=[...m.values()];roster=[...cm.values()];
+    const st=ps||j.settings;if(st)settings={...DEF_SET,...st,school:st.school||DEF_SCHOOL};
+    SYNC.last=new Date();SYNC.busy=false;cacheAll();fillSettings();renderAll();syncStatus(true);
+  }catch(e){SYNC.busy=false;syncStatus(false);}
+}
+function syncStatus(ok,pending){
+  if(store.mode!=='sheet')return;
+  const n=SYNC.queue.length;
+  if(pending)setStatus('جارٍ الرفع…','');
+  else if(ok&&!n)setStatus('متصل بسجل المدرسة · '+SYNC.last.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'}),'live');
+  else setStatus(n?`غير متصل · ${n} بانتظار الرفع`:'غير متصل حالياً','');
+  drawSyncPanel();
+}
+async function connectSheet(url){
+  url=url.trim();
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){toast('الرابط يجب أن يبدأ بـ https://script.google.com');return false;}
+  toast('جارٍ التحقق من الرابط…');
+  let j;try{j=await getRemote(url);}catch(e){toast('لم أستطع الوصول للجدول. تأكدي من النشر بخيار «أي شخص»');return false;}
+  SYNC.url=url;lsSet('rasd_sync',url);
+  const ids=new Set((j.records||[]).map(x=>x.id)), cids=new Set((j.roster||[]).map(x=>x.id));
+  SYNC.queue=lsGet('rasd_queue',[]);
+  for(const r of records)if(r.id&&!ids.has(r.id))SYNC.queue.push({op:'put',rec:r});
+  for(const c of roster)if(!cids.has(c.id))SYNC.queue.push({op:'class',cls:c});
+  if(!j.settings&&(settings.region||settings.principal))SYNC.queue.push({op:'settings',settings});
+  store.mode='sheet';cacheAll();setSaveNote();
+  toast('تم الربط بسجل المدرسة');
+  await flush();
+  if(!store._timer)store._timer=setInterval(()=>{if(!document.hidden)flush();},45000);
+  return true;
+}
+function disconnectSheet(){
+  SYNC.url='';try{localStorage.removeItem('rasd_sync');}catch(e){}
+  store.mode='local';setStatus('محفوظ على هذا الجهاز','');setSaveNote();drawSyncPanel();toast('فُك الربط، والبيانات باقية على هذا الجهاز');
+}
+function setSaveNote(){
+  $('#saveNote').textContent=store.mode==='db'
+    ?'البيانات محفوظة في المنصة ومشتركة مع من تشاركينها معهن. النسخة الاحتياطية للاحتياط أو لنقل البيانات إلى الملف المستقل.'
+    :store.mode==='sheet'
+    ?'المنصة مرتبطة بسجل المدرسة في Google Sheets: كل رصد يُرفع تلقائياً ويظهر عند الجميع، وإن انقطع الإنترنت يُحفظ على الجهاز ويُرفع عند عودته.'
+    :'البيانات محفوظة في متصفح هذا الجهاز. لجعل رصد كل المعلمات في سجل واحد، اربطي المنصة بجدول Google Sheets من القسم أعلاه.';
+}
+const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets
+// إعداد الموجّهة الطلابية عواطف الحربي
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+const REC_H = ['id','النوع','اسم الطالبة','الصف','الفصل','درجة المخالفة','المخالفة / الممارسة','الإجراء','الدرجات','التاريخ','إشعار ولي الأمر','الراصدة','بيانات'];
+const CLS_H = ['id','الصف','الفصل','عدد الطالبات','بيانات'];
+
+function tab(name, head) {
+  let s = SS.getSheetByName(name);
+  if (!s) { s = SS.insertSheet(name); s.appendRow(head); s.setFrozenRows(1); s.setRightToLeft(true); }
+  return s;
+}
+function out(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+function rows(s, n) {
+  const last = s.getLastRow();
+  return last < 2 ? [] : s.getRange(2, 1, last - 1, n).getValues();
+}
+function parse(v) { try { return JSON.parse(v); } catch (e) { return null; } }
+
+function doGet() {
+  const recs = rows(tab('السجلات', REC_H), 13).map(r => parse(r[12])).filter(Boolean);
+  const cls = rows(tab('الفصول', CLS_H), 5).map(r => parse(r[4])).filter(Boolean);
+  const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
+  return out({ ok: true, records: recs, roster: cls, settings: st ? parse(st) : null });
+}
+
+function findRow(s, id) {
+  const f = s.getRange('A:A').createTextFinder(String(id)).matchEntireCell(true).findNext();
+  return f ? f.getRow() : 0;
+}
+function upsert(s, id, vals) {
+  const r = findRow(s, id);
+  if (r) s.getRange(r, 1, 1, vals.length).setValues([vals]); else s.appendRow(vals);
+}
+function recRow(x) {
+  const exc = x.kind === 'exc' || x.kind === 'comp';
+  return [x.id, exc ? 'سلوك متميز' : 'مخالفة', x.name || '', x.grade || '', x.section || '',
+    exc ? '' : (x.degree || ''), exc ? (x.practice || x.note || '') : (x.violation || ''),
+    x.proc || '', exc ? '+' + (x.points || 0) : (x.pts == null ? '' : '-' + x.pts),
+    x.date || '', exc ? '' : (x.notified ? 'نعم' : 'لا'), x.by || '', JSON.stringify(x)];
+}
+
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    const ops = JSON.parse(e.postData.contents).ops || [];
+    const R = tab('السجلات', REC_H), C = tab('الفصول', CLS_H);
+    ops.forEach(op => {
+      if (op.op === 'put') upsert(R, op.rec.id, recRow(op.rec));
+      else if (op.op === 'del') { const r = findRow(R, op.id); if (r) R.deleteRow(r); }
+      else if (op.op === 'class') upsert(C, op.cls.id, [op.cls.id, op.cls.grade, op.cls.section || '', (op.cls.names || []).length, JSON.stringify(op.cls)]);
+      else if (op.op === 'delclass') { const r = findRow(C, op.id); if (r) C.deleteRow(r); }
+      else if (op.op === 'settings') tab('الإعدادات', ['بيانات']).getRange('A2').setValue(JSON.stringify(op.settings));
+    });
+    return out({ ok: true });
+  } catch (err) {
+    return out({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
+`;
+function drawSyncPanel(){
+  const p=$('#syncPanel');if(!p)return;
+  if(hosted){p.innerHTML=`<div class="row"><div class="main"><div class="s">الربط بـ Google Sheets يعمل في ملف المنصة المرفوع على موقعك (مثل GitHub)، لا داخل Claude.</div></div></div>`;return;}
+  if(store.mode==='sheet'){
+    const n=SYNC.queue.length;
+    p.innerHTML=`<div class="row"><span class="stripe" style="background:var(--ok)"></span><div class="main"><div class="t">متصلة بسجل المدرسة</div><div class="s">${SYNC.last?'آخر تحديث '+SYNC.last.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'}):'جارٍ الاتصال…'}${n?` · ${n} بانتظار الرفع`:''}</div></div><button class="btn sm ghost" id="syncNow">تحديث الآن</button></div>
+    <div class="row"><div class="main"><div class="t">رابط الدعوة للمعلمات</div><div class="s">أرسليه لزميلاتك؛ من يفتحه يرتبط بنفس السجل تلقائياً. لا ترسليه لغير منسوبات المدرسة.</div></div><button class="btn sm" id="copyInvite">نسخ الرابط</button></div>
+    <div class="row"><div class="main"><div class="s">فك ربط هذا الجهاز فقط، والسجل في الجدول لا يتأثر.</div><div data-confirm="unlink"></div></div><button class="btn sm danger" id="unlink">فك الربط</button></div>`;
+    return;
+  }
+  p.innerHTML=`<div class="row" style="display:block">
+    <div class="t">اجعلي رصد كل المعلمات في سجل واحد</div>
+    <ol class="steps">
+      <li>أنشئي جدولاً جديداً في <b>Google Sheets</b> باسم «سجل السلوك».</li>
+      <li>من القائمة: <b>Extensions ← Apps Script</b> (الإضافات).</li>
+      <li>احذفي الموجود والصقي <b>كود الربط</b>، ثم احفظي.</li>
+      <li><b>Deploy ← New deployment</b>، النوع <b>Web app</b>، «Execute as»: أنا، «Who has access»: <b>Anyone</b>، ثم وافقي على الأذونات.</li>
+      <li>انسخي رابط <b>Web app</b> والصقيه هنا.</li>
+    </ol>
+    <div class="actions" style="margin-top:10px"><button class="btn sm ghost" id="showCode">نسخ كود الربط</button></div>
+    <label for="syncUrl" style="margin-top:12px">رابط Web app</label>
+    <input id="syncUrl" dir="ltr" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="actions"><button class="btn" id="linkBtn">ربط</button></div></div>`;
+}
+function inviteLink(){return location.href.split('#')[0]+'#sync='+encodeURIComponent(SYNC.url);}
+async function copyText(txt,ok){try{await navigator.clipboard.writeText(txt);toast(ok);}catch(e){
+  const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast(ok);}catch(x){toast('تعذّر النسخ');}ta.remove();}}
+(function readInvite(){
+  try{
+    const h=location.hash;
+    if(h.startsWith('#sync=')){const u=decodeURIComponent(h.slice(6));if(/^https:\/\/script\.google/.test(u)){lsSet('rasd_sync',u);SYNC._invited=true;}history.replaceState(null,'',location.href.split('#')[0]);}
+    SYNC.url=lsGet('rasd_sync','');
+  }catch(e){}
+})();
+function writeErr(e){
+  if(e&&e.code==='invalid_argument'){canWrite=false;applyWrite();toast('ليست لديك صلاحية التعديل على هذه المنصة');}
+  else if(e&&e.code==='quota_exceeded'){toast('امتلأت سعة السجل، صدّري السجل واحذفي سجلات قديمة');}
+  else toast('تعذّر الحفظ، حاولي مرة أخرى');
+}
+function applyWrite(){document.querySelectorAll('#saveBtn,#saveSet,#eSave').forEach(b=>b.disabled=!canWrite);}
+
+/* ---------- helpers ---------- */
+function setStatus(t,c){const s=$('#status');s.textContent=t;s.className='status '+c;}
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600);}
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+function hijri(iso){if(!iso)return '';try{return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));}catch(e){return iso}}
+const D=d=>Math.min(5,Math.max(1,+d||1));
+const degColor=d=>`var(--d${D(d)})`;
+const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
+const keyOf=r=>norm(r.name)+'|'+r.grade;
+const isExc=r=>r.kind==='exc'||r.kind==='comp';
+const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
+const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
+function students(){
+  const m=new Map();
+  for(const r of records){const k=keyOf(r);if(!m.has(k))m.set(k,{key:k,name:norm(r.name),grade:r.grade,sec:r.section||'',recs:[]});const s=m.get(k);s.recs.push(r);if(r.section)s.sec=r.section;}
+  for(const s of m.values()){
+    s.recs.sort(sortRec);
+    s.viol=s.recs.filter(r=>!isExc(r));
+    s.exc=s.recs.filter(isExc);
+    s.ded=s.viol.reduce((a,r)=>a+dedOf(r),0);
+    s.excPts=s.exc.reduce((a,r)=>a+(+r.points||0),0);
+    s.score=Math.max(0,Math.min(100,80-s.ded+s.excPts));
+    s.last=s.recs[0]?.date||'';
+    s.maxDeg=s.viol.length?Math.max(...s.viol.map(r=>D(r.degree))):0;
+  }
+  return [...m.values()];
+}
+
+/* ---------- render ---------- */
+function recRow(r,showName=true){
+  const where=`${esc(r.grade)}${r.section?' / '+esc(r.section):''} · ${hijri(r.date)}`;
+  const click=showName?`class="row click" data-k="${esc(keyOf(r))}"`:'class="row"';
+  if(isExc(r)) return `<div ${click}><span class="stripe" style="background:var(--star)"></span>
+    <div class="main"><div class="t">${showName?esc(r.name):esc(r.practice||r.note||'سلوك متميز')}</div>
+    <div class="s">${showName?esc(r.practice||r.note||'سلوك متميز')+' · ':''}${where}${!showName&&r.evidence?'<br>الشواهد: '+esc(r.evidence):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
+    ${!showName&&canWrite?`<div class="actions" style="margin-top:6px">${delBtn(r)}</div><div data-confirm="${r.id}"></div>`:''}</div>
+    <span class="chip star" dir="ltr">+${+r.points||0}</span></div>`;
+  const ded=dedOf(r);
+  return `<div ${click}><span class="stripe" style="background:${degColor(r.degree)}"></span>
+  <div class="main"><div class="t">${showName?esc(r.name):esc(r.violation)}</div>
+  <div class="s">${showName?esc(r.violation)+' · ':''}الدرجة ${DEGNAMES[D(r.degree)]}${r.proc?' · الإجراء '+PROCNAMES[r.proc]:''} · ${where}${!showName&&r.period?' · '+esc(r.period):''}${!showName&&r.note?'<br>'+esc(r.note):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
+  ${!showName?`<div class="actions" style="margin-top:6px">${r.notified?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
+  <div style="display:grid;gap:4px;justify-items:end">${ded?`<span class="chip neg" dir="ltr">−${ded}</span>`:''}<span class="chip ${r.notified?'ok':'pend'}">${r.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div></div>`;
+}
+const delBtn=r=>`<button class="btn sm danger" data-del="${r.id}">حذف</button>`;
+function renderAll(){
+  const sch=settings.school||DEF_SCHOOL;
+  $('#schoolLbl').textContent=sch+(settings.region?' · '+settings.region:'');
+  $('#footSchool').textContent=sch;
+  const v=records.filter(r=>!isExc(r)), x=records.filter(isExc);
+  const t=today(), mo=t.slice(0,7);
+  const st=students();
+  $('#kToday').textContent=v.filter(r=>r.date===t).length;
+  $('#kMonth').textContent=v.filter(r=>(r.date||'').startsWith(mo)).length;
+  $('#kPend').textContent=v.filter(r=>!r.notified).length;
+  $('#kExc').textContent=x.filter(r=>(r.date||'').startsWith(mo)).length;
+  const latest=[...records].sort(sortRec).slice(0,6);
+  $('#latest').innerHTML=latest.length?latest.map(r=>recRow(r)).join(''):`<div class="empty"><b>لا يوجد رصد بعد</b>اضغطي «رصد مخالفة» أو «سلوك متميز» في الأسفل لتسجيل أول رصد.</div>`;
+  const cnt=[0,0,0,0,0,0];v.forEach(r=>cnt[D(r.degree)]++);const mx=Math.max(1,...cnt);
+  $('#bars').innerHTML=[1,2,3,4,5].map(d=>`<div class="bar"><span>الدرجة ${DEGNAMES[d]}</span><div class="track"><div class="fill" style="width:${cnt[d]/mx*100}%;background:${degColor(d)}"></div></div><span class="n">${cnt[d]}</span></div>`).join('');
+  const top=st.filter(s=>s.viol.length>1).sort((a,b)=>b.viol.length-a.viol.length).slice(0,5);
+  $('#topStud').innerHTML=top.length?top.map(studRow).join(''):`<div class="empty">ستظهر هنا الطالبات اللاتي تكررت مخالفاتهن.</div>`;
+  const topX=st.filter(s=>s.exc.length).sort((a,b)=>b.excPts-a.excPts).slice(0,5);
+  $('#topExc').innerHTML=topX.length?topX.map(studRow).join(''):`<div class="empty">ستظهر هنا الطالبات صاحبات السلوك المتميز.</div>`;
+  rosterIdx=new Map();
+  for(const c of roster)for(const n of (c.names||[]))rosterIdx.set(n,{grade:c.grade,section:c.section||''});
+  for(const s of st)if(!rosterIdx.has(s.name))rosterIdx.set(s.name,{grade:s.grade,section:s.sec});
+  $('#names').innerHTML=[...rosterIdx.keys()].map(n=>`<option value="${esc(n)}">`).join('');
+  const rc=roster.reduce((a,c)=>a+(c.names||[]).length,0);
+  $('#rosterInfo').textContent=rc?`في القائمة المستوردة ${rc} طالبة في ${roster.length} فصل`:'لم تُستورد قائمة الطالبات بعد';
+  $('#openImport').hidden=!canWrite&&!rc;
+  drawClassSelect();
+  renderStud();
+  updateProc();
+  $('#exportBtn').hidden=!records.length;
+  if(imp.open&&imp.stage==='start')drawImport();
+  if(openKey) openStudent(openKey,true);
+}
+function studRow(s){
+  const low=s.score<70;
+  return `<div class="row click" data-k="${esc(s.key)}"><span class="stripe" style="background:${s.maxDeg?degColor(s.maxDeg):'var(--star)'}"></span>
+  <div class="main"><div class="t">${esc(s.name)}</div><div class="s">${esc(s.grade)}${s.sec?' / '+esc(s.sec):''} · ${s.viol.length} مخالفة${s.exc.length?` · ${s.exc.length} تميز`:''}${s.last?' · آخر رصد '+hijri(s.last):''}</div></div>
+  <div class="score" style="color:${low?'var(--d5)':'var(--fg)'}">${s.score}<small>من 100</small></div></div>`;
+}
+function renderStud(){
+  const q=$('#q').value.trim(), g=$('#gFilter').value, so=$('#sort').value;
+  let st=students().filter(s=>(!q||s.name.includes(q))&&(!g||s.grade===g));
+  st.sort(so==='score'?(a,b)=>a.score-b.score:so==='count'?(a,b)=>b.viol.length-a.viol.length:so==='exc'?(a,b)=>b.excPts-a.excPts:(a,b)=>b.last.localeCompare(a.last));
+  $('#studList').innerHTML=st.length?st.map(studRow).join(''):`<div class="empty"><b>${records.length?'لا توجد نتائج':'السجل فارغ'}</b>${records.length?'جرّبي اسماً آخر أو صفاً مختلفاً.':'تظهر الطالبات هنا تلقائياً بعد أول رصد.'}</div>`;
+}
+
+/* ---------- student sheet ---------- */
+let openKey=null, sheetMode='list', noticeId=null;
+function openStudent(k,refresh){
+  const s=students().find(x=>x.key===k);
+  if(!s){closeSheet();return;}
+  openKey=k; imp.open=false; if(!refresh){sheetMode='list';noticeId=null;}
+  const c=$('#sheetCard');
+  let body='';
+  if(sheetMode==='notice'){
+    const r=records.find(x=>x.id===noticeId);
+    if(!r){sheetMode='list';return openStudent(k,true);}
+    body=`<p class="hint">نص جاهز للنسخ والإرسال، أو للصق في نموذج إشعار ولي الأمر الرسمي.</p><div class="notice" id="noticeTxt">${esc(noticeText(r,s))}</div>
+    <div class="actions"><button class="btn" id="copyN">نسخ النص</button><a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(noticeText(r,s))}" target="_blank" rel="noopener">إرسال واتساب</a>${hosted?'':'<button class="btn ghost" id="printN">طباعة</button>'}${canWrite?`<button class="btn ghost" data-mark="${r.id}">تم الإشعار</button>`:''}<button class="btn ghost" id="backL">رجوع</button></div>`;
+  }else{
+    body=`<div class="split">
+      <div class="tile"><b>${s.score}</b><span>درجة السلوك من 100</span></div>
+      <div class="tile"><b>${Math.max(0,80-s.ded)}</b><span>الإيجابي من 80 (حُسم ${s.ded})</span></div>
+      <div class="tile star"><b>+${s.excPts}</b><span>السلوك المتميز</span></div></div>
+      ${canWrite?`<div class="actions"><button class="btn sm" id="addFor">رصد مخالفة لها</button><button class="btn sm starbtn" id="addExc">رصد سلوك متميز لها</button>${hosted?'':'<button class="btn sm ghost" id="printR">طباعة تقرير الطالبة</button>'}</div>`:(hosted?'':'<div class="actions"><button class="btn sm ghost" id="printR">طباعة تقرير الطالبة</button></div>')}
+      <h2>السجل</h2><div class="panel">${s.recs.map(r=>recRow(r,false)).join('')}</div>`;
+  }
+  c.innerHTML=`<div class="head"><div><h3>${esc(s.name)}</h3><div class="hint">${esc(s.grade)}${s.sec?' / فصل '+esc(s.sec):''}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>${body}`;
+  $('#sheet').hidden=false;
+}
+function closeSheet(){$('#sheet').hidden=true;openKey=null;imp.open=false;}
+function noticeText(r,s){
+  const p=r.proc&&PROCS[D(r.degree)][r.proc-1];
+  const steps=r.steps||(p?p.steps:[]);
+  return `المملكة العربية السعودية
+وزارة التعليم${settings.region?'\n'+settings.region:''}
+${settings.school||DEF_SCHOOL}
+
+إشعار ولي أمر الطالبة بمشكلة سلوكية
+
+المكرم ولي أمر الطالبة / ${s.name}        الصف: ${s.grade}${s.sec?' / '+s.sec:''}
+السلام عليكم ورحمة الله وبركاته،
+
+نُشعركم بأن ابنتكم قامت بمشكلة سلوكية من الدرجة ${DEGNAMES[D(r.degree)]}، وهي: ${r.violation}، بتاريخ ${hijri(r.date)}${r.period?' ('+r.period+')':''}.
+وقد اتُّخذت حيالها الإجراءات التالية وفق قواعد السلوك والمواظبة${r.proc?' (الإجراء '+PROCNAMES[r.proc]+')':''}:
+${steps.length?steps.map((x,i)=>(i+1)+'. '+x).join('\n'):'—'}
+
+لذا نأمل منكم المتابعة والتعاون مع المدرسة بما يسهم في انضباط سلوك ابنتكم، علماً بأن لها فرصة تعويض الدرجات المحسومة بممارسات السلوك المتميز.
+
+مديرة المدرسة: ${settings.principal||'....................'}`;
+}
+
+/* ---------- violation form ---------- */
+function gradeOptions(sel){sel.innerHTML=GRADES.map(g=>`<option>${g}</option>`).join('');}
+function drawDegs(){
+  $('#degBtns').innerHTML=[1,2,3,4,5].map(d=>`<button type="button" data-deg="${d}" aria-pressed="${d===deg}" style="${d===deg?'background:'+degColor(d):''}">${d}<small>−${DEGPTS[d]}</small></button>`).join('');
+  const chips=a=>a.map(v=>`<button type="button" data-v="${esc(v)}" aria-pressed="${v===viol}">${esc(v)}</button>`).join('');
+  let h=`<div class="vlist">${chips(VIOL[deg])}</div>`;
+  if(VIOL[deg+'s'])h+=`<div class="vgroup"><span>تجاه الهيئة التعليمية والإدارية</span><div class="vlist">${chips(VIOL[deg+'s'])}</div></div>`;
+  $('#vList').innerHTML=h;
+  updateProc();
+}
+function currentProc(){
+  const name=norm($('#fName').value);
+  if(!viol)return null;
+  const prior=name?records.filter(r=>!isExc(r)&&norm(r.name)===name&&r.violation===viol).length:0;
+  const list=PROCS[deg];
+  const n=Math.min(prior+1,list.length);
+  return {n,prior,max:list.length,...list[n-1]};
+}
+function updateProc(){
+  const box=$('#procBox'); if(!box)return;
+  const p=currentProc();
+  if(!p){box.hidden=true;return;}
+  box.hidden=false;
+  box.innerHTML=`<div class="proc"><div class="ph"><b>الإجراء ${PROCNAMES[p.n]}</b><span class="chip ${p.pts?'neg':'ok'}">${p.pts?'حسم '+p.pts+' من السلوك الإيجابي':'بدون حسم'}</span></div>
+    <div class="hint" style="margin:0 0 6px">${p.prior?`سبق رصد هذه المخالفة لها ${p.prior} ${p.prior>2?'مرات':'مرة'}، فيُطبّق الإجراء التالي.`:'أول مرة تُرصد لها هذه المخالفة.'}${p.prior>=p.max?' (استُنفدت الإجراءات، يُكرَّر الإجراء الأخير)':''}</div>
+    <ul>${p.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+    ${deg>=4?`<div class="alert">عند الاقتضاء: تبليغ الجهات الأمنية المختصة بعد إشعار ولي الأمر، واستدعاء الهلال الأحمر عند الإصابة، وفي حالات الإيذاء أو الإهمال التواصل مع مركز البلاغات 1919.</div>`:''}</div>`;
+}
+function initForm(){
+  gradeOptions($('#fGrade'));gradeOptions($('#eGrade'));
+  $('#gFilter').innerHTML='<option value="">كل الصفوف</option>'+GRADES.map(g=>`<option>${g}</option>`).join('');
+  $('#fDate').value=today(); $('#hijri').textContent=hijri(today());
+  $('#eDate').value=today(); $('#eHijri').textContent=hijri(today());
+  deg=1;viol='';drawDegs();drawExc();
+  try{const b=localStorage.getItem('rasd_by');if(b){$('#fBy').value=b;$('#eBy').value=b;}}catch(e){}
+}
+function autofill(nameEl,gradeEl,secEl){
+  const m=rosterIdx.get(norm(nameEl.value));
+  if(m){gradeEl.value=m.grade;secEl.value=m.section||'';}
+}
+$('#fName').addEventListener('input',()=>{autofill($('#fName'),$('#fGrade'),$('#fSec'));updateProc();});
+$('#eName').addEventListener('input',()=>autofill($('#eName'),$('#eGrade'),$('#eSec')));
+$('#fDate').addEventListener('input',e=>$('#hijri').textContent=hijri(e.target.value));
+$('#eDate').addEventListener('input',e=>$('#eHijri').textContent=hijri(e.target.value));
+$('#degBtns').addEventListener('click',e=>{const b=e.target.closest('[data-deg]');if(!b)return;deg=+b.dataset.deg;viol='';drawDegs();});
+$('#vList').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;viol=b.dataset.v;drawDegs();});
+$('#f').addEventListener('reset',()=>setTimeout(()=>{const by=$('#fBy').value;$('#fDate').value=today();$('#hijri').textContent=hijri(today());deg=1;viol='';drawDegs();$('#fBy').value=by;},0));
+$('#f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!viol){toast('اختاري المخالفة أولاً');return;}
+  const p=currentProc();
+  const r={kind:'viol',name:norm($('#fName').value),grade:$('#fGrade').value,section:$('#fSec').value.trim(),degree:deg,violation:viol,
+    proc:p.n,pts:p.pts,steps:p.steps,date:$('#fDate').value,period:$('#fPeriod').value,note:$('#fNote').value.trim(),by:$('#fBy').value.trim(),notified:false,createdAt:new Date().toISOString()};
+  if(!r.name)return;
+  const btn=$('#saveBtn');btn.disabled=true;
+  try{await store.add(r);try{localStorage.setItem('rasd_by',r.by);}catch(x){}
+    toast(p.pts?`حُفظت المخالفة وحُسم ${p.pts}`:'حُفظت المخالفة');$('#fName').value='';$('#fNote').value='';viol='';drawDegs();$('#fName').focus();}
+  catch(x){writeErr(x)} finally{btn.disabled=!canWrite;}
+});
+
+/* ---------- excellent behavior ---------- */
+function drawExc(){
+  const chips=EXC.map((g,gi)=>`<div class="vgroup"><span>${g.label} لكل مشاركة</span><div class="vlist star">${g.items.map(v=>`<button type="button" data-x="${esc(v)}" data-p="${g.pts}" aria-pressed="${exc&&exc.practice===v}">${esc(v)}</button>`).join('')}</div></div>`).join('');
+  $('#xList').innerHTML=chips+`<div class="vgroup"><div class="vlist star"><button type="button" data-x="__other" data-p="0" aria-pressed="${exc&&exc.practice==='__other'}">سلوك متميز آخر</button></div></div>`;
+  $('#xOther').hidden=!(exc&&exc.practice==='__other');
+}
+$('#xList').addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b)return;exc={practice:b.dataset.x,points:+b.dataset.p};drawExc();if(exc.practice==='__other')$('#xOtherT').focus();});
+function setMode(m){
+  excMode=m;$('#mOne').setAttribute('aria-pressed',m==='one');$('#mClass').setAttribute('aria-pressed',m==='class');
+  $('#eOneBox').hidden=m!=='one';$('#eClassBox').hidden=m!=='class';drawClassSelect();
+}
+$('#mOne').addEventListener('click',()=>setMode('one'));
+$('#mClass').addEventListener('click',()=>setMode('class'));
+let classSel='';
+function drawClassSelect(){
+  const sel=$('#eClass'); if(!sel)return;
+  const list=[...roster].sort((a,b)=>(a.grade+a.section).localeCompare(b.grade+b.section,'ar'));
+  if(!list.length){sel.hidden=true;$('#eChecks').innerHTML=`<div class="note" style="margin-top:0">لاستخدام الرصد الجماعي، استوردي أسماء الفصول من نور أولاً من تبويب «الطالبات».${canWrite?' <button class="btn sm" type="button" id="goImport" style="margin-top:8px">استيراد الأسماء من نور</button>':''}</div>`;return;}
+  sel.hidden=false;
+  if(!list.some(c=>c.id===classSel))classSel=list[0].id;
+  sel.innerHTML=list.map(c=>`<option value="${c.id}" ${c.id===classSel?'selected':''}>${esc(c.grade)}${c.section?' / فصل '+esc(c.section):''} (${(c.names||[]).length})</option>`).join('');
+  const prev=new Set([...document.querySelectorAll('#eChecks input:checked')].map(i=>i.value));
+  const c=list.find(x=>x.id===classSel);
+  $('#eChecks').innerHTML=`<div class="actions" style="margin:0 0 8px"><button type="button" class="btn sm ghost" id="chkAll">تحديد الكل</button><button type="button" class="btn sm ghost" id="chkNone">إلغاء التحديد</button></div>
+  <div class="panel checks">${(c.names||[]).map((n,i)=>`<label><span class="m">${i+1}</span><input type="checkbox" value="${esc(n)}" ${prev.has(n)?'checked':''}>${esc(n)}</label>`).join('')}</div>`;
+}
+$('#eClass').addEventListener('change',e=>{classSel=e.target.value;$('#eChecks').innerHTML='';drawClassSelect();});
+$('#e').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!exc){toast('اختاري الممارسة أولاً');return;}
+  let practice=exc.practice, points=exc.points;
+  if(practice==='__other'){practice=$('#xOtherT').value.trim();points=Math.min(6,Math.max(1,+$('#xOtherP').value||1));if(!practice){toast('اكتبي السلوك المتميز');return;}}
+  const base={kind:'exc',practice,points,date:$('#eDate').value,evidence:$('#eEvid').value.trim(),by:$('#eBy').value.trim()};
+  let targets=[];
+  if(excMode==='one'){
+    const name=norm($('#eName').value);if(!name){toast('اكتبي اسم الطالبة');return;}
+    targets=[{name,grade:$('#eGrade').value,section:$('#eSec').value.trim()}];
+  }else{
+    const c=roster.find(x=>x.id===classSel);
+    targets=[...document.querySelectorAll('#eChecks input:checked')].map(i=>({name:i.value,grade:c.grade,section:c.section||''}));
+    if(!targets.length){toast('حدّدي الطالبات أولاً');return;}
+  }
+  const btn=$('#eSave');btn.disabled=true;let done=0;
+  try{
+    for(const t of targets){await store.add({...t,...base,createdAt:new Date().toISOString()});done++;}
+    try{localStorage.setItem('rasd_by',base.by);}catch(x){}
+    toast(done>1?`حُفظ السلوك المتميز لـ ${done} طالبة (+${points})`:`حُفظ السلوك المتميز (+${points})`);
+    $('#eName').value='';$('#eEvid').value='';exc=null;drawExc();
+    document.querySelectorAll('#eChecks input:checked').forEach(i=>i.checked=false);
+  }catch(x){if(done)toast(`حُفظ لـ ${done} طالبة فقط، أعيدي المحاولة للباقيات`);else writeErr(x);}
+  finally{btn.disabled=!canWrite;}
+});
+
+/* ---------- settings ---------- */
+function fillSettings(){
+  const ae=document.activeElement;const sv=(id,v)=>{const el=$(id);if(el!==ae)el.value=v;};
+  sv('#sSchool',settings.school||DEF_SCHOOL);sv('#sRegion',settings.region||'');sv('#sPrincipal',settings.principal||'');
+  $('#ptsTable').innerHTML=[1,2,3,4,5].map(d=>`<div class="row"><span class="stripe" style="background:${degColor(d)}"></span><div class="main"><div class="t">مشكلات الدرجة ${DEGNAMES[d]}</div><div class="s">${PROCS[d].length} ${PROCS[d].length>2?'إجراءات متدرجة':PROCS[d].length===2?'إجراءان متدرجان':'إجراء واحد'}${d===1?'، الحسم من الإجراء الثالث':''}</div></div><div class="score">${DEGPTS[d]}</div></div>`).join('');
+}
+$('#saveSet').addEventListener('click',async()=>{
+  const s={school:$('#sSchool').value.trim()||DEF_SCHOOL,region:$('#sRegion').value.trim(),principal:$('#sPrincipal').value.trim()};
+  try{await store.saveSettings(s);toast('حُفظت البيانات');}catch(e){writeErr(e)}
+});
+
+/* ---------- export ---------- */
+$('#exportBtn').addEventListener('click',async()=>{
+  const head=['اسم الطالبة','الصف','الفصل','النوع','درجة المخالفة','المخالفة / الممارسة','الإجراء','الدرجات','التاريخ الميلادي','التاريخ الهجري','الحصة','إشعار ولي الأمر','الشواهد','الراصدة','ملاحظات'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[...records].sort((a,b)=>norm(a.name).localeCompare(norm(b.name),'ar')||(a.date||'').localeCompare(b.date||'')).map(r=>isExc(r)
+    ?[r.name,r.grade,r.section,'سلوك متميز','',r.practice||r.note,'','+'+(+r.points||0),r.date,hijri(r.date),'','',r.evidence,r.by,'']
+    :[r.name,r.grade,r.section,'مخالفة',DEGNAMES[D(r.degree)],r.violation,r.proc?PROCNAMES[r.proc]:'','-'+dedOf(r),r.date,hijri(r.date),r.period,r.notified?'نعم':'لا','',r.by,r.note]);
+  const csv='﻿'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n');
+  saveFile('سجل-السلوك-'+today()+'.csv',csv,'text/csv;charset=utf-8');
+});
+async function saveFile(name,data,mime){
+  if(hosted){
+    let dl=null;try{dl=await window.claude.use('downloads');}catch(e){}
+    if(!dl){toast('التنزيل غير متاح في هذا العرض');return;}
+    try{await dl.save({filename:name,data});}catch(e){if(e.code!=='declined')toast('تعذّر التنزيل');}
+    return;
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([data],{type:mime}));
+    const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);toast('تم التنزيل');
+  }catch(e){toast('تعذّر التنزيل');}
+}
+
+/* ---------- backup & restore ---------- */
+$('#backupBtn').addEventListener('click',()=>{
+  const data={app:'rasd-suluk',version:1,school:settings.school||DEF_SCHOOL,exportedAt:new Date().toISOString(),settings,roster,records};
+  saveFile('نسخة-رصد-السلوك-'+today()+'.json',JSON.stringify(data),'application/json');
+});
+let pendingRestore=null;
+$('#restoreFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value='';
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(d.app!=='rasd-suluk'||!Array.isArray(d.records))throw 0;
+      const have=new Set(records.map(r=>r.id));
+      const fresh=d.records.filter(r=>r&&r.id&&r.name&&!have.has(r.id));
+      pendingRestore={d,fresh};
+      $('[data-confirm="restore"]').innerHTML=`<div class="confirm">في الملف ${d.records.length} سجل، منها <b>${fresh.length}</b> جديد، و${(d.roster||[]).length} فصل. <button class="btn sm" data-restore>دمج الآن</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;
+    }catch(x){toast('هذا الملف ليس نسخة احتياطية من المنصة');}
+  };
+  rd.readAsText(f);
+});
+async function doRestore(){
+  const {d,fresh}=pendingRestore;pendingRestore=null;
+  let n=0;
+  try{
+    for(const r of fresh){await store.put(r);n++;}
+    if(store.mode==='local')store.saveLocal();
+    for(const c of (d.roster||[])){
+      if(!c||!c.id||!Array.isArray(c.names))continue;
+      const old=roster.find(x=>x.id===c.id);
+      const names=[...new Set([...(old?.names||[]),...c.names])];
+      if(!old||names.length!==old.names.length)await store.saveClass({...c,names});
+    }
+    if(d.settings&&!settings.principal&&!settings.region&&(d.settings.principal||d.settings.region))await store.saveSettings({...settings,...d.settings});
+    renderAll();toast(`دُمج ${n} سجل جديد`);
+  }catch(x){if(store.mode==='local')store.saveLocal();renderAll();if(n)toast(`دُمج ${n} سجل فقط، أعيدي المحاولة`);else writeErr(x);}
+}
+
+/* ---------- print (standalone file only) ---------- */
+function printHead(title){
+  return `<div class="ph"><div>المملكة العربية السعودية<br>وزارة التعليم${settings.region?'<br>'+esc(settings.region):''}<br>${esc(settings.school||DEF_SCHOOL)}</div><div style="text-align:left">التاريخ: ${hijri(today())}</div></div><h3>${title}</h3>`;
+}
+function doPrint(html){$('#printArea').innerHTML=html+`<div class="foot">منصة رصد السلوك · إعداد الموجّهة الطلابية عواطف الحربي</div>`;window.print();}
+function printNotice(r,s){
+  const body=noticeText(r,s).split('\n\n').slice(2).join('\n\n');
+  doPrint(printHead('إشعار ولي أمر الطالبة بمشكلة سلوكية')+`<div class="pre">${esc(body)}</div><div class="sig"><span>توقيع ولي الأمر: ....................</span><span>الختم</span></div>`);
+}
+function printReport(s){
+  const rows=s.recs.map((r,i)=>isExc(r)
+    ?`<tr><td>${i+1}</td><td>سلوك متميز</td><td>${esc(r.practice||r.note||'')}</td><td>—</td><td>+${+r.points||0}</td><td>${hijri(r.date)}</td><td>${esc(r.evidence||'')}</td></tr>`
+    :`<tr><td>${i+1}</td><td>مخالفة (${DEGNAMES[D(r.degree)]})</td><td>${esc(r.violation)}</td><td>${r.proc?PROCNAMES[r.proc]:''}</td><td>−${dedOf(r)}</td><td>${hijri(r.date)}</td><td>${r.notified?'أُشعر ولي الأمر':''}</td></tr>`).join('');
+  doPrint(printHead('تقرير سلوك طالبة')+`<p><b>الاسم:</b> ${esc(s.name)} &nbsp; <b>الصف:</b> ${esc(s.grade)}${s.sec?' / '+esc(s.sec):''}</p>
+  <p><b>درجة السلوك:</b> ${s.score} من 100 &nbsp; (السلوك الإيجابي ${Math.max(0,80-s.ded)} من 80، السلوك المتميز +${s.excPts})</p>
+  <table><thead><tr><th>م</th><th>النوع</th><th>المخالفة / الممارسة</th><th>الإجراء</th><th>الدرجات</th><th>التاريخ</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||'....................')}</span></div>`);
+}
+
+/* ---------- import from Noor ---------- */
+function loadXLSX(){
+  if(window.XLSX)return Promise.resolve(true);
+  return new Promise(res=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    const t=setTimeout(()=>res(false),15000);
+    sc.onload=()=>{clearTimeout(t);res(!!window.XLSX)};sc.onerror=()=>{clearTimeout(t);res(false)};
+    document.head.appendChild(sc);
+  });
+}
+const imp={open:false,stage:'start',rows:[],fallbackGrade:GRADES[0],fallbackSec:'',busy:false};
+const clean=s=>String(s??'').replace(/ـ/g,'').replace(/[‎‏‪-‮]/g,'').replace(/\s+/g,' ').trim();
+const toLatin=s=>s.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+function mapGrade(s){
+  s=toLatin(clean(s)).replace(/ال?ثانوي[ةه]?|ثانوي/g,' ').replace(/مسارات|المسارات/g,' ');
+  if(!s.trim())return null;
+  if(/ثالث|الثالثة|(^|\D)3(\D|$)/.test(s))return GRADES[2];
+  if(/ثاني|ثانية|(^|\D)2(\D|$)/.test(s))return GRADES[1];
+  if(/أول|اول|أولى|اولى|مشترك|(^|\D)1(\D|$)/.test(s))return GRADES[0];
+  return null;
+}
+const looksName=s=>{s=clean(s);return /[ء-ي]/.test(s)&&!/[0-9٠-٩@]/.test(s)&&s.split(' ').length>=2&&s.length<=80&&!/اسم|الصف|الفصل|المرحلة|الجنسية|سعودي|ثانوي|مسار/.test(s);};
+function parseRows(rows){
+  rows=rows.map(r=>r.map(clean)).filter(r=>r.some(Boolean));
+  let ni=-1,gi=-1,si=-1,start=0;
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const r=rows[i];
+    const n=r.findIndex(c=>/اسم/.test(c)&&!/المدرسة|ولي|الأب|المعلم/.test(c));
+    if(n>=0){ni=n;gi=r.findIndex(c=>/^(ال)?صف|المرحلة|السنة/.test(c));si=r.findIndex(c=>/الفصل|الشعبة/.test(c));start=i+1;break;}
+  }
+  const out=[],seen=new Set();
+  for(const r of rows.slice(start)){
+    let name=ni>=0?r[ni]:'';
+    if(!looksName(name)){const cand=r.filter(looksName).sort((a,b)=>b.split(' ').length-a.split(' ').length);name=cand[0]||'';}
+    if(!looksName(name))continue;
+    let grade=gi>=0?mapGrade(r[gi]):null;
+    if(!grade)for(const c of r){if(c!==name&&/ثانو|مشترك|الصف|السنة/.test(c)){grade=mapGrade(c);if(grade)break;}}
+    let sec=si>=0?toLatin(r[si]||''):'';
+    if(sec.length>12)sec='';
+    const k=name+'|'+(grade||'');
+    if(seen.has(k))continue;seen.add(k);
+    out.push({name,grade,sec});
+  }
+  return out;
+}
+function textToRows(t){return t.split(/\r?\n/).map(l=>l.includes('\t')?l.split('\t'):l.split(/\s{3,}|,|؛/).length>1&&/\d/.test(l)?l.split(/\s{3,}|,|؛/):[l]);}
+function classId(g,s){let h=0;for(const ch of g+'|'+s)h=(h*31+ch.charCodeAt(0))>>>0;return 'c'+(GRADES.indexOf(g)+1)+'-'+h.toString(36);}
+function openImport(){imp.open=true;imp.stage='start';imp.rows=[];openKey=null;drawImport();$('#sheet').hidden=false;}
+function drawImport(){
+  const c=$('#sheetCard');
+  let body='';
+  if(imp.stage==='start'){
+    const list=[...roster].sort((a,b)=>(a.grade+a.section).localeCompare(b.grade+b.section,'ar'));
+    body=`<ol class="steps">
+      <li>في نظام نور افتحي <b>شؤون الطلاب ← الطلاب</b> أو تقرير بيانات الطالبات للصف المطلوب.</li>
+      <li>إما أن <b>تصدّري الجدول إلى Excel</b> ثم ترفعي الملف هنا،</li>
+      <li>أو أن <b>تحدّدي الجدول وتنسخيه</b> ثم تلصقيه في المربع أدناه.</li></ol>
+      ${canWrite?`<div class="drop"><label class="btn filebtn" for="impFile">رفع ملف من نور (Excel)<input id="impFile" type="file" accept=".xls,.xlsx,.csv,.html,.htm"></label></div>
+      <label for="impText" style="margin-top:14px">أو الصقي الأسماء هنا</label>
+      <textarea id="impText" style="min-height:130px" placeholder="الصقي جدول نور كما هو، أو اسماً في كل سطر"></textarea>
+      <div class="actions"><button class="btn ghost" id="impParse">قراءة الأسماء</button></div>
+      <p class="note">تُحفظ الأسماء والصف والفصل فقط. أرقام الهوية وبيانات التواصل في ملف نور تُتجاهل ولا تُحفظ.</p>`:''}
+      <h2>الفصول المستوردة</h2>
+      <div class="panel">${list.length?list.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.grade)}${x.section?' / فصل '+esc(x.section):''}</div><div class="s">${(x.names||[]).length} طالبة</div><div data-confirm="${x.id}"></div></div>${canWrite?`<button class="btn sm danger" data-delclass="${x.id}">حذف</button>`:''}</div>`).join(''):`<div class="empty">لا توجد فصول مستوردة بعد.</div>`}</div>`;
+  }else{
+    const missing=imp.rows.filter(r=>!r.grade).length;
+    const groups=groupRows();
+    body=`<p class="hint">وجدتُ <b>${imp.rows.length}</b> طالبة. راجعي التوزيع ثم احفظي.</p>
+      ${missing?`<div class="fgrid" style="margin-top:10px">
+        <div><label for="fbG">الصف لـ ${missing} طالبة بلا صف</label><select id="fbG">${GRADES.map(g=>`<option ${g===imp.fallbackGrade?'selected':''}>${g}</option>`).join('')}</select></div>
+        <div><label for="fbS">الفصل <i>(اختياري)</i></label><input id="fbS" value="${esc(imp.fallbackSec)}" placeholder="مثل: 2"></div></div>`:''}
+      <div class="panel pv" style="margin-top:12px"><table><thead><tr><th>الصف</th><th>الفصل</th><th>العدد</th><th>أمثلة</th></tr></thead><tbody>
+      ${groups.map(g=>`<tr><td>${esc(g.grade)}</td><td>${esc(g.section||'—')}</td><td class="n">${g.names.length}</td><td>${esc(g.names.slice(0,2).join('، '))}${g.names.length>2?'…':''}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="note">إذا كان الفصل مستورداً من قبل، تُضاف إليه الأسماء الجديدة فقط دون تكرار.</p>
+      <div class="actions"><button class="btn" id="impSave" ${imp.busy?'disabled':''}>حفظ ${imp.rows.length} طالبة</button><button class="btn ghost" id="impBack">رجوع</button></div>`;
+  }
+  c.innerHTML=`<div class="head"><div><h3>استيراد الأسماء من نور</h3><div class="hint">لتظهر الأسماء تلقائياً عند الرصد مع الصف والفصل</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>${body}`;
+}
+function groupRows(){
+  const m=new Map();
+  for(const r of imp.rows){const g=r.grade||imp.fallbackGrade, s=r.grade?r.sec:(r.sec||imp.fallbackSec);const k=g+'|'+s;if(!m.has(k))m.set(k,{grade:g,section:s,names:[]});m.get(k).names.push(r.name);}
+  return [...m.values()].sort((a,b)=>(a.grade+a.section).localeCompare(b.grade+b.section,'ar'));
+}
+function gotRows(rows){
+  imp.rows=parseRows(rows);
+  if(!imp.rows.length){toast('لم أجد أسماء. تأكدي من نسخ جدول الطالبات كاملاً');return;}
+  imp.stage='preview';drawImport();
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='impFile'){
+    const f=e.target.files[0];if(!f)return;
+    toast('جارٍ قراءة الملف…');
+    loadXLSX().then(ok=>{
+    if(!ok){toast('تعذّر تحميل قارئ ملفات Excel (يحتاج إنترنت)، استخدمي النسخ واللصق');return;}
+    const rd=new FileReader();
+    rd.onload=()=>{try{const wb=XLSX.read(new Uint8Array(rd.result),{type:'array'});let rows=[];for(const n of wb.SheetNames)rows=rows.concat(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''}));gotRows(rows);}catch(x){toast('لم أستطع قراءة الملف، جرّبي النسخ واللصق');}};
+    rd.readAsArrayBuffer(f);
+    });
+  }
+  if(e.target.id==='fbG'){imp.fallbackGrade=e.target.value;drawImport();}
+  if(e.target.id==='fbS'){imp.fallbackSec=toLatin(e.target.value.trim());drawImport();}
+});
+async function saveImport(){
+  imp.busy=true;drawImport();
+  let added=0;
+  try{
+    for(const g of groupRows()){
+      const id=classId(g.grade,g.section);
+      const old=roster.find(x=>x.id===id);
+      const names=[...new Set([...(old?.names||[]),...g.names])];
+      added+=names.length-(old?.names||[]).length;
+      await store.saveClass({id,grade:g.grade,section:g.section,names,updatedAt:new Date().toISOString()});
+    }
+    toast(added?`أُضيفت ${added} طالبة`:'كل الأسماء موجودة مسبقاً');
+    imp.stage='start';imp.rows=[];
+  }catch(x){writeErr(x)}
+  imp.busy=false;if(imp.open)drawImport();
+}
+
+/* ---------- navigation & delegation ---------- */
+function show(v){
+  for(const s of ['home','rec','exc','stud','set'])$('#v-'+s).hidden=s!==v;
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===v));
+  window.scrollTo(0,0);
+}
+document.querySelector('nav.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)show(b.dataset.v);});
+['#q','#gFilter','#sort'].forEach(s=>$(s).addEventListener('input',renderStud));
+document.addEventListener('click',async e=>{
+  const row=e.target.closest('.row.click[data-k]');
+  if(row&&!e.target.closest('button')){openStudent(row.dataset.k);return;}
+  const t=e.target.closest('button')||e.target;
+  if(t.id==='closeS'||t===$('#sheet')){closeSheet();return;}
+  if(t.id==='chkAll'||t.id==='chkNone'){document.querySelectorAll('#eChecks input').forEach(i=>i.checked=t.id==='chkAll');return;}
+  if(t.id==='openImport'||t.id==='goImport'){openImport();return;}
+  if(t.id==='impParse'){const v=$('#impText').value;if(!v.trim()){toast('الصقي الأسماء أولاً');return;}gotRows(textToRows(v));return;}
+  if(t.id==='impSave'){saveImport();return;}
+  if(t.id==='impBack'){imp.stage='start';drawImport();return;}
+  if(t.dataset.delclass){const h=document.querySelector(`[data-confirm="${t.dataset.delclass}"]`);h.innerHTML=`<div class="confirm">حذف أسماء هذا الفصل من القائمة؟ سجلات الرصد لا تتأثر. <button class="btn sm danger" data-yesclass="${t.dataset.delclass}">نعم، احذفي</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;return;}
+  if(t.dataset.yesclass){try{await store.removeClass(t.dataset.yesclass);toast('حُذف الفصل من القائمة');}catch(x){writeErr(x)}return;}
+  if(t.hasAttribute&&t.hasAttribute('data-restore')){t.closest('.confirm').remove();if(pendingRestore)doRestore();return;}
+  if(t.id==='printN'){const s=students().find(x=>x.key===openKey);const r=records.find(x=>x.id===noticeId);if(s&&r)printNotice(r,s);return;}
+  if(t.id==='printR'){const s=students().find(x=>x.key===openKey);if(s)printReport(s);return;}
+  if(t.id==='showCode'){copyText(GAS_CODE,'نُسخ كود الربط، الصقيه في Apps Script');return;}
+  if(t.id==='linkBtn'){t.disabled=true;await connectSheet($('#syncUrl').value);t.disabled=false;drawSyncPanel();return;}
+  if(t.id==='syncNow'){flush();return;}
+  if(t.id==='copyInvite'){copyText(inviteLink(),'نُسخ رابط الدعوة، أرسليه لزميلاتك');return;}
+  if(t.id==='unlink'){$('[data-confirm="unlink"]').innerHTML=`<div class="confirm">فك ربط هذا الجهاز؟ <button class="btn sm danger" data-yesunlink>نعم</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;return;}
+  if(t.hasAttribute&&t.hasAttribute('data-yesunlink')){disconnectSheet();return;}
+  if(t.id==='backL'){sheetMode='list';openStudent(openKey,true);return;}
+  if(t.id==='addFor'||t.id==='addExc'){
+    const s=students().find(x=>x.key===openKey);closeSheet();
+    if(t.id==='addFor'){$('#fName').value=s.name;$('#fGrade').value=s.grade;$('#fSec').value=s.sec;updateProc();show('rec');}
+    else{setMode('one');$('#eName').value=s.name;$('#eGrade').value=s.grade;$('#eSec').value=s.sec;show('exc');}
+    return;}
+  if(t.dataset.notice){noticeId=t.dataset.notice;sheetMode='notice';openStudent(openKey,true);return;}
+  if(t.id==='copyN'){const txt=$('#noticeTxt').textContent;try{await navigator.clipboard.writeText(txt);toast('نُسخ النص');}catch(x){const r=document.createRange();r.selectNodeContents($('#noticeTxt'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('حدّدي النص وانسخيه');}return;}
+  if(t.dataset.mark){try{await store.update(t.dataset.mark,{notified:true,notifiedAt:today()});toast('سُجّل إشعار ولي الأمر');sheetMode='list';openStudent(openKey,true);}catch(x){writeErr(x)}return;}
+  if(t.dataset.del){const host=document.querySelector(`[data-confirm="${t.dataset.del}"]`);if(host)host.innerHTML=`<div class="confirm">حذف هذا السجل نهائياً؟ <button class="btn sm danger" data-yes="${t.dataset.del}">نعم، احذفي</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;return;}
+  if(t.dataset.yes){try{await store.remove(t.dataset.yes);toast('حُذف السجل');}catch(x){writeErr(x)}return;}
+  if(t.hasAttribute&&t.hasAttribute('data-no')){t.closest('.confirm').remove();return;}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
+
+if(!hosted&&(location.protocol==='https:'||location.hostname==='localhost')&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+initForm();fillSettings();renderAll();
+store.init().then(()=>{if(SYNC._invited)toast('تم ربطك بسجل المدرسة');});
+</script>
+
+</body>
+</html>
