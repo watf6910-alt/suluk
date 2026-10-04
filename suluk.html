@@ -322,6 +322,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div class="row"><div class="main"><div class="t">دمج رصد المعلمات</div><div class="s">اختاري ملفات المعلمات كلها مرة واحدة. يُتجاهل المكرر: نفس الطالبة والمخالفة والتاريخ.</div><div data-confirm="restore"></div></div><label class="btn sm ghost filebtn" for="restoreFile">اختيار الملفات<input id="restoreFile" type="file" accept=".json,application/json" multiple></label></div>
       <div class="row"><div class="main"><div class="t">الملف المجمّع (Excel)</div><div class="s">ملف واحد فيه: ملخص كل طالبة ودرجتها، والسجل الكامل، والمخالفات الأكثر، وعدد رصد كل معلمة.</div></div><button class="btn sm" id="excelBtn">تنزيل</button></div>
     </div>
+    <div class="panel" style="margin-top:10px"><div class="row"><div class="main"><div class="t">بدء فصل دراسي جديد</div><div class="s">يحفظ نسخة من كل السجلات في ملف، ثم يفرّغ الرصد. الأسماء والإعدادات تبقى.</div><div data-confirm="newterm"></div></div><button class="btn sm danger" id="newTerm">تفريغ</button></div></div>
     <p class="note" id="saveNote"></p>
     <h2>توزيع درجة السلوك (100)</h2>
     <div class="panel rules">
@@ -693,15 +694,16 @@ function recRow(r,showName=true){
   if(isExc(r)) return `<div ${click}><span class="stripe" style="background:var(--star)"></span>
     <div class="main"><div class="t">${showName?esc(r.name):esc(r.practice||r.note||'سلوك متميز')}</div>
     <div class="s">${showName?esc(r.practice||r.note||'سلوك متميز')+' · ':''}${where}${!showName&&r.evidence?'<br>الشواهد: '+esc(r.evidence):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
-    ${!showName&&canWrite?`<div class="actions" style="margin-top:6px">${delBtn(r)}</div><div data-confirm="${r.id}"></div>`:''}</div>
+    ${!showName&&canWrite?`<div class="actions" style="margin-top:6px">${editBtn(r)}${delBtn(r)}</div><div data-confirm="${r.id}"></div>`:''}</div>
     <span class="chip star" dir="ltr">+${+r.points||0}</span></div>`;
   const ded=dedOf(r);
   return `<div ${click}><span class="stripe" style="background:${degColor(r.degree)}"></span>
   <div class="main"><div class="t">${showName?esc(r.name):esc(r.violation)}</div>
   <div class="s">${showName?esc(r.violation)+' · ':''}الدرجة ${DEGNAMES[D(r.degree)]}${r.proc?' · الإجراء '+PROCNAMES[r.proc]:''} · ${where}${!showName&&r.period?' · '+esc(r.period):''}${!showName&&r.note?'<br>'+esc(r.note):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
-  ${!showName?`<div class="actions" style="margin-top:6px">${r.notified?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
+  ${!showName?`<div class="actions" style="margin-top:6px">${r.notified?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?editBtn(r)+delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
   <div style="display:grid;gap:4px;justify-items:end">${ded?`<span class="chip neg" dir="ltr">−${ded}</span>`:''}<span class="chip ${r.notified?'ok':'pend'}">${r.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div></div>`;
 }
+const editBtn=r=>`<button class="btn sm ghost" data-edit="${r.id}">تعديل</button>`;
 const delBtn=r=>isAdmin?`<button class="btn sm danger" data-del="${r.id}">حذف</button>`:'';
 function renderAll(){
   const sch=settings.school||DEF_SCHOOL;
@@ -750,14 +752,18 @@ function renderStud(){
 }
 
 /* ---------- student sheet ---------- */
-let openKey=null, sheetMode='list', noticeId=null;
+let openKey=null, sheetMode='list', noticeId=null, editId=null;
 function openStudent(k,refresh){
   const s=students().find(x=>x.key===k);
   if(!s){closeSheet();return;}
   openKey=k; imp.open=false; if(!refresh){sheetMode='list';noticeId=null;}
   const c=$('#sheetCard');
   let body='';
-  if(sheetMode==='notice'){
+  if(sheetMode==='edit'){
+    const r=records.find(x=>x.id===editId);
+    if(!r){sheetMode='list';return openStudent(k,true);}
+    body=editForm(r);
+  }else if(sheetMode==='notice'){
     const r=records.find(x=>x.id===noticeId);
     if(!r){sheetMode='list';return openStudent(k,true);}
     body=`<p class="hint">نص جاهز للنسخ والإرسال، أو للصق في نموذج إشعار ولي الأمر الرسمي.</p><div class="notice" id="noticeTxt">${esc(noticeText(r,s))}</div>
@@ -774,6 +780,68 @@ function openStudent(k,refresh){
   $('#sheet').hidden=false;
 }
 function closeSheet(){$('#sheet').hidden=true;openKey=null;imp.open=false;}
+
+/* ---------- edit a saved record ---------- */
+const opt=(v,cur)=>`<option ${v===cur?'selected':''}>${esc(v)}</option>`;
+function editForm(r){
+  const periods=['','الاصطفاف الصباحي','الحصة الأولى','الحصة الثانية','الحصة الثالثة','الفسحة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة','نهاية الدوام'];
+  const common=`<div class="full"><label for="edName">اسم الطالبة</label><input id="edName" list="names" value="${esc(r.name)}" required></div>
+    <div><label for="edGrade">الصف</label><select id="edGrade">${GRADES.map(g=>opt(g,r.grade)).join('')}</select></div>
+    <div><label for="edSec">الفصل</label><input id="edSec" value="${esc(r.section||'')}"></div>
+    <div><label for="edDate">التاريخ</label><input id="edDate" type="date" value="${esc(r.date||'')}" required></div>`;
+  let specific;
+  if(isExc(r)){
+    const all=EXC.flatMap(g=>g.items.map(i=>({i,p:g.pts})));
+    const known=all.some(x=>x.i===r.practice);
+    specific=`<div class="full"><label for="edPractice">الممارسة</label><select id="edPractice">${all.map(x=>`<option value="${esc(x.i)}" data-p="${x.p}" ${x.i===r.practice?'selected':''}>${esc(x.i)} (${x.p})</option>`).join('')}<option value="__other" ${known?'':'selected'}>سلوك متميز آخر</option></select></div>
+      <div class="full" id="edOtherBox" ${known?'hidden':''}><label for="edOther">وصف السلوك</label><input id="edOther" value="${known?'':esc(r.practice||r.note||'')}"></div>
+      <div><label for="edPoints">الدرجات</label><input id="edPoints" type="number" min="1" max="6" inputmode="numeric" value="${+r.points||1}"></div>
+      <div><label for="edEvid">الشواهد</label><input id="edEvid" value="${esc(r.evidence||'')}"></div>`;
+  }else{
+    const d=D(r.degree), list=[...VIOL[d],...(VIOL[d+'s']||[])];
+    if(!list.includes(r.violation))list.push(r.violation);
+    specific=`<div><label for="edDeg">درجة المخالفة</label><select id="edDeg">${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===d?'selected':''}>الدرجة ${DEGNAMES[n]}</option>`).join('')}</select></div>
+      <div><label for="edProc">الإجراء</label><select id="edProc">${PROCS[d].map((_,i)=>`<option value="${i+1}" ${i+1===(r.proc||1)?'selected':''}>الإجراء ${PROCNAMES[i+1]} (حسم ${PROCS[d][i].pts})</option>`).join('')}</select></div>
+      <div class="full"><label for="edViol">المخالفة</label><select id="edViol">${list.map(v=>opt(v,r.violation)).join('')}</select></div>
+      <div><label for="edPeriod">الحصة</label><select id="edPeriod">${periods.map(p=>`<option value="${esc(p)}" ${p===(r.period||'')?'selected':''}>${p||'—'}</option>`).join('')}</select></div>
+      <div><label for="edNotified">إشعار ولي الأمر</label><select id="edNotified"><option value="0" ${r.notified?'':'selected'}>لم يُشعر</option><option value="1" ${r.notified?'selected':''}>أُشعر</option></select></div>
+      <div class="full"><label for="edNote">وصف الموقف</label><textarea id="edNote">${esc(r.note||'')}</textarea></div>`;
+  }
+  return `<form id="editF" autocomplete="off"><h2 style="margin-top:16px">تعديل ${isExc(r)?'السلوك المتميز':'المخالفة'}</h2>
+    <div class="fgrid">${common}${specific}<div class="full"><label for="edBy">الراصدة</label><input id="edBy" value="${esc(r.by||'')}"></div></div>
+    <div class="actions"><button class="btn" type="submit">حفظ التعديل</button><button class="btn ghost" type="button" id="backL">إلغاء</button></div></form>`;
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='edDeg'){
+    const d=+e.target.value;
+    $('#edViol').innerHTML=[...VIOL[d],...(VIOL[d+'s']||[])].map(v=>`<option>${esc(v)}</option>`).join('');
+    $('#edProc').innerHTML=PROCS[d].map((p,i)=>`<option value="${i+1}">الإجراء ${PROCNAMES[i+1]} (حسم ${p.pts})</option>`).join('');
+  }
+  if(e.target.id==='edPractice'){
+    const o=e.target.selectedOptions[0];$('#edOtherBox').hidden=o.value!=='__other';
+    if(o.dataset.p)$('#edPoints').value=o.dataset.p;
+  }
+});
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='editF')return;e.preventDefault();
+  const r=records.find(x=>x.id===editId);if(!r)return;
+  const name=norm($('#edName').value);if(!name){toast('اكتبي اسم الطالبة');return;}
+  const p={name,grade:$('#edGrade').value,section:$('#edSec').value.trim(),date:$('#edDate').value,by:$('#edBy').value.trim(),editedAt:new Date().toISOString()};
+  if(isExc(r)){
+    const pr=$('#edPractice').value;
+    p.practice=pr==='__other'?$('#edOther').value.trim():pr;
+    if(!p.practice){toast('اكتبي وصف السلوك');return;}
+    p.points=Math.min(6,Math.max(1,+$('#edPoints').value||1));p.evidence=$('#edEvid').value.trim();
+  }else{
+    const d=+$('#edDeg').value, pi=Math.min(+$('#edProc').value||1,PROCS[d].length);
+    Object.assign(p,{degree:d,violation:$('#edViol').value,proc:pi,pts:PROCS[d][pi-1].pts,steps:PROCS[d][pi-1].steps,period:$('#edPeriod').value,notified:$('#edNotified').value==='1',note:$('#edNote').value.trim()});
+  }
+  try{
+    await store.update(r.id,p);
+    openKey=keyOf({...r,...p});sheetMode='list';editId=null;
+    toast('حُفظ التعديل');openStudent(openKey,true);
+  }catch(x){writeErr(x)}
+});
 function noticeText(r,s){
   const p=r.proc&&PROCS[D(r.degree)][r.proc-1];
   const steps=r.steps||(p?p.steps:[]);
@@ -1139,7 +1207,7 @@ function drawImport(){
       <div class="actions"><button class="btn ghost" id="impParse">قراءة الأسماء</button></div>
       <p class="note">تُحفظ الأسماء والصف والفصل فقط. أرقام الهوية وبيانات التواصل في ملف نور تُتجاهل ولا تُحفظ.</p>`:''}
       <h2>الفصول المستوردة</h2>
-      <div class="panel">${list.length?list.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.grade)}${x.section?' / فصل '+esc(x.section):''}</div><div class="s">${(x.names||[]).length} طالبة</div><div data-confirm="${x.id}"></div></div>${canWrite?`<button class="btn sm danger" data-delclass="${x.id}">حذف</button>`:''}</div>`).join(''):`<div class="empty">لا توجد فصول مستوردة بعد.</div>`}</div>`;
+      <div class="panel">${list.length?list.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.grade)}${x.section?' / فصل '+esc(x.section):''}</div><div class="s">${(x.names||[]).length} طالبة</div><div data-confirm="${x.id}"></div>${imp.showClass===x.id?`<div class="panel" style="margin-top:8px">${(x.names||[]).map((n,i)=>`<div class="row" style="padding:7px 12px"><div class="main">${esc(n)}</div>${canWrite?`<button class="btn sm danger" data-delname="${x.id}|${i}" aria-label="حذف ${esc(n)}">✕</button>`:''}</div>`).join('')||'<div class="empty">لا أسماء</div>'}</div>`:''}</div><div style="display:flex;gap:6px;align-self:flex-start"><button class="btn sm ghost" data-showclass="${x.id}">${imp.showClass===x.id?'إخفاء':'الأسماء'}</button>${canWrite?`<button class="btn sm danger" data-delclass="${x.id}">حذف الفصل</button>`:''}</div></div>`).join(''):`<div class="empty">لا توجد فصول مستوردة بعد.</div>`}</div>`;
   }else{
     const missing=imp.rows.filter(r=>!r.grade).length;
     const groups=groupRows();
@@ -1277,7 +1345,15 @@ document.addEventListener('click',async e=>{
   if(t.id==='copyInvite'){copyText(inviteLink(),'نُسخ رابط الدعوة، أرسليه لزميلاتك');return;}
   if(t.id==='unlink'){$('[data-confirm="unlink"]').innerHTML=`<div class="confirm">فك ربط هذا الجهاز؟ <button class="btn sm danger" data-yesunlink>نعم</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;return;}
   if(t.hasAttribute&&t.hasAttribute('data-yesunlink')){disconnectSheet();return;}
-  if(t.id==='backL'){sheetMode='list';openStudent(openKey,true);return;}
+  if(t.dataset.edit){editId=t.dataset.edit;sheetMode='edit';openStudent(openKey,true);$('#sheetCard').scrollTop=0;return;}
+  if(t.dataset.delname){const [cid,i]=t.dataset.delname.split('|');const c=roster.find(x=>x.id===cid);if(!c)return;
+    const names=c.names.filter((_,j)=>j!==+i);try{await store.saveClass({...c,names});toast('حُذف الاسم من القائمة');drawImport();}catch(x){writeErr(x)}return;}
+  if(t.dataset.showclass){imp.showClass=imp.showClass===t.dataset.showclass?null:t.dataset.showclass;drawImport();return;}
+  if(t.id==='newTerm'){$('[data-confirm="newterm"]').innerHTML=`<div class="confirm">سيُنزَّل لك ملف نسخة احتياطية أولاً، ثم تُحذف كل سجلات الرصد من هذا الجهاز. أسماء الطالبات والإعدادات تبقى. <button class="btn sm danger" data-yesterm>نعم، ابدئي فصلاً جديداً</button><button class="btn sm ghost" data-no>إلغاء</button></div>`;return;}
+  if(t.hasAttribute&&t.hasAttribute('data-yesterm')){
+    t.disabled=true;$('#backupBtn').click();
+    setTimeout(async()=>{try{for(const r of [...records])await store.remove(r.id);if(store.mode==='local')store.saveLocal();renderAll();toast('بدأ فصل جديد، وحُفظت نسخة السجلات السابقة');}catch(x){writeErr(x)}},1500);return;}
+  if(t.id==='backL'){sheetMode='list';editId=null;openStudent(openKey,true);return;}
   if(t.id==='addFor'||t.id==='addExc'){
     const s=students().find(x=>x.key===openKey);closeSheet();
     if(t.id==='addFor'){$('#fName').value=s.name;$('#fGrade').value=s.grade;$('#fSec').value=s.sec;updateProc();show('rec');}
