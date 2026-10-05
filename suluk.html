@@ -1370,7 +1370,9 @@ async function pinHash(p){
   try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
   catch(e){let h=5381;for(const c of txt)h=((h*33)^c.charCodeAt(0))>>>0;return 'h'+h.toString(16);}
 }
-const adminHash=()=>{let l='';try{l=localStorage.getItem('rasd_pin')||'';}catch(e){}return settings.adminPin||l;};
+const SUP_BUILTIN='ea2b8d7e1014f8508f91f5bab664986c9c0893b90fdf24f7a111a5fe32480a1c';
+const ADMIN_BUILTIN='';
+const adminHash=()=>{let l='';try{l=localStorage.getItem('rasd_pin')||'';}catch(e){}return settings.adminPin||l||ADMIN_BUILTIN;};
 function applyRole(){
   isAdmin=role==='admin';canSup=isAdmin||role==='sup';
   const ht=$('#homeTab');ht.dataset.v=canSup?'sup':'home';ht.querySelector('.lbl').textContent=canSup?'الإشراف':'الرئيسية';
@@ -1385,7 +1387,7 @@ $('#credit').addEventListener('click',()=>{
   if(creditTaps.length>=5){creditTaps=[];openPin(isAdmin?'change':'unlock');}
 });
 function openPin(mode){
-  const setting=mode==='change'||!adminHash();
+  const setting=mode==='change'||(!adminHash()&&!SUP_BUILTIN);
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>${setting?'إنشاء رمز الموجّهة':'دخول الموجّهة أو الوكيلة'}</h3><div class="hint">${setting?'رمز من 4 أرقام أو أكثر يفتح الإعدادات. لا تشاركيه مع المعلمات.':'أدخلي رمزك: رمز الموجّهة يفتح الإعدادات، ورمز الوكيلة يفتح الإشراف اليومي.'}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <form id="pinF" style="margin-top:14px;display:grid;gap:12px">
@@ -1407,8 +1409,8 @@ document.addEventListener('submit',async e=>{
     r='admin';
     try{await store.saveSettings({...settings,adminPin:h});}catch(x){}
   }else{
-    if(h===adminHash())r='admin';
-    else if(settings.supPin&&h===settings.supPin)r='sup';
+    if(h===adminHash()||(ADMIN_BUILTIN&&h===ADMIN_BUILTIN))r='admin';
+    else if((settings.supPin&&h===settings.supPin)||h===SUP_BUILTIN)r='sup';
     else{toast('الرمز غير صحيح');$('#pin1').value='';return;}
   }
   closeSheet();setRole(r);show(r==='admin'?'set':'sup');toast(r==='admin'?'فُتحت الإعدادات':'فُتح الإشراف اليومي');
