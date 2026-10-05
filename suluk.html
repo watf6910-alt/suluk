@@ -504,6 +504,7 @@ const store={mode:'pending',db:null,
     }else if(!hosted&&SYNC.url){
       this.mode='sheet';
       loadCache();SYNC.queue=lsGet('rasd_queue',[]);
+      if(SYNC._invited){for(const r of records){if(!r.dev)r.dev=DEV;if(!SYNC.queue.some(o=>o.op==='put'&&o.rec.id===r.id))SYNC.queue.push({op:'put',rec:r});}cacheAll();}
       setStatus('جارٍ الاتصال…','');
       fillSettings();renderAll();
       flush();
@@ -512,6 +513,7 @@ const store={mode:'pending',db:null,
       this.mode='local';
       setStatus('محفوظ على هذا الجهاز','');
       loadCache();
+      if(!canSup&&records.some(r=>!r.dev)){records.forEach(r=>{if(!r.dev)r.dev=DEV;});cacheAll();}
       fillSettings();renderAll();
     }
     addEventListener('online',()=>{if(store.mode==='sheet')flush();});
@@ -526,7 +528,7 @@ const store={mode:'pending',db:null,
   saveLocal(){cacheAll();},
   async add(r){
     if(this.mode==='db'){await this.db.collection('records').add(r);return;}
-    r.id='r'+Date.now()+Math.random().toString(36).slice(2,6);records.push(r);
+    r.id='r'+Date.now()+Math.random().toString(36).slice(2,6);if(!r.dev)r.dev=DEV;records.push(r);
     if(this.mode==='sheet')queueOp({op:'put',rec:r});else{cacheAll();renderAll();}
   },
   async update(id,p){
@@ -594,7 +596,7 @@ async function pull(){
       else if(op.op==='class')cm.set(op.cls.id,op.cls);else if(op.op==='delclass')cm.delete(op.id);
       else if(op.op==='settings')ps=op.settings;
     }
-    records=[...m.values()];roster=[...cm.values()];
+    records=[...m.values()].filter(x=>canSup||x.dev===DEV);roster=[...cm.values()];
     const st=ps||j.settings;if(st)settings={...DEF_SET,...st,school:st.school||DEF_SCHOOL};
     SYNC.last=new Date();SYNC.busy=false;cacheAll();fillSettings();renderAll();syncStatus(true);
   }catch(e){SYNC.busy=false;syncStatus(false);}
@@ -1364,7 +1366,7 @@ async function saveImport(){
 let role='';
 try{role=localStorage.getItem('rasd_role')||(localStorage.getItem('rasd_admin')==='1'?'admin':'');}catch(e){}
 let isAdmin=role==='admin', canSup=isAdmin||role==='sup';
-function setRole(r){role=r;try{localStorage.setItem('rasd_role',r);localStorage.setItem('rasd_admin',r==='admin'?'1':'0');}catch(e){}applyRole();renderAll();}
+function setRole(r){role=r;try{localStorage.setItem('rasd_role',r);localStorage.setItem('rasd_admin',r==='admin'?'1':'0');}catch(e){}applyRole();renderAll();if(store.mode==='sheet'&&canSup)pull();}
 async function pinHash(p){
   const txt='rasd-suluk:'+p;
   try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
