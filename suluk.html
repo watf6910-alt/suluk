@@ -759,13 +759,13 @@ function recRow(r,showName=true){
   const click=showName?`class="row click" data-k="${esc(keyOf(r))}"`:'class="row"';
   if(isExc(r)) return `<div ${click}><span class="stripe" style="background:var(--star)"></span>
     <div class="main"><div class="t">${showName?esc(r.name):esc(r.practice||r.note||'سلوك متميز')}</div>
-    <div class="s">${showName?esc(r.practice||r.note||'سلوك متميز')+' · ':''}${where}${!showName&&r.evidence?'<br>الشواهد: '+esc(r.evidence):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
+    <div class="s">${showName?esc(r.practice||r.note||'سلوك متميز')+' · ':''}${where}${showName&&r.by?' · رصدتها: '+esc(r.by):''}${!showName&&r.evidence?'<br>الشواهد: '+esc(r.evidence):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
     ${!showName&&canWrite?`<div class="actions" style="margin-top:6px">${editBtn(r)}${delBtn(r)}</div><div data-confirm="${r.id}"></div>`:''}</div>
     <span class="chip star" dir="ltr">+${+r.points||0}</span></div>`;
   const ded=dedOf(r);
   return `<div ${click}><span class="stripe" style="background:${degColor(r.degree)}"></span>
   <div class="main"><div class="t">${showName?esc(r.name):esc(r.violation)}</div>
-  <div class="s">${showName?esc(r.violation)+' · ':''}الدرجة ${DEGNAMES[D(r.degree)]}${r.proc?' · الإجراء '+PROCNAMES[r.proc]:''} · ${where}${!showName&&r.period?' · '+esc(r.period):''}${!showName&&r.note?'<br>'+esc(r.note):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
+  <div class="s">${showName?esc(r.violation)+' · ':''}الدرجة ${DEGNAMES[D(r.degree)]}${r.proc?' · الإجراء '+PROCNAMES[r.proc]:''} · ${where}${showName&&r.by?' · رصدتها: '+esc(r.by):''}${!showName&&r.period?' · '+esc(r.period):''}${!showName&&r.note?'<br>'+esc(r.note):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
   ${!showName?`<div class="actions" style="margin-top:6px">${r.notified?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?editBtn(r)+delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
   <div style="display:grid;gap:4px;justify-items:end">${ded?`<span class="chip neg" dir="ltr">−${ded}</span>`:''}<span class="chip ${r.notified?'ok':'pend'}">${r.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div></div>`;
 }
