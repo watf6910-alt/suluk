@@ -1371,7 +1371,7 @@ async function pinHash(p){
   catch(e){let h=5381;for(const c of txt)h=((h*33)^c.charCodeAt(0))>>>0;return 'h'+h.toString(16);}
 }
 const SUP_BUILTIN='ea2b8d7e1014f8508f91f5bab664986c9c0893b90fdf24f7a111a5fe32480a1c';
-const ADMIN_BUILTIN='';
+const ADMIN_BUILTIN='4719def5977e43146b9dc916f4554492c1f3f9ac9e739138fee96631f6265a8f';
 const adminHash=()=>{let l='';try{l=localStorage.getItem('rasd_pin')||'';}catch(e){}return settings.adminPin||l||ADMIN_BUILTIN;};
 function applyRole(){
   isAdmin=role==='admin';canSup=isAdmin||role==='sup';
