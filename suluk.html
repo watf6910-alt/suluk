@@ -333,6 +333,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <section id="v-sup" hidden>
     <div class="toprow" style="margin-top:16px">
       <div><label for="supDate">الإشراف اليومي</label><input id="supDate" type="date"><div class="hint" id="supHijri"></div></div>
+      <button class="btn sm" type="button" id="supMonth">التقرير الشهري</button>
       <button class="btn sm ghost" type="button" id="supBeh">لوحة السلوك</button>
       <button class="btn sm ghost" type="button" id="supLock">قفل</button>
     </div>
@@ -1239,6 +1240,59 @@ function printReport(s){
   <table><thead><tr><th>م</th><th>النوع</th><th>المخالفة / الممارسة</th><th>الإجراء</th><th>الدرجات</th><th>التاريخ</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||'....................')}</span></div>`);
 }
+
+/* ---------- monthly report ---------- */
+const HM=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+function hYM(iso){try{const p=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{year:'numeric',month:'numeric'}).formatToParts(new Date(iso+'T12:00:00'));const y=parseInt(p.find(x=>x.type==='year').value),m=parseInt(p.find(x=>x.type==='month').value);return y+'-'+String(m).padStart(2,'0');}catch(e){return String(iso).slice(0,7);}}
+function hYMName(ym){const[y,m]=ym.split('-');return (HM[+m-1]||m)+' '+y+'هـ';}
+const mrep={ym:'',cls:''};
+function monthRows(ym,cls){
+  const all=records;let sM,aM,sT,aT;
+  try{records=all.filter(r=>r.date&&hYM(r.date)===ym);sM=new Map(students().map(x=>[x.key,x]));aM=new Map(absStudents().map(x=>[x.key,x]));}
+  finally{records=all;}
+  sT=new Map(students().map(x=>[x.key,x]));aT=new Map(absStudents().map(x=>[x.key,x]));
+  const people=new Map();
+  for(const c of allRoster())for(const n of (c.names||[])){const k=norm(n)+'|'+c.grade;if(!people.has(k))people.set(k,{key:k,name:norm(n),grade:c.grade,sec:c.section||''});}
+  for(const m of [sT,aT])for(const x of m.values())if(!people.has(x.key))people.set(x.key,{key:x.key,name:x.name,grade:x.grade,sec:x.sec||''});
+  let list=[...people.values()];
+  if(cls){const c=allRoster().find(x=>x.id===cls);if(c)list=list.filter(p=>p.grade===c.grade&&((c.names||[]).map(norm).includes(p.name)||(c.section&&p.sec===c.section)));}
+  return list.map(p=>{const m=sM.get(p.key),t=sT.get(p.key),am=aM.get(p.key),at=aT.get(p.key);
+    return {...p,mViol:m?m.viol.length:0,mDed:m?m.ded:0,mExc:m?m.excPts:0,mUn:am?am.st.unexc:0,mEx:am?am.st.exc:0,mLate:am?am.st.late:0,beh:t?t.score:80,att:at?at.st.score:100,exc:t?t.excPts:0};})
+    .sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||String(a.sec).localeCompare(String(b.sec),'ar')||a.name.localeCompare(b.name,'ar'));
+}
+function monthMsg(x,ym){
+  const good=!x.mViol&&!x.mUn&&!x.mLate;
+  return `ولي أمر الطالبة / ${x.name} المحترم\nالسلام عليكم ورحمة الله وبركاته\n\nنفيدكم بنتيجة ابنتكم لشهر ${hYMName(ym)}:\n\n• السلوك: ${x.beh} من 100 ${x.mViol?`(مخالفات هذا الشهر: ${x.mViol})`:'(لا توجد مخالفات هذا الشهر)'}\n• المواظبة والانضباط: ${x.att} من 100 (غياب دون عذر: ${x.mUn}، غياب بعذر: ${x.mEx}، تأخر: ${x.mLate})\n• التميّز: ${x.mExc?`+${x.mExc} درجة هذا الشهر`:'لا يوجد هذا الشهر'}${x.exc?` (المجموع +${x.exc})`:''}\n\n${good?'نشكر لكم حسن متابعتكم، ونسأل الله لها دوام التوفيق.':'نأمل متابعتكم وتعاونكم مع المدرسة.'}\n\n${settings.school||DEF_SCHOOL}`;
+}
+function openMonth(){
+  const yms=[...new Set(records.filter(r=>r.date).map(r=>hYM(r.date)))];const cur=hYM(today());if(!yms.includes(cur))yms.push(cur);yms.sort().reverse();
+  if(!mrep.ym||!yms.includes(mrep.ym))mrep.ym=yms[0];
+  const rows=monthRows(mrep.ym,mrep.cls);
+  const cl=allRoster().slice().sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||String(a.section).localeCompare(String(b.section),'ar'));
+  const list=rows.map(x=>`<div class="row" style="align-items:center"><div class="main"><div class="t">${esc(x.name)}</div><div class="s">${esc(x.grade)}${x.sec?' / '+esc(x.sec):''}</div><div class="s">السلوك ${x.beh} · المواظبة ${x.att} · التميّز +${x.mExc}${x.mViol?' · '+x.mViol+' مخالفة':''}${x.mUn?' · '+x.mUn+' غياب':''}${x.mLate?' · '+x.mLate+' تأخر':''}</div></div><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(monthMsg(x,mrep.ym))}">واتساب</a></div>`).join('')||'<div class="empty">لا توجد طالبات بعد</div>';
+  openKey=null;imp.open=false;absOpen=null;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>التقرير الشهري</h3><div class="hint">السلوك والمواظبة والتميّز لكل طالبة</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="split" style="margin-top:12px"><div><label for="mrepYM">الشهر</label><select id="mrepYM">${yms.map(y=>`<option value="${y}" ${y===mrep.ym?'selected':''}>${hYMName(y)}</option>`).join('')}</select></div>
+  <div><label for="mrepCls">الفصل</label><select id="mrepCls"><option value="">كل الفصول</option>${cl.map(c=>`<option value="${esc(c.id)}" ${c.id===mrep.cls?'selected':''}>${esc(c.grade)}${c.section?' / '+esc(c.section):''}</option>`).join('')}</select></div></div>
+  <div class="actions"><button class="btn" type="button" id="mrepXls">تنزيل Excel</button><button class="btn ghost" type="button" id="mrepPrint">طباعة</button></div>
+  <p class="hint">${rows.length} طالبة · زر «واتساب» يفتح رسالة جاهزة لولي أمر كل طالبة.</p><div class="panel">${list}</div>`;
+  $('#sheet').hidden=false;
+}
+document.addEventListener('change',e=>{const t=e.target;if(!t)return;if(t.id==='mrepYM'){mrep.ym=t.value;openMonth();}else if(t.id==='mrepCls'){mrep.cls=t.value;openMonth();}});
+document.addEventListener('click',async e=>{
+  const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t||!t.id)return;
+  if(t.id==='supMonth'){openMonth();return;}
+  if(t.id==='mrepXls'){
+    const rows=monthRows(mrep.ym,mrep.cls);
+    const out=rows.map((x,i)=>({'م':i+1,'اسم الطالبة':x.name,'الصف':x.grade,'الفصل':x.sec||'','مخالفات الشهر':x.mViol,'درجات محسومة في الشهر':x.mDed,'درجات التميّز في الشهر':x.mExc,'غياب دون عذر':x.mUn,'غياب بعذر':x.mEx,'تأخر':x.mLate,'درجة السلوك (من 100)':x.beh,'درجة المواظبة (من 100)':x.att,'مجموع التميّز':x.exc}));
+    const blob=XW.book([{name:'التقرير الشهري',rows:out.length?out:[{'اسم الطالبة':'لا توجد بيانات'}],widths:[5,28,14,7,12,16,16,12,10,8,16,18,12]}]);
+    await saveFile('التقرير-الشهري-'+hYMName(mrep.ym).replace(/\s+/g,'-')+'.xlsx',blob,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
+  }
+  if(t.id==='mrepPrint'){
+    const rows=monthRows(mrep.ym,mrep.cls);closeSheet();
+    doPrint(printHead('التقرير الشهري — '+hYMName(mrep.ym))+`<table><thead><tr><th>م</th><th>اسم الطالبة</th><th>الصف</th><th>السلوك</th><th>المواظبة</th><th>التميّز</th><th>مخالفات</th><th>غياب دون عذر</th><th>تأخر</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.grade)}${x.sec?' / '+esc(x.sec):''}</td><td>${x.beh}</td><td>${x.att}</td><td>+${x.mExc}</td><td>${x.mViol}</td><td>${x.mUn}</td><td>${x.mLate}</td></tr>`).join('')}</tbody></table><div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||'....................')}</span></div>`);
+  }
+});
 
 /* ---------- import from Noor ---------- */
 function loadXLSX(){
