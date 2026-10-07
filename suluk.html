@@ -1895,6 +1895,55 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
 
+/* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
+(()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
+const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+const H_FMT=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'numeric',year:'numeric',timeZone:'UTC'});
+function isoToH(iso){
+  const p={};for(const x of H_FMT.formatToParts(new Date(iso+'T12:00:00Z')))p[x.type]=x.value;
+  return {y:parseInt(p.year,10),m:parseInt(p.month,10),d:parseInt(p.day,10)};
+}
+function hToIso(y,m,d){
+  let t=Date.UTC(622,6,16)+Math.round(((y-1)*354.36707+(m-1)*29.530589+(d-1))*864e5);
+  for(let i=0;i<40;i++){
+    const iso=new Date(t).toISOString().slice(0,10),h=isoToH(iso);
+    const diff=(y-h.y)*354.36707+(m-h.m)*29.530589+(d-h.d);
+    if(h.y===y&&h.m===m&&h.d===d)return iso;
+    const step=Math.round(diff)||(diff>0?1:-1);t+=step*864e5;
+  }
+  return '';
+}
+function hMonthLen(y,m){const a=hToIso(y,m,1);if(!a)return 30;const n=new Date(Date.parse(a+'T12:00:00Z')+29*864e5).toISOString().slice(0,10);return isoToH(n).m===m?30:29;}
+const H_DESC=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+function hijriPicker(inp){
+  if(inp._hp)return;inp._hp=1;
+  const box=document.createElement('div');box.className='hpick';
+  box.innerHTML='<select aria-label="اليوم" class="hpD"></select><select aria-label="الشهر" class="hpM">'+H_MONTHS.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')+'</select><select aria-label="السنة" class="hpY"></select>';
+  inp.insertAdjacentElement('afterend',box);inp.classList.add('hpHidden');
+  const sd=box.querySelector('.hpD'),sm=box.querySelector('.hpM'),sy=box.querySelector('.hpY');
+  const lab=inp.id&&document.querySelector(`label[for="${inp.id}"]`);if(lab)lab.htmlFor='';
+  const draw=()=>{
+    const iso=H_DESC.get.call(inp)||new Date().toISOString().slice(0,10);
+    let h;try{h=isoToH(iso);}catch(e){return;}
+    const ys=[];for(let y=h.y-2;y<=h.y+2;y++)ys.push(y);
+    sy.innerHTML=ys.map(y=>`<option value="${y}">${y} هـ</option>`).join('');
+    sy.value=h.y;sm.value=h.m;
+    const L=hMonthLen(h.y,h.m);sd.innerHTML=Array.from({length:L},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');sd.value=Math.min(h.d,L);
+  };
+  const pick=()=>{
+    const y=+sy.value,m=+sm.value,L=hMonthLen(y,m);let d=Math.min(+sd.value,L);
+    const iso=hToIso(y,m,d);if(!iso)return;
+    H_DESC.set.call(inp,iso);draw();
+    inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));
+  };
+  [sd,sm,sy].forEach(s=>s.addEventListener('change',pick));
+  Object.defineProperty(inp,'value',{configurable:true,get(){return H_DESC.get.call(inp);},set(v){H_DESC.set.call(inp,v);draw();}});
+  Object.defineProperty(inp,'valueAsDate',{configurable:true,get(){const v=H_DESC.get.call(inp);return v?new Date(v+'T00:00:00Z'):null;},set(dt){inp.value=dt?dt.toISOString().slice(0,10):'';}});
+  draw();
+}
+function hijriPickers(root){(root||document).querySelectorAll('input[type="date"]').forEach(hijriPicker);}
+hijriPickers();
+new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches&&n.matches('input[type="date"]'))hijriPicker(n);else if(n.querySelectorAll)hijriPickers(n);}}).observe(document.body,{childList:true,subtree:true});
 if(!hosted&&(location.protocol==='https:'||location.hostname==='localhost')&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
 initForm();initAbsTab();fillSettings();applyRole();renderAll();if(canSup)show('sup');
 (async()=>{let c='';try{c=localStorage.getItem('rasd_school')||'';}catch(e){}if(c)await unlockRoster(c,true);})();
