@@ -588,14 +588,17 @@ async function getRemote(url){
 async function flush(){
   if(!SYNC.url||SYNC.busy)return;
   if(!SYNC.queue.length)return pull();
-  SYNC.busy=true;const ops=SYNC.queue.slice(0,40);
+  SYNC.busy=true;const ops=SYNC.queue.slice(0,SYNC.batch||12);
   try{
     const key=await syncKey();const r=await fetch(SYNC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({ops,key})});
-    const j=await r.json();if(!j.ok)throw 0;
-    SYNC.queue=SYNC.queue.slice(ops.length);cacheAll();SYNC.busy=false;
-    if(SYNC.queue.length)return flush();
+    const j=await r.json();if(!j.ok)throw new Error(j.error||'x');
+    SYNC.queue=SYNC.queue.slice(ops.length);cacheAll();SYNC.busy=false;SYNC.fails=0;SYNC.batch=Math.min(25,(SYNC.batch||12)+2);
+    if(SYNC.queue.length){setStatus('جارٍ الرفع… بقي '+SYNC.queue.length,'');return flush();}
     return pull();
-  }catch(e){SYNC.busy=false;syncStatus(false);}
+  }catch(e){SYNC.busy=false;
+    if(e&&e.message==='key'){syncStatus(false);return;}
+    SYNC.fails=(SYNC.fails||0)+1;SYNC.batch=Math.max(4,Math.floor((SYNC.batch||12)/2));syncStatus(false);
+    if(SYNC.fails<6&&!document.hidden)setTimeout(flush,3000*SYNC.fails);}
 }
 async function pull(){
   if(!SYNC.url||SYNC.busy)return;SYNC.busy=true;
