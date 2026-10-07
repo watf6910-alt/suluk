@@ -343,6 +343,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div class="tile"><b id="sNeed">0</b><span>بحاجة إجراء غياب</span></div>
       <div class="tile"><b id="sViol">0</b><span>مخالفات اليوم</span></div>
     </div>
+    <div class="panel" id="supUzr" style="margin-top:12px"></div>
     <h2>الغائبات</h2><div class="panel" id="supAbsList"></div>
     <h2>المتأخرات</h2><div class="panel" id="supLateList"></div>
     <h2>بحاجة إجراء حسب قواعد المواظبة</h2><div class="panel" id="supNeedList"></div>
@@ -569,16 +570,27 @@ function loadCache(){
 }
 function cacheAll(){lsSet('rasd_records',records);lsSet('rasd_roster',roster);lsSet('rasd_settings',settings);lsSet('rasd_queue',SYNC.queue);}
 function queueOp(op){SYNC.queue.push(op);cacheAll();renderAll();syncStatus(false,true);flush();}
+let uzrs=lsGet('rasd_uzr',[]);
+async function syncKey(){
+  if(SYNC.key)return SYNC.key;
+  let k=lsGet('rasd_key','');
+  if(!k){let c='';try{c=localStorage.getItem('rasd_school')||'';}catch(e){}
+    if(c){const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('rasd-key|'+c));k=[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,32);}}
+  SYNC.key=k||'';return SYNC.key;
+}
 async function getRemote(url){
-  const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now());
-  const j=await r.json();if(!j||!j.ok)throw new Error('bad');return j;
+  const k=await syncKey();
+  const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now()+(k?'&key='+encodeURIComponent(k):''));
+  const j=await r.json();
+  if(j&&j.error==='key'){if(!SYNC._keyWarn){SYNC._keyWarn=1;toast('أدخلي رمز المدرسة حتى يتزامن السجل');}throw new Error('key');}
+  if(!j||!j.ok)throw new Error('bad');return j;
 }
 async function flush(){
   if(!SYNC.url||SYNC.busy)return;
   if(!SYNC.queue.length)return pull();
   SYNC.busy=true;const ops=SYNC.queue.slice(0,40);
   try{
-    const r=await fetch(SYNC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({ops})});
+    const key=await syncKey();const r=await fetch(SYNC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({ops,key})});
     const j=await r.json();if(!j.ok)throw 0;
     SYNC.queue=SYNC.queue.slice(ops.length);cacheAll();SYNC.busy=false;
     if(SYNC.queue.length)return flush();
@@ -598,6 +610,8 @@ async function pull(){
       else if(op.op==='settings')ps=op.settings;
     }
     records=[...m.values()].filter(x=>canSup||x.dev===DEV);roster=[...cm.values()];
+    if(Array.isArray(j.excuses)!==!!lsGet('rasd_v2',false))lsSet('rasd_v2',Array.isArray(j.excuses));
+    if(canSup&&Array.isArray(j.excuses)){const pend=new Map(SYNC.queue.filter(o=>o.op==='uzr').map(o=>[o.id,o]));uzrs=j.excuses.map(x=>pend.has(x.id)?{...x,...pend.get(x.id)}:x);lsSet('rasd_uzr',uzrs);}
     const st=ps||j.settings;if(st)settings={...DEF_SET,...st,school:st.school||DEF_SCHOOL};
     SYNC.last=new Date();SYNC.busy=false;cacheAll();fillSettings();renderAll();syncStatus(true);
   }catch(e){SYNC.busy=false;syncStatus(false);}
@@ -614,6 +628,7 @@ async function connectSheet(url){
   url=url.trim();
   if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){toast('الرابط يجب أن يبدأ بـ https://script.google.com');return false;}
   toast('جارٍ التحقق من الرابط…');
+  if(!(await syncKey())){const a=crypto.getRandomValues(new Uint8Array(16));SYNC.key=[...a].map(b=>b.toString(16).padStart(2,'0')).join('');lsSet('rasd_key',SYNC.key);}
   let j;try{j=await getRemote(url);}catch(e){toast('لم أستطع الوصول للجدول. تأكدي من النشر بخيار «أي شخص»');return false;}
   SYNC.url=url;lsSet('rasd_sync',url);
   const ids=new Set((j.records||[]).map(x=>x.id)), cids=new Set((j.roster||[]).map(x=>x.id));
@@ -638,11 +653,14 @@ function setSaveNote(){
     ?'المنصة مرتبطة بسجل المدرسة في Google Sheets: كل رصد يُرفع تلقائياً ويظهر عند الجميع، وإن انقطع الإنترنت يُحفظ على الجهاز ويُرفع عند عودته.'
     :'البيانات محفوظة في متصفح هذا الجهاز. لجعل رصد كل المعلمات في سجل واحد، اربطي المنصة بجدول Google Sheets من القسم أعلاه.';
 }
-const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets
+const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets (الإصدار 2: حماية بالرمز + أعذار أولياء الأمور)
 // إعداد الموجّهة الطلابية عواطف الحربي
 const SS = SpreadsheetApp.getActiveSpreadsheet();
+const PROPS = PropertiesService.getScriptProperties();
 const REC_H = ['id','النوع','اسم الطالبة','الصف','الفصل','درجة المخالفة','المخالفة / الممارسة','الإجراء','الدرجات','التاريخ','إشعار ولي الأمر','الراصدة','بيانات'];
 const CLS_H = ['id','الصف','الفصل','عدد الطالبات','بيانات'];
+const UZR_H = ['id','تاريخ الإرسال','اسم الطالبة','الصف','الفصل','أيام الغياب','نوع العذر','ملاحظة','ولي الأمر','الجوال','المرفق','الحالة','سبب الرفض','اعتمدته','بيانات'];
+const UZR_ST = { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
 
 function tab(name, head) {
   let s = SS.getSheetByName(name);
@@ -657,12 +675,39 @@ function rows(s, n) {
   return last < 2 ? [] : s.getRange(2, 1, last - 1, n).getValues();
 }
 function parse(v) { try { return JSON.parse(v); } catch (e) { return null; } }
+function keyOk(k) {
+  const K = PROPS.getProperty('KEY');
+  if (!K) { if (k) PROPS.setProperty('KEY', String(k)); return true; }
+  return String(k || '') === K;
+}
+function folder() {
+  const id = PROPS.getProperty('UZR_FOLDER');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  const f = DriveApp.createFolder('مرفقات أعذار منصة السلوك');
+  PROPS.setProperty('UZR_FOLDER', f.getId());
+  return f;
+}
 
-function doGet() {
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  const owner = Session.getEffectiveUser().getEmail();
+  if (p.who) return out({ ok: true, owner: owner });
+  if (!keyOk(p.key)) return out({ ok: false, error: 'key' });
+  if (p.img) {
+    const f = DriveApp.getFileById(String(p.img));
+    const fid = PROPS.getProperty('UZR_FOLDER');
+    let inside = false;
+    const it = f.getParents();
+    while (it.hasNext()) if (it.next().getId() === fid) inside = true;
+    if (!inside) return out({ ok: false, error: 'file' });
+    const b = f.getBlob();
+    return out({ ok: true, mime: b.getContentType(), data: Utilities.base64Encode(b.getBytes()) });
+  }
   const recs = rows(tab('السجلات', REC_H), 13).map(r => parse(r[12])).filter(Boolean);
   const cls = rows(tab('الفصول', CLS_H), 5).map(r => parse(r[4])).filter(Boolean);
   const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
-  return out({ ok: true, records: recs, roster: cls, settings: st ? parse(st) : null });
+  const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(Boolean);
+  return out({ ok: true, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz });
 }
 
 function findRow(s, id) {
@@ -683,18 +728,61 @@ function recRow(x) {
     x.date || '', exc ? '' : (x.notified ? 'نعم' : 'لا'), x.by || '', JSON.stringify(x)];
 }
 
+function addExcuse(b) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const U = tab('الأعذار', UZR_H);
+    if (U.getLastRow() > 5000) return out({ ok: false, error: 'full' });
+    const s = v => String(v || '').slice(0, 300);
+    const name = s(b.name), grade = s(b.grade), type = s(b.type);
+    const dates = (b.dates || []).map(String).filter(d => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d)).slice(0, 15);
+    if (!name || !grade || !type || !dates.length) return out({ ok: false, error: 'data' });
+    const tz = Session.getScriptTimeZone();
+    const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+    const sent = rows(U, 3).filter(r => String(r[2]) === name && r[1] instanceof Date && Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') === today).length;
+    if (sent >= 5) return out({ ok: false, error: 'limit' });
+    let fileId = '';
+    const ph = String(b.photo || '');
+    if (ph && ph.length < 6000000) {
+      const m = ph.match(/^data:(image[/](png|jpeg|webp));base64,(.+)$/);
+      if (m) {
+        const blob = Utilities.newBlob(Utilities.base64Decode(m[3]), m[1], 'عذر-' + name + '-' + dates[0] + '.' + (m[2] === 'jpeg' ? 'jpg' : m[2]));
+        fileId = folder().createFile(blob).getId();
+      }
+    }
+    const id = 'u' + Date.now() + Math.floor(Math.random() * 1000);
+    const x = { id: id, at: new Date().toISOString(), name: name, grade: grade, section: s(b.section), dates: dates, type: type, note: s(b.note), parent: s(b.parent), phone: s(b.phone).replace(/[^0-9+]/g, ''), file: fileId, status: 'pending' };
+    U.appendRow([id, new Date(), name, grade, x.section, dates.join('، '), type, x.note, x.parent, x.phone, fileId ? 'يوجد' : '', UZR_ST.pending, '', '', JSON.stringify(x)]);
+    return out({ ok: true });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function doPost(e) {
+  const body = JSON.parse(e.postData.contents);
+  if (body.op === 'excuse') return addExcuse(body);
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
-    const ops = JSON.parse(e.postData.contents).ops || [];
-    const R = tab('السجلات', REC_H), C = tab('الفصول', CLS_H);
+    if (!keyOk(body.key)) return out({ ok: false, error: 'key' });
+    const ops = body.ops || [];
+    const R = tab('السجلات', REC_H), C = tab('الفصول', CLS_H), U = tab('الأعذار', UZR_H);
     ops.forEach(op => {
       if (op.op === 'put') upsert(R, op.rec.id, recRow(op.rec));
       else if (op.op === 'del') { const r = findRow(R, op.id); if (r) R.deleteRow(r); }
       else if (op.op === 'class') upsert(C, op.cls.id, [op.cls.id, op.cls.grade, op.cls.section || '', (op.cls.names || []).length, JSON.stringify(op.cls)]);
       else if (op.op === 'delclass') { const r = findRow(C, op.id); if (r) C.deleteRow(r); }
       else if (op.op === 'settings') tab('الإعدادات', ['بيانات']).getRange('A2').setValue(JSON.stringify(op.settings));
+      else if (op.op === 'uzr') {
+        const r = findRow(U, op.id);
+        if (r) {
+          const x = parse(U.getRange(r, 15).getValue()) || {};
+          x.status = op.status; x.reason = op.reason || ''; x.by = op.by || ''; x.doneAt = new Date().toISOString();
+          U.getRange(r, 12, 1, 4).setValues([[UZR_ST[x.status] || x.status, x.reason, x.by, JSON.stringify(x)]]);
+        }
+      }
     });
     return out({ ok: true });
   } catch (err) {
@@ -728,13 +816,13 @@ function drawSyncPanel(){
     <input id="syncUrl" dir="ltr" placeholder="https://script.google.com/macros/s/…/exec">
     <div class="actions"><button class="btn" id="linkBtn">ربط</button></div></div>`;
 }
-function inviteLink(){return location.href.split('#')[0]+'#sync='+encodeURIComponent(SYNC.url);}
+function inviteLink(){return location.href.split('#')[0]+'#sync='+encodeURIComponent(SYNC.url)+(lsGet('rasd_key','')?'&k='+encodeURIComponent(lsGet('rasd_key','')):'');}
 async function copyText(txt,ok){try{await navigator.clipboard.writeText(txt);toast(ok);}catch(e){
   const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast(ok);}catch(x){toast('تعذّر النسخ');}ta.remove();}}
 (function readInvite(){
   try{
     const h=location.hash;
-    if(h.startsWith('#sync=')){const u=decodeURIComponent(h.slice(6));if(/^https:\/\/script\.google/.test(u)){lsSet('rasd_sync',u);SYNC._invited=true;}history.replaceState(null,'',location.href.split('#')[0]);}
+    if(h.startsWith('#sync=')){const q=new URLSearchParams(h.slice(1));const u=q.get('sync')||'';if(/^https:\/\/script\.google/.test(u)){lsSet('rasd_sync',u);SYNC._invited=true;}const ik=q.get('k');if(ik)lsSet('rasd_key',ik);history.replaceState(null,'',location.href.split('#')[0]);}
     SYNC.url=lsGet('rasd_sync','');
   }catch(e){}
 })();
@@ -1593,8 +1681,92 @@ function renderSup(){
   const nn=behRecs().filter(r=>!isExc(r)&&!r.notified).sort(sortRec);
   $('#supNotifList').innerHTML=nn.length?nn.slice(0,15).map(r=>recRow(r)).join('')+(nn.length>15?`<div class="empty">و${nn.length-15} أخرى</div>`:''):'<div class="empty">كل المخالفات أُشعر أولياء أمورها.</div>';
   $('#sAbs').textContent=absentK.length;$('#sLate').textContent=lateK.length;$('#sNeed').textContent=need.length;$('#sViol').textContent=vd.length;
+  renderUzrPanel();
 }
 $('#supDate').addEventListener('change',e=>{$('#supHijri').textContent=hijri(e.target.value);renderSup();});
+
+/* ---------- parent excuses ---------- */
+const UZR_ST={pending:'بانتظار الاعتماد',approved:'معتمد',rejected:'مرفوض'};
+const uzrF={st:'pending',cls:'',type:''};
+function uzrLink(s,un){
+  if(hosted||!SYNC.url||!un||!un.length||!lsGet('rasd_v2',false))return '';
+  try{const u=new URL('uzr.html',location.href);u.hash=new URLSearchParams({u:SYNC.url,n:s.name,g:s.grade,s:s.sec||'',d:un.map(d=>d.date).sort().join(','),sc:settings.school||DEF_SCHOOL}).toString();return u.toString();}catch(e){return '';}
+}
+function waPhone(p){let d=String(p||'').replace(/[^0-9]/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.startsWith('05'))d='966'+d.slice(1);else if(d.length===9&&d.startsWith('5'))d='966'+d;return d;}
+function uzrReply(x){
+  const days=x.dates.map(hijri).join('، ');
+  const t=x.status==='approved'
+    ?`ولي أمر الطالبة / ${x.name} المحترم\nالسلام عليكم ورحمة الله وبركاته\n\nنفيدكم باعتماد عذر ابنتكم (${x.type}) عن الغياب: ${days}.\nشاكرين تعاونكم.\n\n${settings.school||DEF_SCHOOL}`
+    :`ولي أمر الطالبة / ${x.name} المحترم\nالسلام عليكم ورحمة الله وبركاته\n\nنعتذر عن قبول العذر المقدَّم عن الغياب: ${days}${x.reason?'\nالسبب: '+x.reason:''}.\nيمكنكم التواصل مع المدرسة أو تقديم عذر آخر خلال المدة النظامية.\n\n${settings.school||DEF_SCHOOL}`;
+  return 'https://wa.me/'+waPhone(x.phone)+'?text='+encodeURIComponent(t);
+}
+function renderUzrPanel(){
+  const el=$('#supUzr');if(!el)return;
+  if(!SYNC.url){el.innerHTML='';el.hidden=true;return;}
+  el.hidden=false;
+  const n=uzrs.filter(x=>x.status==='pending').length;
+  el.innerHTML=`<div class="row"><span class="stripe" style="background:${n?'var(--d3)':'var(--ok)'}"></span><div class="main"><div class="t">أعذار أولياء الأمور</div><div class="s">${n?n+' بانتظار الاعتماد':'لا توجد أعذار جديدة'}</div></div><button class="btn sm" type="button" id="uzrOpen">مراجعة الأعذار</button></div>`;
+}
+function openUzr(){
+  const types=[...new Set(uzrs.map(x=>x.type))];
+  const grades=[...new Set(uzrs.map(x=>x.grade+(x.section?' / '+x.section:'')))].sort();
+  const list=uzrs.filter(x=>(uzrF.st==='all'||x.status===uzrF.st)&&(!uzrF.cls||x.grade+(x.section?' / '+x.section:'')===uzrF.cls)&&(!uzrF.type||x.type===uzrF.type))
+    .sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const can=canSup&&canWrite;
+  const card=x=>`<div class="row" style="display:block" id="uzr-${esc(x.id)}">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><div class="t">${esc(x.name)}</div><div class="s">${esc(x.grade)}${x.section?' / '+esc(x.section):''} · أُرسل ${hijri(String(x.at).slice(0,10))}</div></div>
+    <span class="chip ${x.status==='approved'?'ok':''}">${UZR_ST[x.status]||esc(x.status)}</span></div>
+    <div class="s" style="margin-top:6px"><b>أيام الغياب:</b> ${x.dates.map(d=>esc(hijri(d))).join('، ')}</div>
+    <div class="s"><b>العذر:</b> ${esc(x.type)}${x.note?' — '+esc(x.note):''}</div>
+    <div class="s"><b>ولي الأمر:</b> ${esc(x.parent||'—')}${x.phone?' · <span dir="ltr">'+esc(x.phone)+'</span>':''}</div>
+    ${x.status==='rejected'&&x.reason?`<div class="s"><b>سبب الرفض:</b> ${esc(x.reason)}</div>`:''}
+    <div class="uzrImg" data-for="${esc(x.id)}"></div>
+    <div class="actions" style="margin-top:8px">${x.file?`<button class="btn sm ghost" type="button" data-uzrimg="${esc(x.id)}">عرض المرفق</button>`:'<span class="s">بدون مرفق</span>'}
+    ${can&&x.status==='pending'?`<button class="btn sm" type="button" data-uzrok="${esc(x.id)}">اعتماد</button><button class="btn sm danger" type="button" data-uzrno="${esc(x.id)}">رفض</button>`:''}
+    ${x.status!=='pending'&&x.phone?`<a class="btn sm wa" target="_blank" rel="noopener" href="${uzrReply(x)}">إبلاغ ولي الأمر</a>`:''}</div>
+    <div data-uzrrej="${esc(x.id)}"></div></div>`;
+  openKey=null;imp.open=false;absOpen=null;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>أعذار أولياء الأمور</h3><div class="hint">راجعي العذر والمرفق ثم اعتمديه أو ارفضيه</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="split" style="margin-top:12px">
+    <div><label for="uzrSt">الحالة</label><select id="uzrSt">${[['pending','بانتظار الاعتماد'],['approved','المعتمدة'],['rejected','المرفوضة'],['all','الكل']].map(([v,t])=>`<option value="${v}" ${uzrF.st===v?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div><label for="uzrCls">الفصل</label><select id="uzrCls"><option value="">الكل</option>${grades.map(g=>`<option ${uzrF.cls===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+    <div><label for="uzrType">نوع العذر</label><select id="uzrType"><option value="">الكل</option>${types.map(t=>`<option ${uzrF.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+  </div>
+  <p class="hint">${list.length} عذر</p><div class="panel">${list.map(card).join('')||'<div class="empty">لا توجد أعذار بهذا التصفية.</div>'}</div>`;
+  $('#sheet').hidden=false;
+}
+async function uzrDecide(id,status,reason){
+  const x=uzrs.find(u=>u.id===id);if(!x)return;
+  const by=role==='sup'?'الوكيلة':'الموجّهة';let n=0;
+  try{
+    if(status==='approved'){
+      const key=norm(x.name)+'|'+x.grade;
+      for(const d of x.dates)for(const r of absRecs().filter(r=>absKeyOf(r)===key&&r.date===d&&r.status!=='late')){await store.update(r.id,{excuse:x.type});n++;}
+    }
+    Object.assign(x,{status,reason:reason||'',by});lsSet('rasd_uzr',uzrs);
+    queueOp({op:'uzr',id,status,reason:reason||'',by});
+    toast(status==='approved'?(n?'اعتُمد العذر وطُبّق على أيام الغياب':'اعتُمد العذر (لا يوجد غياب مرصود لهذه الأيام)'):'رُفض العذر');
+  }catch(e){writeErr(e);}
+  openUzr();renderUzrPanel();
+}
+document.addEventListener('change',e=>{const t=e.target;if(!t)return;
+  if(t.id==='uzrSt'){uzrF.st=t.value;openUzr();}else if(t.id==='uzrCls'){uzrF.cls=t.value;openUzr();}else if(t.id==='uzrType'){uzrF.type=t.value;openUzr();}});
+document.addEventListener('click',async e=>{
+  const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t)return;
+  if(t.id==='uzrOpen'){openUzr();return;}
+  if(t.dataset.uzrok){uzrDecide(t.dataset.uzrok,'approved');return;}
+  if(t.dataset.uzrno){const h=document.querySelector(`[data-uzrrej="${CSS.escape(t.dataset.uzrno)}"]`);if(h)h.innerHTML=`<div class="confirm"><label for="uzrWhy">سبب الرفض</label><input id="uzrWhy" placeholder="مثال: التقرير غير واضح"><button class="btn sm danger" type="button" data-uzrnoyes="${esc(t.dataset.uzrno)}">تأكيد الرفض</button><button class="btn sm ghost" type="button" data-no>إلغاء</button></div>`;return;}
+  if(t.dataset.uzrnoyes){uzrDecide(t.dataset.uzrnoyes,'rejected',($('#uzrWhy')||{}).value||'');return;}
+  if(t.dataset.uzrimg){
+    const x=uzrs.find(u=>u.id===t.dataset.uzrimg);const box=document.querySelector(`.uzrImg[data-for="${CSS.escape(t.dataset.uzrimg)}"]`);if(!x||!box)return;
+    t.disabled=true;box.innerHTML='<div class="s">جارٍ تحميل المرفق…</div>';
+    try{const k=await syncKey();const r=await fetch(SYNC.url+'?img='+encodeURIComponent(x.file)+'&key='+encodeURIComponent(k)+'&t='+Date.now());const j=await r.json();
+      if(!j.ok)throw 0;box.innerHTML=`<img alt="مرفق العذر" src="data:${esc(j.mime)};base64,${j.data}" style="max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line)">`;}
+    catch(x2){box.innerHTML='<div class="s">تعذّر تحميل المرفق.</div>';}
+    t.disabled=false;
+  }
+});
+
 $('#supBeh').addEventListener('click',()=>show('home'));
 $('#supLock').addEventListener('click',()=>{setRole('');show('home');toast('قُفل الإشراف. للدخول: اضغطي سطر «إعداد الموجّهة» أسفل الصفحة 5 مرات');});
 
@@ -1647,7 +1819,7 @@ ${settings.school||DEF_SCHOOL}
 
 إجمالي الغياب دون عذر: ${dayW(a.unexc)}، وبعذر: ${a.exc?dayW(a.exc):'لا يوجد'}، ودرجة المواظبة الحالية: ${a.score} من 100.
 ${last?'\nوبناءً على قواعد السلوك والمواظبة 1447هـ، ستتخذ المدرسة الإجراءات التالية:\n'+last.steps.map((x,i)=>(i+1)+'. '+x).join('\n')+'\n':''}
-علماً بأن تجاوز الغياب دون عذر 10% من أيام الدراسة يترتب عليه حرمان الطالبة من الانتقال للفصل التالي، ونأمل تقديم ما يثبت العذر خلال ثلاثة أيام عمل من الغياب.
+علماً بأن تجاوز الغياب دون عذر 10% من أيام الدراسة يترتب عليه حرمان الطالبة من الانتقال للفصل التالي، ونأمل تقديم ما يثبت العذر خلال ثلاثة أيام عمل من الغياب.${uzrLink(s,un)?'\n\nلتقديم العذر وإرفاق التقرير إلكترونيًا:\n'+uzrLink(s,un):''}
 
 شاكرين تعاونكم في متابعة انتظام ابنتكم.
 
