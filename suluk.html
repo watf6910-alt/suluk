@@ -9,10 +9,10 @@
 <link rel="icon" href="icon-512.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="رصد السلوك">
-<meta name="description" content="منصة رصد السلوك المخالف والسلوك المتميز لطالبات الثانوية الأولى بقبة وفق قواعد السلوك والمواظبة 1447هـ — إعداد الموجهة الطلابية عواطف الحربي">
+<meta name="apple-mobile-web-app-title" content="السلوك والانضباط">
+<meta name="description" content="منصة السلوك والانضباط: رصد السلوك المخالف والسلوك المتميز لطالبات الثانوية الأولى بقبة وفق قواعد السلوك والمواظبة 1447هـ — إعداد الموجهة الطلابية عواطف الحربي">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>رصد سلوك الطالبات</title>
+<title>منصة السلوك والانضباط</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
@@ -193,7 +193,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <header class="top">
     <div class="brand">
       <small id="schoolLbl">الثانوية الأولى بقبة</small>
-      <h1>رصد سلوك الطالبات</h1>
+      <h1>منصة السلوك والانضباط</h1>
     </div>
     <span style="display:flex;gap:8px;align-items:center"><span class="status" id="status">محفوظ على هذا الجهاز</span><button class="gear" id="gearBtn" hidden aria-label="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></span>
   </header>
@@ -401,7 +401,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <p class="note">القوائم والإجراءات والدرجات مأخوذة من قواعد السلوك والمواظبة لطلبة التعليم العام، الإصدار الخامس 1447هـ، للمرحلتين المتوسطة والثانوية. مخالفات الدرجة الأولى لا يُحسم فيها إلا من الإجراء الثالث.</p>
   </section>
 
-  <footer class="credit" id="credit">إعداد الموجّهة الطلابية <b>عواطف الحربي</b><br><span id="footSchool">الثانوية الأولى بقبة</span> · وفق قواعد السلوك والمواظبة 1447هـ</footer>
+  <footer class="credit" id="credit">إعداد <b>عواطف الوسيدي</b> · جميع الحقوق محفوظة ©<br><span id="footSchool">الثانوية الأولى بقبة</span> · وفق قواعد السلوك والمواظبة 1447هـ</footer>
 </div>
 
 <datalist id="names"></datalist>
@@ -1317,7 +1317,7 @@ async function doRestore(){
 function printHead(title){
   return `<div class="ph"><div>المملكة العربية السعودية<br>وزارة التعليم${settings.region?'<br>'+esc(settings.region):''}<br>${esc(settings.school||DEF_SCHOOL)}</div><div style="text-align:left">التاريخ: ${hijri(today())}</div></div><h3>${title}</h3>`;
 }
-function doPrint(html){$('#printArea').innerHTML=html+`<div class="foot">منصة رصد السلوك · إعداد الموجّهة الطلابية عواطف الحربي</div>`;window.print();}
+function doPrint(html){$('#printArea').innerHTML=html+`<div class="foot">منصة السلوك والانضباط · إعداد عواطف الوسيدي · جميع الحقوق محفوظة ©</div>`;window.print();}
 function printNotice(r,s){
   const body=noticeText(r,s).split('\n\n').slice(2).join('\n\n');
   doPrint(printHead('إشعار ولي أمر الطالبة بمشكلة سلوكية')+`<div class="pre">${esc(body)}</div><div class="sig"><span>توقيع ولي الأمر: ....................</span><span>الختم</span></div>`);
