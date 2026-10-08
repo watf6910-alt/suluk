@@ -1896,7 +1896,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
 
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
-(()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
+(()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
 const H_FMT=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'numeric',year:'numeric',timeZone:'UTC'});
 function isoToH(iso){
