@@ -375,12 +375,18 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div><label for="sTerm">عدد أيام الدراسة في الفصل</label><input id="sTerm" type="number" min="1" inputmode="numeric"><div class="hint">لحساب نسبة الحرمان (10% غياب دون عذر)</div></div>
     </div>
     <div class="actions"><button class="btn" id="saveSet">حفظ البيانات</button></div>
-    <h2>رمز الوكيلة</h2>
+    <h2>رموز الوكيلات</h2>
     <div class="panel"><div class="row" style="display:block">
       <div class="s" id="supPinInfo">رمز تدخل به الوكيلة إلى «الإشراف اليومي» فقط، دون الإعدادات أو الحذف.</div>
       <div class="toprow" style="margin-top:8px"><div><label for="supPin1">رمز الوكيلة (4 أرقام أو أكثر)</label><input id="supPin1" type="password" inputmode="numeric" autocomplete="off" dir="ltr"></div><button class="btn sm" type="button" id="saveSupPin">حفظ الرمز</button></div>
-      <div class="hint">يصل الرمز لجوال الوكيلة بعد «الربط بين المعلمات». تدخل الوكيلة بالضغط 5 مرات على سطر «إعداد الموجّهة» أسفل الصفحة.</div>
-    </div></div>
+      <div class="hint">يصل الرمز لجوال الوكيلة بعد «الربط بين المعلمات». تدخل الوكيلة بالضغط 5 مرات على اسمك أسفل الصفحة.</div>
+    </div>
+    <div class="row" style="display:block">
+      <div class="t">إضافة وكيلة أخرى</div>
+      <div class="s">لكل وكيلة رمز خاص، ويظهر مسمّاها في الأعذار والإجراءات التي تعتمدها.</div>
+      <div class="toprow" style="margin-top:8px"><div style="flex:1 1 100%"><label for="supT">المسمّى</label><select id="supT"><option>وكيلة الشؤون المدرسية</option><option>وكيلة شؤون الطالبات</option><option>وكيلة الشؤون التعليمية</option></select></div><div><label for="supP">رمزها (4 أرقام أو أكثر)</label><input id="supP" type="password" inputmode="numeric" autocomplete="off" dir="ltr"></div><button class="btn sm" type="button" id="addSup">إضافة</button></div>
+    </div>
+    <div id="supList"></div></div>
     <h2>الربط بين المعلمات</h2>
     <div class="panel" id="syncPanel"></div>
     <h2>حفظ البيانات ونقلها</h2>
@@ -1164,6 +1170,7 @@ $('#e').addEventListener('submit',async e=>{
 function fillSettings(){
   const ae=document.activeElement;const sv=(id,v)=>{const el=$(id);if(el!==ae)el.value=v;};
   sv('#sSchool',settings.school||DEF_SCHOOL);sv('#sRegion',settings.region||'');sv('#sPrincipal',settings.principal||'');sv('#sTerm',settings.termDays||90);
+  const sl=$('#supList');if(sl)sl.innerHTML=(settings.sups||[]).map((x,i)=>`<div class="row"><span class="stripe" style="background:var(--ok)"></span><div class="main"><div class="t">${esc(x.t)}</div><div class="s">✓ رمزها محفوظ</div></div><button class="btn sm ghost" type="button" data-supdel="${i}">حذف</button></div>`).join('');
   const spi=$('#supPinInfo');if(spi)spi.textContent=settings.supPin?'✓ رمز الوكيلة محفوظ. لتغييره اكتبي رمزاً جديداً.':'رمز تدخل به الوكيلة إلى «الإشراف اليومي» فقط، دون الإعدادات أو الحذف.';
   $('#ptsTable').innerHTML=[1,2,3,4,5].map(d=>`<div class="row"><span class="stripe" style="background:${degColor(d)}"></span><div class="main"><div class="t">مشكلات الدرجة ${DEGNAMES[d]}</div><div class="s">${PROCS[d].length} ${PROCS[d].length>2?'إجراءات متدرجة':PROCS[d].length===2?'إجراءان متدرجان':'إجراء واحد'}${d===1?'، الحسم من الإجراء الثالث':''}</div></div><div class="score">${DEGPTS[d]}</div></div>`).join('');
 }
@@ -1557,13 +1564,26 @@ document.addEventListener('submit',async e=>{
     try{await store.saveSettings({...settings,adminPin:h});}catch(x){}
   }else{
     if(h===adminHash()||(ADMIN_BUILTIN&&h===ADMIN_BUILTIN))r='admin';
-    else if((settings.supPin&&h===settings.supPin)||h===SUP_BUILTIN)r='sup';
+    else if((settings.supPin&&h===settings.supPin)||h===SUP_BUILTIN){r='sup';supTitleSet('الوكيلة');}
+    else if((settings.sups||[]).some(x=>x.h===h)){r='sup';supTitleSet(settings.sups.find(x=>x.h===h).t);}
     else{toast('الرمز غير صحيح');$('#pin1').value='';return;}
   }
-  closeSheet();setRole(r);show(r==='admin'?'set':'sup');toast(r==='admin'?'فُتحت الإعدادات':'فُتح الإشراف اليومي');
+  closeSheet();setRole(r);show(r==='admin'?'set':'sup');toast(r==='admin'?'فُتحت الإعدادات':'فُتح الإشراف اليومي · '+supTitle());
 });
 $('#lockAdmin').addEventListener('click',()=>{setRole('');show('home');toast('قُفلت الإعدادات. لفتحها: اضغطي سطر «إعداد الموجّهة» أسفل الصفحة 5 مرات');});
 $('#gearBtn').addEventListener('click',()=>show('set'));
+function supTitle(){let t='';try{t=localStorage.getItem('rasd_suptitle')||'';}catch(e){}return t||'الوكيلة';}
+function supTitleSet(t){try{localStorage.setItem('rasd_suptitle',t);}catch(e){}}
+$('#addSup').addEventListener('click',async()=>{
+  const t=$('#supT').value,p=$('#supP').value.trim();if(p.length<4){toast('الرمز 4 أرقام على الأقل');return;}
+  const h=await pinHash(p);
+  if(h===adminHash()||h===settings.supPin||h===SUP_BUILTIN||(settings.sups||[]).some(x=>x.h===h)){toast('هذا الرمز مستخدم، اختاري رمزاً آخر');return;}
+  const sups=[...(settings.sups||[]).filter(x=>x.t!==t),{t,h}].slice(-5);
+  try{await store.saveSettings({...settings,sups});$('#supP').value='';toast('حُفظ رمز '+t);fillSettings();}catch(x){writeErr(x)}
+});
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-supdel]');if(!b)return;
+  const sups=(settings.sups||[]).filter((x,i)=>i!==+b.dataset.supdel);
+  try{await store.saveSettings({...settings,sups});toast('حُذف الرمز');fillSettings();}catch(x){writeErr(x)}});
 $('#saveSupPin').addEventListener('click',async()=>{
   const p=$('#supPin1').value.trim();if(p.length<4){toast('رمز الوكيلة 4 أرقام على الأقل');return;}
   const h=await pinHash(p);if(h===adminHash()){toast('اختاري رمزاً مختلفاً عن رمزك');return;}
@@ -1740,7 +1760,7 @@ function openUzr(){
 }
 async function uzrDecide(id,status,reason){
   const x=uzrs.find(u=>u.id===id);if(!x)return;
-  const by=role==='sup'?'الوكيلة':'الموجّهة';let n=0;
+  const by=role==='sup'?supTitle():'الموجّهة';let n=0;
   try{
     if(status==='approved'){
       const key=norm(x.name)+'|'+x.grade;
@@ -1879,7 +1899,7 @@ document.addEventListener('click',async e=>{
   if(t.id==='absBack'){absMode='list';openAbs(absOpen,true);return;}
   if(t.id==='absToBeh'){const k=absOpen;absOpen=null;openStudent(k);return;}
   if(t.id==='absNotified'){const a=attStats(absOpen);try{for(const d of a.days)if(!d.notified)for(const id of d.ids)await store.update(id,{notified:true,notifiedAt:today()});toast('سُجّل إشعار ولي الأمر');absMode='list';openAbs(absOpen,true);}catch(x){writeErr(x)}return;}
-  if(t.dataset.absdone){const rs=absRecs().filter(r=>absKeyOf(r)===absOpen);const r0=rs[0];if(!r0)return;try{await store.add({kind:'absact',name:norm(r0.name),grade:r0.grade,section:r0.section||'',stage:t.dataset.absdone,date:today(),by:role==='sup'?'الوكيلة':'الموجّهة',createdAt:new Date().toISOString()});toast('سُجّل تنفيذ الإجراء');openAbs(absOpen,true);}catch(x){writeErr(x)}return;}
+  if(t.dataset.absdone){const rs=absRecs().filter(r=>absKeyOf(r)===absOpen);const r0=rs[0];if(!r0)return;try{await store.add({kind:'absact',name:norm(r0.name),grade:r0.grade,section:r0.section||'',stage:t.dataset.absdone,date:today(),by:role==='sup'?supTitle():'الموجّهة',createdAt:new Date().toISOString()});toast('سُجّل تنفيذ الإجراء');openAbs(absOpen,true);}catch(x){writeErr(x)}return;}
   if(t.id==='printAbsN'){const rs=absRecs().filter(r=>absKeyOf(r)===absOpen);const r0=rs[0];if(!r0)return;const s0={name:norm(r0.name),grade:r0.grade,sec:r0.section||''};doPrint(printHead('إشعار ولي أمر الطالبة بالغياب')+`<div class="pre">${esc(absNoticeText(s0,attStats(absOpen)).split('\n\n').slice(2).join('\n\n'))}</div><div class="sig"><span>توقيع ولي الأمر: ....................</span><span>الختم</span></div>`);return;}
   if(t.id==='addFor'||t.id==='addExc'){
     const s=students().find(x=>x.key===openKey);closeSheet();
@@ -1898,7 +1918,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden
 
 /* ---------- الدعم الفني ---------- */
 const HELP_WA='966501550893';
-function helpLink(){const who=role==='admin'?'الموجّهة':role==='sup'?'الوكيلة':'معلمة';
+function helpLink(){const who=role==='admin'?'الموجّهة':role==='sup'?supTitle():'معلمة';
   const t='السلام عليكم، أحتاج مساعدة في منصة السلوك والانضباط\nالمدرسة: '+(settings.school||DEF_SCHOOL)+'\nالمستخدمة: '+who+'\nالمشكلة: ';
   return 'https://wa.me/'+HELP_WA+'?text='+encodeURIComponent(t);}
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('#helpBtn');if(a)a.href=helpLink();},true);
