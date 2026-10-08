@@ -66,14 +66,14 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
 <script>
 (function(){
   const q=new URLSearchParams(location.hash.slice(1));
-  const P={u:q.get('u')||'',n:q.get('n')||'',g:q.get('g')||'',s:q.get('s')||'',sc:q.get('sc')||'',d:(q.get('d')||'').split(',').filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))};
+  const P={u:q.get('u')||'',n:q.get('n')||'',g:q.get('g')||'',s:q.get('s')||'',sc:q.get('sc')||'',ph:(q.get('ph')||'').replace(/[^0-9+]/g,''),d:(q.get('d')||'').split(',').filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))};
   const $=s=>document.querySelector(s);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const hijri=iso=>{try{return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));}catch(e){return iso;}};
   if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!P.n||!P.d.length){
     $('#box').innerHTML='<h1>الرابط غير صالح</h1><p class="muted">استخدم الرابط الذي وصلك في رسالة إشعار الغياب من المدرسة.</p>';return;
   }
-  $('#school').textContent=P.sc;
+  $('#school').textContent=P.sc+(P.ph?' · للاستفسار: '+P.ph:'');
   $('#info').innerHTML='<div><b>الطالبة:</b> '+esc(P.n)+'</div><div><b>الصف:</b> '+esc(P.g)+(P.s?' / '+esc(P.s):'')+'</div>';
   $('#days').innerHTML=P.d.map((d,i)=>'<label class="day"><input type="checkbox" value="'+d+'" checked> '+esc(hijri(d))+'</label>').join('');
   function shrink(file){
@@ -99,7 +99,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       const r=await fetch(P.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'excuse',name:P.n,grade:P.g,section:P.s,dates,type,note:$('#note').value.trim(),parent,phone,photo})});
       const j=await r.json();
       if(!j.ok)throw new Error(j.error||'x');
-      $('#box').innerHTML='<p class="ok">✓ تم إرسال العذر</p><p>وصل عذر الطالبة <b>'+esc(P.n)+'</b> إلى المدرسة، وسيُراجع ويُبلَّغ ولي الأمر بالنتيجة.</p><p class="muted">شكرًا لتعاونكم.</p>';
+      $('#box').innerHTML='<p class="ok">✓ تم إرسال العذر</p><p>وصل عذر الطالبة <b>'+esc(P.n)+'</b> إلى المدرسة، وسيُراجع ويُبلَّغ ولي الأمر بالنتيجة.</p><p class="muted">شكرًا لتعاونكم.</p>'+(P.ph?'<p class="muted">للاستفسار: <b dir="ltr">'+esc(P.ph)+'</b></p>':'');
     }catch(x){
       $('#err').textContent=x.message==='limit'?'تم إرسال عدة أعذار اليوم لهذه الطالبة، تواصل مع المدرسة.':'تعذّر الإرسال، تأكد من الاتصال بالإنترنت وحاول مرة أخرى.';
       b.disabled=false;b.textContent='إرسال العذر';
