@@ -195,7 +195,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <small id="schoolLbl">الثانوية الأولى بقبة</small>
       <h1>منصة السلوك والانضباط</h1>
     </div>
-    <span style="display:flex;gap:8px;align-items:center"><span class="status" id="status">محفوظ على هذا الجهاز</span><button class="gear" id="gearBtn" hidden aria-label="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></span>
+    <span style="display:flex;gap:8px;align-items:center"><span class="status" id="status">محفوظ على هذا الجهاز</span><a class="gear" id="helpBtn" href="https://wa.me/966501550893" target="_blank" rel="noopener" aria-label="الدعم الفني" title="الدعم الفني"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-1.5 2.5-4 2.5h-2"/></svg></a><button class="gear" id="gearBtn" hidden aria-label="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></span>
   </header>
 
   <!-- الرئيسية -->
@@ -1895,6 +1895,13 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
 
+
+/* ---------- الدعم الفني ---------- */
+const HELP_WA='966501550893';
+function helpLink(){const who=role==='admin'?'الموجّهة':role==='sup'?'الوكيلة':'معلمة';
+  const t='السلام عليكم، أحتاج مساعدة في منصة السلوك والانضباط\nالمدرسة: '+(settings.school||DEF_SCHOOL)+'\nالمستخدمة: '+who+'\nالمشكلة: ';
+  return 'https://wa.me/'+HELP_WA+'?text='+encodeURIComponent(t);}
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('#helpBtn');if(a)a.href=helpLink();},true);
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
