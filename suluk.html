@@ -205,6 +205,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <!-- الرئيسية -->
   <section id="v-home">
     <div class="lockslot" style="margin-top:12px"></div>
+    <div class="panel" id="waitHome" style="margin-top:12px" hidden></div>
     <div class="panel" id="myDay" style="margin-top:12px" hidden></div>
     <div class="tiles">
       <div class="tile"><b id="kToday">0</b><span>مخالفات اليوم</span></div>
@@ -1985,7 +1986,11 @@ function weekStats(t,ws,schoolDays){
     for(const [k,v] of Object.entries(cfg.w.as))if(v===t){const [g,se,p]=k.split('|');sl.push(cfg.w.adv[k]?{p:+p,grade:g,sec:se,a:1}:{p:+p,grade:g,sec:se,w:1});}
     for(const s of sl){res.exp++;if(sessRec(date,s.grade,s.sec,s.p))res.done++;else res.miss.push({date,d,...s});}}
   return res;}
+function renderWaitHome(){const el=$('#waitHome');if(!el)return;const td=today(),d=dIdx(td);
+  if(!TT||!canSup||d>4){el.hidden=true;el.innerHTML='';return;}el.hidden=false;const cfg=dayCfg(td),nd=waitNeeds(td),done=nd.filter(x=>cfg.w.as[x.k]).length;
+  el.innerHTML=`<div class="row"><span class="stripe" style="background:${!cfg.w.abs.length?'var(--ok)':done<nd.length?'var(--d5)':'var(--ok)'}"></span><div class="main"><div class="t">غياب المعلمات اليوم</div><div class="s">${cfg.w.abs.length?esc(cfg.w.abs.join('، '))+' · وُزّع '+done+' من '+nd.length:'لم يُسجَّل غياب'}</div></div><button class="btn sm" type="button" id="goWait">${cfg.w.abs.length?'الانتظار':'تحديد الغائبات'}</button></div>`;}
 function renderMyDay(){
+  try{renderWaitHome();}catch(e){}
   const el=$('#myDay');if(!el)return;
   if(!TT){el.innerHTML='';el.hidden=true;return;}el.hidden=false;
   const me=myName();
@@ -2081,7 +2086,7 @@ function waitCands(date,need){
   }).sort((a,b)=>(b.ok-a.ok)||a.score-b.score);
 }
 async function saveWait(date,w){const all={...(settings.wait||{})};const lim=addD(today(),-150);for(const k of Object.keys(all))if(k<lim)delete all[k];all[date]=w;
-  await store.saveSettings({...settings,wait:all});}
+  await store.saveSettings({...settings,wait:all});try{renderMyDay();}catch(e){}}
 function autoWait(date){const w=Wd(date);w.as={...w.as};const cfg=dayCfg(date);let n=0,miss=0;
   w.adv={...w.adv};const needs=waitNeeds(date);for(const k of Object.keys(w.as))if(!needs.some(x=>x.k===k))delete w.as[k];for(const k of Object.keys(w.adv))if(!w.as[k])delete w.adv[k];
   settings.wait={...(settings.wait||{}),[date]:w};
@@ -2117,7 +2122,7 @@ document.addEventListener('change',async e=>{const t=e.target;if(!t)return;
   if(t.dataset&&t.dataset.wset){const w=Wd(wst.date),k=t.dataset.wset;w.as={...w.as};w.adv={...w.adv};delete w.adv[k];if(t.value.startsWith('adv:')){w.as[k]=t.value.slice(4);w.adv[k]=1;}else if(t.value)w.as[k]=t.value;else delete w.as[k];try{await saveWait(wst.date,w);}catch(x){writeErr(x)}openWait();}
 });
 document.addEventListener('click',async e=>{const b=e.target&&e.target.closest?e.target.closest('button'):null;if(!b)return;
-  if(b.id==='supWait'){wst.date=today();openWait();return;}
+  if(b.id==='supWait'||b.id==='goWait'){wst.date=today();openWait();return;}
   if(b.dataset.wabs){if(!canWrite)return;const t=b.dataset.wabs,w=Wd(wst.date);w.abs=w.abs.includes(t)?w.abs.filter(x=>x!==t):[...w.abs,t];
     for(const [k,v] of Object.entries(w.as))if(v===t)delete w.as[k];settings.wait={...(settings.wait||{}),[wst.date]:w};const r=autoWait(wst.date);
     try{await saveWait(wst.date,r.w);}catch(x){writeErr(x)}openWait();if(r.miss)toast(r.miss+' حصة بلا معلمة متاحة');return;}
