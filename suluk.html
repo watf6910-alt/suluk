@@ -2092,7 +2092,7 @@ function openWait(){
   const wd=weekDates(date);
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>حصص الانتظار</h3><div class="hint">${d<=4?DAYN[d]+' · '+hijri(date):'هذا اليوم إجازة نهاية الأسبوع'}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
-  <div class="split" style="margin-top:12px"><div><label for="waitDate">اليوم</label><input id="waitDate" type="date" value="${date}"></div></div>
+  <div style="margin-top:12px"><div><label for="waitDate">اليوم</label><input id="waitDate" type="date" value="${date}"></div></div>
   ${d>4?'':`<h3 style="margin-top:14px">١. المعلمات الغائبات اليوم</h3><div class="chips" style="display:flex;flex-wrap:wrap;gap:6px">${TT.t.map(t=>`<button type="button" class="btn sm ${cfg.w.abs.includes(t)?'danger':'ghost'}" data-wabs="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <label class="day" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="waitShort" ${cfg.short?'checked':''} style="width:20px;height:20px;min-height:0"> يوم مختصر: ٥ حصص فقط ${cfg.w.short==null?'<span class="hint">(تلقائي عند غياب أكثر من ٣)</span>':''}</label>
   ${hasAct?`<label class="day" style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:600"><input type="checkbox" id="waitNoAct" ${cfg.noAct?'checked':''} style="width:20px;height:20px;min-height:0"> إلغاء حصص النشاط اليوم</label>`:''}
@@ -2120,7 +2120,7 @@ document.addEventListener('click',async e=>{const b=e.target&&e.target.closest?e
 });
 
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
-(()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
+(()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}.split>div:has(.hpick){grid-column:1/-1}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
 const H_FMT=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'numeric',year:'numeric',timeZone:'UTC'});
 function isoToH(iso){
