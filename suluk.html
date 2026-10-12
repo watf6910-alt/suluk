@@ -1981,8 +1981,8 @@ function weekStats(t,ws,schoolDays){
   const res={exp:0,done:0,miss:[]};const td=today();
   for(let d=0;d<5;d++){const date=addD(ws,d);if(date<TT_START||date>=td)continue;if(schoolDays&&!schoolDays.has(date))continue;if(isLeave(t,date))continue;
     const cfg=dayCfg(date);if(cfg.w.abs.includes(t))continue;
-    const sl=slotsOf(t,d).filter(s=>s.p<cfg.maxP&&!(cfg.noAct&&isAct(s.grade,s.sec,d,s.p)));
-    for(const [k,v] of Object.entries(cfg.w.as))if(v===t){const [g,se,p]=k.split('|');sl.push({p:+p,grade:g,sec:se,w:1});}
+    const mv=advMoved(cfg);const sl=slotsOf(t,d).filter(s=>s.p<cfg.maxP&&!(cfg.noAct&&isAct(s.grade,s.sec,d,s.p))&&!(s.p===6&&mv.has(s.grade+'|'+s.sec)));
+    for(const [k,v] of Object.entries(cfg.w.as))if(v===t){const [g,se,p]=k.split('|');sl.push(cfg.w.adv[k]?{p:+p,grade:g,sec:se,a:1}:{p:+p,grade:g,sec:se,w:1});}
     for(const s of sl){res.exp++;if(sessRec(date,s.grade,s.sec,s.p))res.done++;else res.miss.push({date,d,...s});}}
   return res;}
 function renderMyDay(){
@@ -1992,10 +1992,10 @@ function renderMyDay(){
   if(!me||!TT.t.includes(me)){
     el.innerHTML=`<div class="row" style="display:block"><div class="t">اختاري اسمك لتظهر حصصك</div><div class="s">مرة واحدة فقط على هذا الجهاز.</div>
     <div class="toprow" style="margin-top:8px"><div style="flex:1 1 100%"><label for="meSel">اسمك</label><select id="meSel"><option value="">— اختاري —</option>${TT.t.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div><button class="btn sm" type="button" id="meSave">حفظ</button></div></div>`;return;}
-  const td=today(),day=dIdx(td),cfgT=dayCfg(td),sl=slotsOf(me,day).filter(s=>s.p<cfgT.maxP&&!(cfgT.noAct&&isAct(s.grade,s.sec,day,s.p)));
-  for(const [k,v] of Object.entries(cfgT.w.as))if(v===me){const [g,se,p]=k.split('|');sl.push({p:+p,grade:g,sec:se,w:1});}sl.sort((a,b)=>a.p-b.p);
+  const td=today(),day=dIdx(td),cfgT=dayCfg(td),mvT=advMoved(cfgT),sl=slotsOf(me,day).filter(s=>s.p<cfgT.maxP&&!(cfgT.noAct&&isAct(s.grade,s.sec,day,s.p))&&!(s.p===6&&mvT.has(s.grade+'|'+s.sec)));
+  for(const [k,v] of Object.entries(cfgT.w.as))if(v===me){const [g,se,p]=k.split('|');sl.push(cfgT.w.adv[k]?{p:+p,grade:g,sec:se,a:1}:{p:+p,grade:g,sec:se,w:1});}sl.sort((a,b)=>a.p-b.p);
   const ws=wkStart(td),st=weekStats(me,ws);
-  const rows=sl.map(s=>{const ok=!!sessRec(td,s.grade,s.sec,s.p);return `<div class="row"><span class="stripe" style="background:${ok?'var(--ok)':'var(--d3)'}"></span><div class="main"><div class="t">${PERIODS[s.p]}${s.w?' · <span class="chip pend">انتظار</span>':''}</div><div class="s">${esc(s.grade)} / ${esc(s.sec)}</div></div>${ok?'<span class="chip ok">✓ رُصدت</span>':`<button class="btn sm" type="button" data-goslot="${s.p}|${esc(s.grade)}|${esc(s.sec)}">ارصدي الحضور</button>`}</div>`;}).join('');
+  const rows=sl.map(s=>{const ok=!!sessRec(td,s.grade,s.sec,s.p);return `<div class="row"><span class="stripe" style="background:${ok?'var(--ok)':'var(--d3)'}"></span><div class="main"><div class="t">${PERIODS[s.p]}${s.w?' · <span class="chip pend">انتظار</span>':''}${s.a?' · <span class="chip ok">مقدّمة من السابعة</span>':''}</div><div class="s">${esc(s.grade)} / ${esc(s.sec)}</div></div>${ok?'<span class="chip ok">✓ رُصدت</span>':`<button class="btn sm" type="button" data-goslot="${s.p}|${esc(s.grade)}|${esc(s.sec)}">ارصدي الحضور</button>`}</div>`;}).join('');
   el.innerHTML=`<div class="row" style="align-items:center"><div class="main"><div class="t">أ. ${esc(me)}</div><div class="s">${day<=4?'حصصك اليوم: '+sl.length:'لا حصص اليوم'}${st.exp?` · هذا الأسبوع رصدتِ ${st.done} من ${st.exp}`:''}</div></div><button class="btn sm ghost" type="button" id="meChange">لستُ أنا؟</button></div>
   ${rows||'<div class="empty">لا توجد حصص لكِ اليوم.</div>'}
   ${st.miss.length?`<div class="row" style="display:block"><div class="t" style="color:var(--d3)">حصص لم تُرصد هذا الأسبوع</div><div class="s">${st.miss.map(m=>DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)).join('<br>')}</div></div>`:''}`;
@@ -2050,7 +2050,13 @@ document.addEventListener('click',async e=>{
 
 
 /* ---------- حصص الانتظار ---------- */
-function Wd(date){const w=(settings.wait||{})[date];return w?{abs:w.abs||[],as:w.as||{},short:w.short,noAct:!!w.noAct}:{abs:[],as:{},short:undefined,noAct:false};}
+function Wd(date){const w=(settings.wait||{})[date];return w?{abs:w.abs||[],as:w.as||{},adv:w.adv||{},short:w.short,noAct:!!w.noAct}:{abs:[],as:{},adv:{},short:undefined,noAct:false};}
+/* تقديم السابعة: عند إلغاء النشاط تتقدم معلمة الحصة السابعة للفصل إلى حصة الغائبة */
+function advCand(date,need){const d=dIdx(date),cfg=dayCfg(date);if(!TT||!cfg.noAct||cfg.maxP<7||need.p>=6)return null;
+  const ti=((TT.c[need.grade+'|'+need.sec]||[])[d]||[])[6];const t=ti>=0?TT.t[ti]:null;if(!t||cfg.w.abs.includes(t)||teachesAt(t,d,need.p,cfg))return null;
+  const cls=need.grade+'|'+need.sec+'|';if(Object.keys(cfg.w.adv).some(k=>k!==need.k&&k.startsWith(cls)))return null;
+  if(Object.entries(cfg.w.as).some(([k,v])=>k!==need.k&&v===t&&+k.split('|')[2]===need.p))return null;return t;}
+function advMoved(cfg){const o=new Set();for(const k of Object.keys(cfg.w.adv||{})){const [g,s]=k.split('|');o.add(g+'|'+s);}return o;}
 function dayCfg(date){const w=Wd(date);const short=w.short!=null?!!w.short:w.abs.length>3;return {w,short,maxP:short?5:7,noAct:w.noAct};}
 function isAct(g,s,d,p){return !!(TT&&(TT.a||[]).includes(g+'|'+s+'|'+d+'|'+p));}
 function ttLoad(t){if(!TT)return 0;const ti=TT.t.indexOf(t);let n=0;for(const g of Object.values(TT.c))for(const r of g)for(const x of r)if(x===ti)n++;return n;}
@@ -2060,7 +2066,7 @@ function teachesAt(t,d,p,cfg){if(!TT||p>=cfg.maxP)return false;const ti=TT.t.ind
 function waitNeeds(date){const d=dIdx(date);if(!TT||d>4)return [];const cfg=dayCfg(date),out=[];
   for(const t of cfg.w.abs)for(const s of slotsOf(t,d)){if(s.p>=cfg.maxP||(cfg.noAct&&isAct(s.grade,s.sec,d,s.p)))continue;out.push({k:s.grade+'|'+s.sec+'|'+s.p,...s,t});}
   return out.sort((a,b)=>a.p-b.p);}
-function waitsCount(t,dates,exceptDate,exceptK){let n=0;for(const dt of dates){const as=Wd(dt).as;for(const [k,v] of Object.entries(as))if(v===t&&!(dt===exceptDate&&k===exceptK))n++;}return n;}
+function waitsCount(t,dates,exceptDate,exceptK){let n=0;for(const dt of dates){const W=Wd(dt);for(const [k,v] of Object.entries(W.as))if(v===t&&!W.adv[k]&&!(dt===exceptDate&&k===exceptK))n++;}return n;}
 function weekDates(date){const ws=wkStart(date);return [0,1,2,3,4].map(i=>addD(ws,i));}
 function waitCands(date,need){
   const d=dIdx(date),cfg=dayCfg(date),wd=weekDates(date);
@@ -2077,9 +2083,9 @@ function waitCands(date,need){
 async function saveWait(date,w){const all={...(settings.wait||{})};const lim=addD(today(),-150);for(const k of Object.keys(all))if(k<lim)delete all[k];all[date]=w;
   await store.saveSettings({...settings,wait:all});}
 function autoWait(date){const w=Wd(date);w.as={...w.as};const cfg=dayCfg(date);let n=0,miss=0;
-  const needs=waitNeeds(date);for(const k of Object.keys(w.as))if(!needs.some(x=>x.k===k))delete w.as[k];
+  w.adv={...w.adv};const needs=waitNeeds(date);for(const k of Object.keys(w.as))if(!needs.some(x=>x.k===k))delete w.as[k];for(const k of Object.keys(w.adv))if(!w.as[k]||!w.noAct)delete w.adv[k];
   settings.wait={...(settings.wait||{}),[date]:w};
-  for(const nd of needs){if(w.as[nd.k])continue;const c=waitCands(date,nd).find(x=>x.ok);if(c){w.as[nd.k]=c.t;settings.wait[date]=w;n++;}else miss++;}
+  for(const nd of needs){if(w.as[nd.k])continue;const av=advCand(date,nd);if(av){w.as[nd.k]=av;w.adv[nd.k]=1;settings.wait[date]=w;n++;continue;}const c=waitCands(date,nd).find(x=>x.ok);if(c){w.as[nd.k]=c.t;settings.wait[date]=w;n++;}else miss++;}
   return {w,n,miss};}
 const wst={date:''};
 function openWait(){
@@ -2088,7 +2094,7 @@ function openWait(){
   const hasAct=d<=4&&(TT.a||[]).some(k=>+k.split('|')[2]===d);
   const done=needs.filter(x=>cfg.w.as[x.k]).length;
   const subs=[...new Set(Object.values(cfg.w.as))];
-  const msg=t=>`الأستاذة ${t}، السلام عليكم\nلديكِ حصة انتظار يوم ${DAYN[d]||''} ${hijri(date)}:\n${Object.entries(cfg.w.as).filter(([k,v])=>v===t).map(([k])=>{const [g,s,p]=k.split('|');return '• '+PERIODS[+p]+' — '+g+' / '+s;}).sort().join('\n')}\nتجدينها في «حصصي اليوم» في المنصة. شاكرين تعاونك.`;
+  const msg=t=>`الأستاذة ${t}، السلام عليكم\nلديكِ حصة انتظار أو تقديم يوم ${DAYN[d]||''} ${hijri(date)}:\n${Object.entries(cfg.w.as).filter(([k,v])=>v===t).map(([k])=>{const [g,s,p]=k.split('|');return '• '+PERIODS[+p]+' — '+g+' / '+s+(cfg.w.adv[k]?' (تقديم حصتك السابعة لهذا الفصل)':'');}).sort().join('\n')}\nتجدينها في «حصصي اليوم» في المنصة. شاكرين تعاونك.`;
   const wd=weekDates(date);
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>حصص الانتظار</h3><div class="hint">${d<=4?DAYN[d]+' · '+hijri(date):'هذا اليوم إجازة نهاية الأسبوع'}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
@@ -2098,17 +2104,17 @@ function openWait(){
   ${hasAct?`<label class="day" style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:600"><input type="checkbox" id="waitNoAct" ${cfg.noAct?'checked':''} style="width:20px;height:20px;min-height:0"> إلغاء حصص النشاط اليوم</label>`:''}
   <h3 style="margin-top:14px">٢. توزيع الحصص <span class="chip ${done<needs.length?'pend':'ok'}">${done} / ${needs.length}</span></h3>
   ${canWrite?'<div class="actions"><button class="btn" type="button" id="waitAuto">توزيع تلقائي عادل</button><button class="btn ghost" type="button" id="waitClear">مسح التوزيع</button></div>':''}
-  <p class="hint">يختار الأقل انتظارًا هذا الأسبوع، ثم الأقل نصابًا، ويتجنب أن تكون الحصة بين درسين للمعلمة. لا يتجاوز حصتين يوميًا، ولا المتبقي من نصاب ${TT.full||24}.</p>
-  <div class="panel">${needs.map(x=>{const cs=waitCands(date,x),cur=cfg.w.as[x.k]||'';return `<div class="row" style="display:block"><div class="t">${PERIODS[x.p]} · ${esc(x.grade)} / ${esc(x.sec)}</div><div class="s">بدل: ${esc(x.t)}</div>
-    <select data-wset="${esc(x.k)}" style="margin-top:6px" ${canWrite?'':'disabled'}><option value="">— اختاري المعلمة المنتظرة —</option>${cs.map(c=>`<option value="${esc(c.t)}" ${c.t===cur?'selected':''}>${esc(c.t)} · انتظار الأسبوع ${c.wk}/${c.cap}${c.sandwich?' · بين درسين':''}${c.ok?'':' · تجاوزت الحد'}</option>`).join('')}</select>${cs.length?'':'<div class="s" style="color:var(--d5)">لا توجد معلمة فارغة في هذه الحصة</div>'}</div>`;}).join('')||'<div class="empty">اختاري المعلمات الغائبات لتظهر حصصهن.</div>'}</div>
-  ${subs.length?`<h3 style="margin-top:14px">٣. إشعار المعلمات</h3><div class="panel">${subs.map(t=>`<div class="row"><div class="main"><div class="t">${esc(t)}</div><div class="s">${Object.entries(cfg.w.as).filter(([k,v])=>v===t).map(([k])=>PERIODS[+k.split('|')[2]]).join('، ')}</div></div><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg(t))}">واتساب</a></div>`).join('')}</div>`:''}
+  <p class="hint">يختار الأقل انتظارًا هذا الأسبوع، ثم الأقل نصابًا، ويتجنب أن تكون الحصة بين درسين للمعلمة. عند إلغاء النشاط تتقدم أولًا معلمة الحصة السابعة للفصل ولا تُحسب انتظارًا. لا يتجاوز حصتين يوميًا، ولا المتبقي من نصاب ${TT.full||24}.</p>
+  <div class="panel">${needs.map(x=>{const cs=waitCands(date,x),cur=cfg.w.as[x.k]||'',av=advCand(date,x),isAdv=!!cfg.w.adv[x.k];return `<div class="row" style="display:block"><div class="t">${PERIODS[x.p]} · ${esc(x.grade)} / ${esc(x.sec)}</div><div class="s">بدل: ${esc(x.t)}</div>
+    <select data-wset="${esc(x.k)}" style="margin-top:6px" ${canWrite?'':'disabled'}><option value="">— اختاري المعلمة المنتظرة —</option>${(isAdv||av)?`<option value="adv:${esc(isAdv?cur:av)}" ${isAdv?'selected':''}>↑ ${esc(isAdv?cur:av)} · تقديم حصتها السابعة</option>`:''}${cs.map(c=>`<option value="${esc(c.t)}" ${c.t===cur&&!isAdv?'selected':''}>${esc(c.t)} · انتظار الأسبوع ${c.wk}/${c.cap}${c.sandwich?' · بين درسين':''}${c.ok?'':' · تجاوزت الحد'}</option>`).join('')}</select>${isAdv?'<div class="s">ينصرف الفصل بعد السادسة.</div>':''}${cs.length||av||isAdv?'':'<div class="s" style="color:var(--d5)">لا توجد معلمة فارغة في هذه الحصة</div>'}</div>`;}).join('')||'<div class="empty">اختاري المعلمات الغائبات لتظهر حصصهن.</div>'}</div>
+  ${subs.length?`<h3 style="margin-top:14px">٣. إشعار المعلمات</h3><div class="panel">${subs.map(t=>`<div class="row"><div class="main"><div class="t">${esc(t)}</div><div class="s">${Object.entries(cfg.w.as).filter(([k,v])=>v===t).map(([k])=>PERIODS[+k.split('|')[2]]+(cfg.w.adv[k]?' (تقديم)':'')).join('، ')}</div></div><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg(t))}">واتساب</a></div>`).join('')}</div>`:''}
   <h3 style="margin-top:14px">عدالة الأسبوع</h3><div class="panel">${TT.t.map(t=>({t,wk:waitsCount(t,wd),cap:waitCap(t),load:ttLoad(t)})).sort((a,b)=>b.wk-a.wk||a.load-b.load).map(o=>`<div class="row"><div class="main"><div class="t">${esc(o.t)}</div><div class="s">نصاب الحصص ${o.load} · انتظار هذا الأسبوع ${o.wk} من ${o.cap}</div></div></div>`).join('')}</div>`}`;
   $('#sheet').hidden=false;
 }
 document.addEventListener('change',async e=>{const t=e.target;if(!t)return;
   if(t.id==='waitDate'){wst.date=t.value||today();openWait();return;}
   if(t.id==='waitShort'||t.id==='waitNoAct'){const w=Wd(wst.date);if(t.id==='waitShort')w.short=t.checked;else w.noAct=t.checked;settings.wait={...(settings.wait||{}),[wst.date]:w};const r=autoWait(wst.date);try{await saveWait(wst.date,r.w);}catch(x){writeErr(x)}openWait();return;}
-  if(t.dataset&&t.dataset.wset){const w=Wd(wst.date);w.as={...w.as};if(t.value)w.as[t.dataset.wset]=t.value;else delete w.as[t.dataset.wset];try{await saveWait(wst.date,w);}catch(x){writeErr(x)}openWait();}
+  if(t.dataset&&t.dataset.wset){const w=Wd(wst.date),k=t.dataset.wset;w.as={...w.as};w.adv={...w.adv};delete w.adv[k];if(t.value.startsWith('adv:')){w.as[k]=t.value.slice(4);w.adv[k]=1;}else if(t.value)w.as[k]=t.value;else delete w.as[k];try{await saveWait(wst.date,w);}catch(x){writeErr(x)}openWait();}
 });
 document.addEventListener('click',async e=>{const b=e.target&&e.target.closest?e.target.closest('button'):null;if(!b)return;
   if(b.id==='supWait'){wst.date=today();openWait();return;}
@@ -2116,7 +2122,7 @@ document.addEventListener('click',async e=>{const b=e.target&&e.target.closest?e
     for(const [k,v] of Object.entries(w.as))if(v===t)delete w.as[k];settings.wait={...(settings.wait||{}),[wst.date]:w};const r=autoWait(wst.date);
     try{await saveWait(wst.date,r.w);}catch(x){writeErr(x)}openWait();if(r.miss)toast(r.miss+' حصة بلا معلمة متاحة');return;}
   if(b.id==='waitAuto'){const r=autoWait(wst.date);try{await saveWait(wst.date,r.w);}catch(x){writeErr(x)}openWait();toast(r.n?'وُزّعت '+r.n+' حصة'+(r.miss?' · '+r.miss+' بلا معلمة متاحة':''):(r.miss?'لا توجد معلمات متاحات':'كل الحصص موزّعة'));return;}
-  if(b.id==='waitClear'){const w=Wd(wst.date);w.as={};try{await saveWait(wst.date,w);}catch(x){writeErr(x)}openWait();return;}
+  if(b.id==='waitClear'){const w=Wd(wst.date);w.as={};w.adv={};try{await saveWait(wst.date,w);}catch(x){writeErr(x)}openWait();return;}
 });
 
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
