@@ -2050,9 +2050,9 @@ document.addEventListener('click',async e=>{
 
 
 /* ---------- حصص الانتظار ---------- */
-function Wd(date){const w=(settings.wait||{})[date];return w?{abs:w.abs||[],as:w.as||{},adv:w.adv||{},short:w.short,noAct:!!w.noAct}:{abs:[],as:{},adv:{},short:undefined,noAct:false};}
-/* تقديم السابعة: عند إلغاء النشاط تتقدم معلمة الحصة السابعة للفصل إلى حصة الغائبة */
-function advCand(date,need){const d=dIdx(date),cfg=dayCfg(date);if(!TT||!cfg.noAct||cfg.maxP<7||need.p>=6)return null;
+function Wd(date){const w=(settings.wait||{})[date];return w?{abs:w.abs||[],as:w.as||{},adv:w.adv||{},short:w.short,noAct:w.noAct==null?true:!!w.noAct}:{abs:[],as:{},adv:{},short:undefined,noAct:true};}
+/* تقديم السابعة: عند الغياب تتقدم معلمة الحصة السابعة للفصل إلى حصة الغائبة */
+function advCand(date,need){const d=dIdx(date),cfg=dayCfg(date);if(!TT||cfg.maxP<7||need.p>=6)return null;
   const ti=((TT.c[need.grade+'|'+need.sec]||[])[d]||[])[6];const t=ti>=0?TT.t[ti]:null;if(!t||cfg.w.abs.includes(t)||teachesAt(t,d,need.p,cfg))return null;
   const cls=need.grade+'|'+need.sec+'|';if(Object.keys(cfg.w.adv).some(k=>k!==need.k&&k.startsWith(cls)))return null;
   if(Object.entries(cfg.w.as).some(([k,v])=>k!==need.k&&v===t&&+k.split('|')[2]===need.p))return null;return t;}
@@ -2083,7 +2083,7 @@ function waitCands(date,need){
 async function saveWait(date,w){const all={...(settings.wait||{})};const lim=addD(today(),-150);for(const k of Object.keys(all))if(k<lim)delete all[k];all[date]=w;
   await store.saveSettings({...settings,wait:all});}
 function autoWait(date){const w=Wd(date);w.as={...w.as};const cfg=dayCfg(date);let n=0,miss=0;
-  w.adv={...w.adv};const needs=waitNeeds(date);for(const k of Object.keys(w.as))if(!needs.some(x=>x.k===k))delete w.as[k];for(const k of Object.keys(w.adv))if(!w.as[k]||!w.noAct)delete w.adv[k];
+  w.adv={...w.adv};const needs=waitNeeds(date);for(const k of Object.keys(w.as))if(!needs.some(x=>x.k===k))delete w.as[k];for(const k of Object.keys(w.adv))if(!w.as[k])delete w.adv[k];
   settings.wait={...(settings.wait||{}),[date]:w};
   for(const nd of needs){if(w.as[nd.k])continue;const av=advCand(date,nd);if(av){w.as[nd.k]=av;w.adv[nd.k]=1;settings.wait[date]=w;n++;continue;}const c=waitCands(date,nd).find(x=>x.ok);if(c){w.as[nd.k]=c.t;settings.wait[date]=w;n++;}else miss++;}
   return {w,n,miss};}
@@ -2101,10 +2101,10 @@ function openWait(){
   <div style="margin-top:12px"><div><label for="waitDate">اليوم</label><input id="waitDate" type="date" value="${date}"></div></div>
   ${d>4?'':`<h3 style="margin-top:14px">١. المعلمات الغائبات اليوم</h3><div class="chips" style="display:flex;flex-wrap:wrap;gap:6px">${TT.t.map(t=>`<button type="button" class="btn sm ${cfg.w.abs.includes(t)?'danger':'ghost'}" data-wabs="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <label class="day" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="waitShort" ${cfg.short?'checked':''} style="width:20px;height:20px;min-height:0"> يوم مختصر: ٥ حصص فقط ${cfg.w.short==null?'<span class="hint">(تلقائي عند غياب أكثر من ٣)</span>':''}</label>
-  ${hasAct?`<label class="day" style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:600"><input type="checkbox" id="waitNoAct" ${cfg.noAct?'checked':''} style="width:20px;height:20px;min-height:0"> إلغاء حصص النشاط اليوم</label>`:''}
+  ${hasAct?`<label class="day" style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:600"><input type="checkbox" id="waitNoAct" ${cfg.noAct?'checked':''} style="width:20px;height:20px;min-height:0"> إلغاء حصص النشاط اليوم <span class="hint">(ملغاة افتراضيًا)</span></label>`:''}
   <h3 style="margin-top:14px">٢. توزيع الحصص <span class="chip ${done<needs.length?'pend':'ok'}">${done} / ${needs.length}</span></h3>
   ${canWrite?'<div class="actions"><button class="btn" type="button" id="waitAuto">توزيع تلقائي عادل</button><button class="btn ghost" type="button" id="waitClear">مسح التوزيع</button></div>':''}
-  <p class="hint">يختار الأقل انتظارًا هذا الأسبوع، ثم الأقل نصابًا، ويتجنب أن تكون الحصة بين درسين للمعلمة. عند إلغاء النشاط تتقدم أولًا معلمة الحصة السابعة للفصل ولا تُحسب انتظارًا. لا يتجاوز حصتين يوميًا، ولا المتبقي من نصاب ${TT.full||24}.</p>
+  <p class="hint">يختار الأقل انتظارًا هذا الأسبوع، ثم الأقل نصابًا، ويتجنب أن تكون الحصة بين درسين للمعلمة. عند الغياب تتقدم أولًا معلمة الحصة السابعة الحاضرة للفصل نفسه، ولا تُحسب انتظارًا. لا يتجاوز حصتين يوميًا، ولا المتبقي من نصاب ${TT.full||24}.</p>
   <div class="panel">${needs.map(x=>{const cs=waitCands(date,x),cur=cfg.w.as[x.k]||'',av=advCand(date,x),isAdv=!!cfg.w.adv[x.k];return `<div class="row" style="display:block"><div class="t">${PERIODS[x.p]} · ${esc(x.grade)} / ${esc(x.sec)}</div><div class="s">بدل: ${esc(x.t)}</div>
     <select data-wset="${esc(x.k)}" style="margin-top:6px" ${canWrite?'':'disabled'}><option value="">— اختاري المعلمة المنتظرة —</option>${(isAdv||av)?`<option value="adv:${esc(isAdv?cur:av)}" ${isAdv?'selected':''}>↑ ${esc(isAdv?cur:av)} · تقديم حصتها السابعة</option>`:''}${cs.map(c=>`<option value="${esc(c.t)}" ${c.t===cur&&!isAdv?'selected':''}>${esc(c.t)} · انتظار الأسبوع ${c.wk}/${c.cap}${c.sandwich?' · بين درسين':''}${c.ok?'':' · تجاوزت الحد'}</option>`).join('')}</select>${isAdv?'<div class="s">ينصرف الفصل بعد السادسة.</div>':''}${cs.length||av||isAdv?'':'<div class="s" style="color:var(--d5)">لا توجد معلمة فارغة في هذه الحصة</div>'}</div>`;}).join('')||'<div class="empty">اختاري المعلمات الغائبات لتظهر حصصهن.</div>'}</div>
   ${subs.length?`<h3 style="margin-top:14px">٣. إشعار المعلمات</h3><div class="panel">${subs.map(t=>`<div class="row"><div class="main"><div class="t">${esc(t)}</div><div class="s">${Object.entries(cfg.w.as).filter(([k,v])=>v===t).map(([k])=>PERIODS[+k.split('|')[2]]+(cfg.w.adv[k]?' (تقديم)':'')).join('، ')}</div></div><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg(t))}">واتساب</a></div>`).join('')}</div>`:''}
