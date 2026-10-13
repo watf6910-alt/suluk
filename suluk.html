@@ -337,6 +337,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 
   <!-- الإشراف اليومي -->
   <section id="v-sup" hidden>
+    <div id="supMine"></div>
     <div class="toprow" style="margin-top:16px">
       <div><label for="supDate">الإشراف اليومي</label><input id="supDate" type="date"><div class="hint" id="supHijri"></div></div>
       <button class="btn sm" type="button" id="supWeek">التقرير الأسبوعي</button>
@@ -1989,7 +1990,16 @@ function weekStats(t,ws,schoolDays){
 function renderWaitHome(){const el=$('#waitHome');if(!el)return;const td=today(),d=dIdx(td);
   if(!TT||!canSup||d>4){el.hidden=true;el.innerHTML='';return;}el.hidden=false;const cfg=dayCfg(td),nd=waitNeeds(td),done=nd.filter(x=>cfg.w.as[x.k]).length;
   el.innerHTML=`<div class="row"><span class="stripe" style="background:${!cfg.w.abs.length?'var(--ok)':done<nd.length?'var(--d5)':'var(--ok)'}"></span><div class="main"><div class="t">غياب المعلمات اليوم</div><div class="s">${cfg.w.abs.length?esc(cfg.w.abs.join('، '))+' · وُزّع '+done+' من '+nd.length:'لم يُسجَّل غياب'}</div></div><button class="btn sm" type="button" id="goWait">${cfg.w.abs.length?'الانتظار':'تحديد الغائبات'}</button></div>`;}
+function openMyWeek(){const me=myName();if(!TT||!me)return;const ws=wkStart(today());
+  const load=ttLoad(me);openKey=null;imp.open=false;absOpen=null;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>جدول أ. ${esc(me)}</h3><div class="hint">نصاب الحصص ${load}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>`+
+  [0,1,2,3,4].map(d=>{const date=addD(ws,d),cfg=dayCfg(date),sl=slotsOf(me,d);
+    const wt=Object.entries(cfg.w.as).filter(([k,v])=>v===me).map(([k])=>{const [g,se,p]=k.split('|');return {p:+p,grade:g,sec:se,w:1};});
+    const all=[...sl,...wt].sort((a,b)=>a.p-b.p);
+    return `<h3 style="margin-top:14px">${DAYN[d]} <span class="hint">${hijri(date)}</span></h3><div class="panel">${all.map(s=>{const off=s.p>=cfg.maxP||(cfg.noAct&&!s.w&&isAct(s.grade,s.sec,d,s.p));return `<div class="row"${off?' style="opacity:.5"':''}><div class="main"><div class="t">${PERIODS[s.p]}${s.w?' · <span class="chip pend">انتظار</span>':''}${off?' · <span class="chip">محذوفة</span>':''}</div><div class="s">${esc(s.grade)} / ${esc(s.sec)}</div></div></div>`;}).join('')||'<div class="empty">لا حصص</div>'}</div>`;}).join('');
+  $('#sheet').hidden=false;}
 function renderMyDay(){
+  try{const host=canSup?$('#supMine'):null,wh=$('#waitHome'),md=$('#myDay');if(host&&wh&&md&&wh.parentNode!==host){host.append(wh,md);}else if(!canSup&&wh&&md&&wh.parentNode&&wh.parentNode.id==='supMine'){$('#v-home .lockslot').after(wh,md);}}catch(e){}
   try{renderWaitHome();}catch(e){}
   const el=$('#myDay');if(!el)return;
   if(!TT){el.innerHTML='';el.hidden=true;return;}el.hidden=false;
@@ -2001,7 +2011,7 @@ function renderMyDay(){
   for(const [k,v] of Object.entries(cfgT.w.as))if(v===me){const [g,se,p]=k.split('|');sl.push(cfgT.w.adv[k]?{p:+p,grade:g,sec:se,a:1}:{p:+p,grade:g,sec:se,w:1});}sl.sort((a,b)=>a.p-b.p);
   const ws=wkStart(td),st=weekStats(me,ws);
   const rows=sl.map(s=>{const ok=!!sessRec(td,s.grade,s.sec,s.p);return `<div class="row"><span class="stripe" style="background:${ok?'var(--ok)':'var(--d3)'}"></span><div class="main"><div class="t">${PERIODS[s.p]}${s.w?' · <span class="chip pend">انتظار</span>':''}${s.a?' · <span class="chip ok">انتظار بدل السابعة</span>':''}</div><div class="s">${esc(s.grade)} / ${esc(s.sec)}</div></div>${ok?'<span class="chip ok">✓ رُصدت</span>':`<button class="btn sm" type="button" data-goslot="${s.p}|${esc(s.grade)}|${esc(s.sec)}">ارصدي الحضور</button>`}</div>`;}).join('');
-  el.innerHTML=`<div class="row" style="align-items:center"><div class="main"><div class="t">أ. ${esc(me)}</div><div class="s">${day<=4?'حصصك اليوم: '+sl.length:'لا حصص اليوم'}${st.exp?` · هذا الأسبوع رصدتِ ${st.done} من ${st.exp}`:''}</div></div><button class="btn sm ghost" type="button" id="meChange">لستُ أنا؟</button></div>
+  el.innerHTML=`<div class="row" style="align-items:center"><div class="main"><div class="t">أ. ${esc(me)}</div><div class="s">${day<=4?'حصصك اليوم: '+sl.length:'لا حصص اليوم'}${st.exp?` · هذا الأسبوع رصدتِ ${st.done} من ${st.exp}`:''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" id="meWeek">جدولي</button><button class="btn sm ghost" type="button" id="meChange">لستُ أنا؟</button></div></div>
   ${rows||'<div class="empty">لا توجد حصص لكِ اليوم.</div>'}
   ${st.miss.length?`<div class="row" style="display:block"><div class="t" style="color:var(--d3)">حصص لم تُرصد هذا الأسبوع</div><div class="s">${st.miss.map(m=>DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)).join('<br>')}</div></div>`:''}`;
 }
@@ -2043,6 +2053,7 @@ document.addEventListener('click',async e=>{
   const b=e.target&&e.target.closest?e.target.closest('button'):null;if(!b)return;
   if(b.id==='meSave'){const v=$('#meSel').value;if(!v){toast('اختاري اسمك');return;}setMe(v);$('#absBy')&&($('#absBy').value=v);try{localStorage.setItem('rasd_by',v);}catch(x){}renderMyDay();toast('أهلًا أ. '+v);return;}
   if(b.id==='meChange'){setMe('');renderMyDay();return;}
+  if(b.id==='meWeek'){openMyWeek();return;}
   if(b.dataset.goslot){const [p,g,s]=b.dataset.goslot.split('|');goSlot(+p,g,s);return;}
   if(b.id==='supTeach'){openTeachRep();return;}
   if(b.dataset.lv){const k=b.dataset.lv;const on=(settings.lv||[]).includes(k);const lv=on?(settings.lv||[]).filter(x=>x!==k):[...(settings.lv||[]),k];
