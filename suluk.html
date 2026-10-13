@@ -1969,7 +1969,7 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 /* ---------- جدول الحصص: حصص المعلمة وتقرير الرصد الأسبوعي ---------- */
 const PERIODS=['الحصة الأولى','الحصة الثانية','الحصة الثالثة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة'];
 const DAYN=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'];
-const TT_START='2026-10-13';
+const TT_START='2026-10-12';
 function myName(){try{return localStorage.getItem('rasd_me')||'';}catch(e){return '';}}
 function setMe(n){try{if(n)localStorage.setItem('rasd_me',n);else localStorage.removeItem('rasd_me');}catch(e){}}
 const dIdx=iso=>new Date(iso+'T12:00:00').getDay();
@@ -2031,24 +2031,31 @@ function openTeachRep(){
   if(!TT){toast('أدخلي رمز المدرسة أولًا');return;}
   const td=today(),cur=wkStart(td),wks=[];for(let w=cur;w>=wkStart(TT_START);w=addD(w,-7))wks.push(w);
   if(!trep.ws||!wks.includes(trep.ws))trep.ws=wks[0];
-  const schoolDays=new Set(records.filter(r=>r.kind==='sess').map(r=>r.date));
+  const schoolDays=new Set(records.filter(r=>r.kind==='sess'||r.kind==='abs').map(r=>r.date));
   const rows=TT.t.map(t=>({t,...weekStats(t,trep.ws,schoolDays)})).sort((a,b)=>b.miss.length-a.miss.length||a.t.localeCompare(b.t,'ar'));
   const tot=rows.reduce((a,r)=>a+r.exp,0),dn=rows.reduce((a,r)=>a+r.done,0);
   const card=r=>{const days=[...new Set(r.miss.map(m=>m.date))];
     const msg=`الأستاذة ${r.t}، السلام عليكم\nتذكير لطيف: لديكِ ${r.miss.length} ${r.miss.length===1?'حصة لم يُرصد':'حصص لم يُرصد'} فيها الحضور هذا الأسبوع:\n${r.miss.map(m=>'• '+DAYN[m.d]+' — '+PERIODS[m.p]+' — '+m.grade+' / '+m.sec+(m.w?' (انتظار)':'')).join('\n')}\nنأمل رصدها في منصة السلوك والانضباط. شاكرين تعاونك.`;
     return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><div class="t">${esc(r.t)}</div><div class="s">رصدت ${r.done} من ${r.exp}</div></div><span class="chip ${r.miss.length?'pend':'ok'}">${r.miss.length?r.miss.length+' لم تُرصد':(r.exp?'مكتمل ✓':'لا حصص')}</span></div>
-    ${r.miss.length?`<div class="s" style="margin-top:6px">${r.miss.map(m=>DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)).join('<br>')}</div>
+    ${r.miss.length?`<div class="s" style="margin-top:6px">${r.miss.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 0"><span>${DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)}</span>${canWrite?`<button class="btn sm ghost" type="button" data-okslot="${esc(m.date+'|'+m.p+'|'+m.grade+'|'+m.sec)}">✓ اعتماد</button>`:''}</div>`).join('')}</div>
     <div class="actions" style="margin-top:8px"><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">تذكير واتساب</a>${canWrite?days.map(d=>`<button class="btn sm ghost" type="button" data-lv="${esc(r.t)}|${d}">إجازة ${DAYN[dIdx(d)]}</button>`).join(''):''}</div>`:''}
     ${(settings.lv||[]).filter(x=>x.startsWith(r.t+'|')&&wkStart(x.split('|')[1])===trep.ws).map(x=>`<div class="s" style="margin-top:4px">إجازة: ${DAYN[dIdx(x.split('|')[1])]} <button class="btn sm ghost" type="button" data-lv="${esc(x)}">إلغاء</button></div>`).join('')}</div>`;};
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>تقرير رصد المعلمات</h3><div class="hint">الحصص المرصودة مقارنة بجدول الحصص، حتى نهاية أمس</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="split" style="margin-top:12px"><div><label for="trepW">الأسبوع</label><select id="trepW">${wks.map(w=>`<option value="${w}" ${w===trep.ws?'selected':''}>${'الأسبوع من '+hijri(w)}</option>`).join('')}</select></div></div>
   <p class="hint">المجموع: رُصدت ${dn} من ${tot} حصة. لا تُحسب الأيام التي لم يُرصد فيها أي فصل (إجازة أو عطلة)، ولا أيام إجازة المعلمة. الحصة تُحسب مرصودة إذا رصدها أي أحد، مثل حصص الانتظار.</p>
-  <div class="actions"><button class="btn" type="button" id="trepXls">تنزيل Excel</button></div>
+  <div class="actions"><button class="btn" type="button" id="trepXls">تنزيل Excel</button>${canWrite?[...new Set(rows.flatMap(r=>r.miss.map(m=>m.date)))].sort().map(d=>`<button class="btn ghost" type="button" data-okday="${d}">اعتماد كل حصص ${DAYN[dIdx(d)]}</button>`).join(''):''}</div>
+  <p class="hint">«اعتماد» للحصص التي تعرفين أنها رُصدت ولم تُسجَّل، مثل رصد صباح الإثنين بالنسخة السابقة.</p>
   <div class="panel">${rows.map(card).join('')}</div>`;
   $('#sheet').hidden=false;
 }
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='trepW'){trep.ws=t.value;openTeachRep();}});
+async function approveSlot(date,p,grade,sec){if(sessRec(date,grade,sec,p))return 0;await store.add({kind:'sess',grade,section:sec,date,period:PERIODS[p],by:'اعتماد الإدارة',teacher:'',approved:true,dev:DEV,createdAt:new Date().toISOString()});return 1;}
+document.addEventListener('click',async e=>{const b=e.target&&e.target.closest?e.target.closest('[data-okslot],[data-okday]'):null;if(!b||!canWrite)return;
+  try{if(b.dataset.okslot){const [d,p,g,s]=b.dataset.okslot.split('|');await approveSlot(d,+p,g,s);toast('اعتُمدت الحصة ✓');}
+  else{const d=b.dataset.okday;if(!confirm('اعتماد كل حصص '+DAYN[dIdx(d)]+' غير المرصودة لكل المعلمات؟'))return;b.disabled=true;let n=0;const done=new Set();
+    for(const t of TT.t){const st=weekStats(t,wkStart(d));for(const m of st.miss)if(m.date===d){const k=m.p+'|'+m.grade+'|'+m.sec;if(done.has(k))continue;done.add(k);n+=await approveSlot(d,m.p,m.grade,m.sec);}}
+    toast('اعتُمدت '+n+' حصة ✓');}}catch(x){writeErr(x)}openTeachRep();});
 document.addEventListener('click',async e=>{
   const b=e.target&&e.target.closest?e.target.closest('button'):null;if(!b)return;
   if(b.id==='meSave'){const v=$('#meSel').value;if(!v){toast('اختاري اسمك');return;}setMe(v);$('#absBy')&&($('#absBy').value=v);try{localStorage.setItem('rasd_by',v);}catch(x){}renderMyDay();toast('أهلًا أ. '+v);return;}
@@ -2058,7 +2065,7 @@ document.addEventListener('click',async e=>{
   if(b.id==='supTeach'){openTeachRep();return;}
   if(b.dataset.lv){const k=b.dataset.lv;const on=(settings.lv||[]).includes(k);const lv=on?(settings.lv||[]).filter(x=>x!==k):[...(settings.lv||[]),k];
     try{await store.saveSettings({...settings,lv});}catch(x){writeErr(x)}openTeachRep();return;}
-  if(b.id==='trepXls'){const schoolDays=new Set(records.filter(r=>r.kind==='sess').map(r=>r.date));
+  if(b.id==='trepXls'){const schoolDays=new Set(records.filter(r=>r.kind==='sess'||r.kind==='abs').map(r=>r.date));
     const out=TT.t.map((t,i)=>{const r=weekStats(t,trep.ws,schoolDays);return {'م':i+1,'المعلمة':t,'حصص الأسبوع':r.exp,'رُصدت':r.done,'لم تُرصد':r.miss.length,'التفاصيل':r.miss.map(m=>DAYN[m.d]+' '+PERIODS[m.p]+' '+m.grade+'/'+m.sec).join('، ')};});
     const blob=XW.book([{name:'رصد المعلمات',rows:out,widths:[5,24,12,10,10,70]}]);
     await saveFile('تقرير-رصد-المعلمات-'+trep.ws+'.xlsx',blob,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;}
