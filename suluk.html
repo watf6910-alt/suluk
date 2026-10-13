@@ -1969,7 +1969,7 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 /* ---------- جدول الحصص: حصص المعلمة وتقرير الرصد الأسبوعي ---------- */
 const PERIODS=['الحصة الأولى','الحصة الثانية','الحصة الثالثة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة'];
 const DAYN=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'];
-const TT_START='2026-10-12';
+const TT_START='2026-10-13';
 function myName(){try{return localStorage.getItem('rasd_me')||'';}catch(e){return '';}}
 function setMe(n){try{if(n)localStorage.setItem('rasd_me',n);else localStorage.removeItem('rasd_me');}catch(e){}}
 const dIdx=iso=>new Date(iso+'T12:00:00').getDay();
@@ -1977,7 +1977,7 @@ const addD=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);
 function slotsOf(t,day){if(!TT||day<0||day>4)return [];const ti=TT.t.indexOf(t);if(ti<0)return [];const out=[];
   for(const [k,g] of Object.entries(TT.c)){const [grade,sec]=k.split('|');(g[day]||[]).forEach((x,p)=>{if(x===ti)out.push({p,grade,sec});});}
   return out.sort((a,b)=>a.p-b.p);}
-function sessRec(date,grade,sec,p){return records.find(r=>r.kind==='sess'&&r.date===date&&r.grade===grade&&String(r.section||'')===String(sec)&&r.period===PERIODS[p]);}
+function sessRec(date,grade,sec,p){return records.find(r=>(r.kind==='sess'||r.kind==='abs')&&r.date===date&&r.grade===grade&&String(r.section||'')===String(sec)&&r.period===PERIODS[p]);}
 function isLeave(t,date){return (settings.lv||[]).includes(t+'|'+date);}
 function weekStats(t,ws,schoolDays){
   const res={exp:0,done:0,miss:[]};const td=today();
