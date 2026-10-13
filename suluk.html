@@ -1980,11 +1980,12 @@ function slotsOf(t,day){if(!TT||day<0||day>4)return [];const ti=TT.t.indexOf(t);
 function sessRec(date,grade,sec,p){return records.find(r=>(r.kind==='sess'||r.kind==='abs')&&r.date===date&&r.grade===grade&&String(r.section||'')===String(sec)&&r.period===PERIODS[p]);}
 function isLeave(t,date){return (settings.lv||[]).includes(t+'|'+date);}
 function weekStats(t,ws,schoolDays){
-  const res={exp:0,done:0,miss:[]};const td=today();
-  for(let d=0;d<5;d++){const date=addD(ws,d);if(date<TT_START||date>=td)continue;if(schoolDays&&!schoolDays.has(date))continue;if(isLeave(t,date))continue;
+  const res={exp:0,done:0,miss:[],tDone:0,tAll:0,tList:[]};const td=today();
+  for(let d=0;d<5;d++){const date=addD(ws,d);if(date<TT_START||date>td)continue;if(date<td&&schoolDays&&!schoolDays.has(date))continue;if(isLeave(t,date))continue;
     const cfg=dayCfg(date);if(cfg.w.abs.includes(t))continue;
     const mv=advMoved(cfg);const sl=slotsOf(t,d).filter(s=>s.p<cfg.maxP&&!(cfg.noAct&&isAct(s.grade,s.sec,d,s.p))&&!(s.p===6&&mv.has(s.grade+'|'+s.sec)));
     for(const [k,v] of Object.entries(cfg.w.as))if(v===t){const [g,se,p]=k.split('|');sl.push(cfg.w.adv[k]?{p:+p,grade:g,sec:se,a:1}:{p:+p,grade:g,sec:se,w:1});}
+    if(date===td){for(const s of sl){res.tAll++;const ok=!!sessRec(date,s.grade,s.sec,s.p);if(ok){res.tDone++;res.exp++;res.done++;}res.tList.push({...s,ok});}continue;}
     for(const s of sl){res.exp++;if(sessRec(date,s.grade,s.sec,s.p))res.done++;else res.miss.push({date,d,...s});}}
   return res;}
 function renderWaitHome(){const el=$('#waitHome');if(!el)return;const td=today(),d=dIdx(td);
@@ -2036,12 +2037,12 @@ function openTeachRep(){
   const tot=rows.reduce((a,r)=>a+r.exp,0),dn=rows.reduce((a,r)=>a+r.done,0);
   const card=r=>{const days=[...new Set(r.miss.map(m=>m.date))];
     const msg=`الأستاذة ${r.t}، السلام عليكم\nتذكير لطيف: لديكِ ${r.miss.length} ${r.miss.length===1?'حصة لم يُرصد':'حصص لم يُرصد'} فيها الحضور هذا الأسبوع:\n${r.miss.map(m=>'• '+DAYN[m.d]+' — '+PERIODS[m.p]+' — '+m.grade+' / '+m.sec+(m.w?' (انتظار)':'')).join('\n')}\nنأمل رصدها في منصة السلوك والانضباط. شاكرين تعاونك.`;
-    return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><div class="t">${esc(r.t)}</div><div class="s">رصدت ${r.done} من ${r.exp}</div></div><span class="chip ${r.miss.length?'pend':'ok'}">${r.miss.length?r.miss.length+' لم تُرصد':(r.exp?'مكتمل ✓':'لا حصص')}</span></div>
+    return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><div class="t">${esc(r.t)}</div><div class="s">رصدت ${r.done} من ${r.exp}${r.tAll?` · اليوم: ${r.tDone} من ${r.tAll}`:''}</div>${r.tAll?`<div class="s" style="margin-top:2px">${r.tList.sort((a,b)=>a.p-b.p).map(x=>`<span class="chip ${x.ok?'ok':''}" style="margin:2px">${PERIODS[x.p].replace('الحصة ','')} ${x.ok?'✓':'…'}</span>`).join('')}</div>`:''}</div><span class="chip ${r.miss.length?'pend':'ok'}">${r.miss.length?r.miss.length+' لم تُرصد':(r.exp||r.tAll?'مكتمل ✓':'لا حصص')}</span></div>
     ${r.miss.length?`<div class="s" style="margin-top:6px">${r.miss.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 0"><span>${DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)}</span>${canWrite?`<button class="btn sm ghost" type="button" data-okslot="${esc(m.date+'|'+m.p+'|'+m.grade+'|'+m.sec)}">✓ اعتماد</button>`:''}</div>`).join('')}</div>
     <div class="actions" style="margin-top:8px"><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">تذكير واتساب</a>${canWrite?days.map(d=>`<button class="btn sm ghost" type="button" data-lv="${esc(r.t)}|${d}">إجازة ${DAYN[dIdx(d)]}</button>`).join(''):''}</div>`:''}
     ${(settings.lv||[]).filter(x=>x.startsWith(r.t+'|')&&wkStart(x.split('|')[1])===trep.ws).map(x=>`<div class="s" style="margin-top:4px">إجازة: ${DAYN[dIdx(x.split('|')[1])]} <button class="btn sm ghost" type="button" data-lv="${esc(x)}">إلغاء</button></div>`).join('')}</div>`;};
   openKey=null;imp.open=false;absOpen=null;
-  $('#sheetCard').innerHTML=`<div class="head"><div><h3>تقرير رصد المعلمات</h3><div class="hint">الحصص المرصودة مقارنة بجدول الحصص، حتى نهاية أمس</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>تقرير رصد المعلمات</h3><div class="hint">الحصص المرصودة مقارنة بجدول الحصص، مع حصص اليوم المرصودة حتى الآن (حصص اليوم الباقية لا تُحسب تقصيرًا)</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="split" style="margin-top:12px"><div><label for="trepW">الأسبوع</label><select id="trepW">${wks.map(w=>`<option value="${w}" ${w===trep.ws?'selected':''}>${'الأسبوع من '+hijri(w)}</option>`).join('')}</select></div></div>
   <p class="hint">المجموع: رُصدت ${dn} من ${tot} حصة. لا تُحسب الأيام التي لم يُرصد فيها أي فصل (إجازة أو عطلة)، ولا أيام إجازة المعلمة. الحصة تُحسب مرصودة إذا رصدها أي أحد، مثل حصص الانتظار.</p>
   <div class="actions"><button class="btn" type="button" id="trepXls">تنزيل Excel</button>${canWrite?[...new Set(rows.flatMap(r=>r.miss.map(m=>m.date)))].sort().map(d=>`<button class="btn ghost" type="button" data-okday="${d}">اعتماد كل حصص ${DAYN[dIdx(d)]}</button>`).join(''):''}</div>
