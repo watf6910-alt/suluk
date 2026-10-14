@@ -753,7 +753,7 @@ function upsert(s, id, vals) {
 function recRow(x) {
   if (x.kind === 'abs') return [x.id, x.status === 'late' ? 'تأخر' : 'غياب', x.name || '', x.grade || '', x.section || '', '', x.excuse || (x.status === 'late' ? '' : 'دون عذر'), x.period || '', '', x.date || '', x.notified ? 'نعم' : 'لا', x.by || '', JSON.stringify(x)];
   if (x.kind === 'sess') return [x.id, 'تسجيل حضور', '', x.grade || '', x.section || '', '', '', x.period || '', '', x.date || '', '', x.teacher || x.by || '', JSON.stringify(x)];
-  if (x.kind === 'note') return [x.id, x.type === 'thanks' ? 'شكر لمعلمة' : 'ملاحظة لمعلمة', x.to || '', x.grade || '', x.section || '', '', x.text || '', x.period || '', '', x.date || '', '', x.by || '', JSON.stringify(x)];
+  if (x.kind === 'note') return [x.id, x.type === 'thanks' ? 'شكر لمعلمة' : 'توجيه لمعلمة', x.to || '', x.grade || '', x.section || '', '', x.text || '', x.period || '', '', x.date || '', '', x.by || '', JSON.stringify(x)];
   if (x.kind === 'absact') return [x.id, 'إجراء غياب', x.name || '', x.grade || '', x.section || '', '', x.stage || '', '', '', x.date || '', '', x.by || '', JSON.stringify(x)];
   const exc = x.kind === 'exc' || x.kind === 'comp';
   return [x.id, exc ? 'سلوك متميز' : 'مخالفة', x.name || '', x.grade || '', x.section || '',
@@ -2052,7 +2052,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261014102317';
+const APP_VER='20261014102735';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2072,7 +2072,7 @@ function openTeachRep(){
     ${r.miss.length?`<div class="s" style="margin-top:6px">${r.miss.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 0"><span>${DAYN[m.d]+' · '+PERIODS[m.p]+' · '+esc(m.grade)+' / '+esc(m.sec)}</span>${canWrite?`<button class="btn sm ghost" type="button" data-okslot="${esc(m.date+'|'+m.p+'|'+m.grade+'|'+m.sec)}">✓ اعتماد</button>`:''}</div>`).join('')}</div>
     <div class="actions" style="margin-top:8px"><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">تذكير واتساب</a>${canWrite?days.map(d=>`<button class="btn sm ghost" type="button" data-lv="${esc(r.t)}|${d}">إجازة ${DAYN[dIdx(d)]}</button>`).join(''):''}</div>`:''}
     ${(settings.lv||[]).filter(x=>x.startsWith(r.t+'|')&&wkStart(x.split('|')[1])===trep.ws).map(x=>`<div class="s" style="margin-top:4px">إجازة: ${DAYN[dIdx(x.split('|')[1])]} <button class="btn sm ghost" type="button" data-lv="${esc(x)}">إلغاء</button></div>`).join('')}
-    ${canNote()?(()=>{const n=records.filter(x=>x.kind==='note'&&x.to===r.t&&wkStart(x.date||'')===trep.ws).length;return `<div class="actions" style="margin-top:6px;align-items:center"><button class="btn sm ghost" type="button" data-note="${esc(r.t)}">🌷 شكر / ملاحظة</button>${n?`<span class="hint">أُرسل هذا الأسبوع: ${n}</span>`:''}</div>`;})():''}</div>`;};
+    ${canNote()?(()=>{const n=records.filter(x=>x.kind==='note'&&x.to===r.t&&wkStart(x.date||'')===trep.ws).length;return `<div class="actions" style="margin-top:6px;align-items:center"><button class="btn sm ghost" type="button" data-note="${esc(r.t)}">🌷 شكر / 📌 توجيه</button>${n?`<span class="hint">أُرسل هذا الأسبوع: ${n}</span>`:''}</div>`;})():''}</div>`;};
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>تقرير رصد المعلمات</h3><div class="hint">الحصص المرصودة مقارنة بجدول الحصص، مع حصص اليوم المرصودة حتى الآن (حصص اليوم الباقية لا تُحسب تقصيرًا)</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div style="margin-top:12px;display:grid;gap:8px"><div><label for="trepW">الأسبوع</label><select id="trepW">${wks.map(w=>`<option value="${w}" ${w===trep.ws?'selected':''}>${'الأسبوع من '+hijri(w)}</option>`).join('')}</select></div><div><label for="trepD">اليوم</label><select id="trepD"><option value="" ${trep.day===''?'selected':''}>الأسبوع كاملًا</option>${wdays.map(d=>`<option value="${d}" ${d===trep.day?'selected':''}>${DAYN[dIdx(d)]}${d===td?' (اليوم)':''}</option>`).join('')}</select></div></div>
@@ -2247,20 +2247,20 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   try{for(const x of one){const m=rosterIdx.get(x.c[0]);for(const r of x.s.recs){await store.update(r.id,{name:x.c[0],grade:m.grade,section:m.section||''});n++;}}toast('اكتمل '+one.length+' اسم ('+n+' سجل) ✓');}catch(x){writeErr(x);}renderAll();});
 
 /* ---------- ملاحظات وشكر من وكيلة الشؤون التعليمية على حصص المعلمات ---------- */
-function canNote(){return canWrite&&(isAdmin||(role==='sup'&&supTitle().includes('التعليمية')));}
-const NOTE_T={thanks:['شكرًا لرصدك الحضور في وقته، جهد مقدّر','شكرًا لتميّز حصتك وتفاعل الطالبات','شكرًا لتعاونك في حصص الانتظار'],remark:['نأمل رصد الحضور في بداية الحصة','نأمل الالتزام بوقت بداية الحصة ونهايتها','نأمل مراجعة رصد هذه الحصة']};
+function canNote(){return canWrite&&role==='sup'&&supTitle().includes('التعليمية');}
+const NOTE_T={thanks:['شكرًا لرصدك الحضور في وقته، جهد مقدّر','شكرًا لتميّز حصتك وتفاعل الطالبات','شكرًا لتعاونك في حصص الانتظار'],remark:['نوجّهكِ برصد الحضور في بداية الحصة','نوجّهكِ بالالتزام بوقت بداية الحصة ونهايتها','نوجّهكِ بمراجعة رصد هذه الحصة']};
 const nst={t:'',type:'thanks',p:'',date:''};
 function openNote(t){if(!canNote())return;nst.t=t;nst.date=trep.day||today();const d=dIdx(nst.date);
   const sl=d<=4?slotsOf(t,d).concat(Object.entries(dayCfg(nst.date).w.as).filter(([k,v])=>v===t).map(([k])=>{const [g,se,p]=k.split('|');return {p:+p,grade:g,sec:se};})).sort((a,b)=>a.p-b.p):[];
   const prev=records.filter(x=>x.kind==='note'&&x.to===t).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,6);
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>رسالة إلى أ. ${esc(t)}</h3><div class="hint">${DAYN[d]||''} · ${hijri(nst.date)} · تصلها في «حصصك اليوم»</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
-  <div class="actions" style="margin-top:12px"><button class="btn ${nst.type==='thanks'?'':'ghost'}" type="button" data-ntype="thanks">🌷 شكر</button><button class="btn ${nst.type==='remark'?'':'ghost'}" type="button" data-ntype="remark">📝 ملاحظة</button></div>
+  <div class="actions" style="margin-top:12px"><button class="btn ${nst.type==='thanks'?'':'ghost'}" type="button" data-ntype="thanks">🌷 شكر</button><button class="btn ${nst.type==='remark'?'':'ghost'}" type="button" data-ntype="remark">📌 توجيه</button></div>
   <label for="noteP" style="margin-top:10px">الحصة</label><select id="noteP"><option value="">عامة (بدون حصة)</option>${sl.map(s=>{const v=s.p+'|'+s.grade+'|'+s.sec;return `<option value="${esc(v)}" ${nst.p===v?'selected':''}>${PERIODS[s.p]} · ${esc(s.grade)} / ${esc(s.sec)}</option>`;}).join('')}</select>
   <label for="noteTx" style="margin-top:10px">النص</label><div class="chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${NOTE_T[nst.type].map(x=>`<button class="btn sm ghost" type="button" data-ntpl="${esc(x)}">${esc(x)}</button>`).join('')}</div>
   <textarea id="noteTx" rows="3" placeholder="اكتبي الرسالة"></textarea>
   <div class="actions" style="margin-top:10px"><button class="btn" type="button" id="noteSend">إرسال</button><button class="btn ghost" type="button" id="noteBack">رجوع للتقرير</button></div>
-  ${prev.length?`<h3 style="margin-top:14px">المرسل سابقًا</h3><div class="panel">${prev.map(x=>`<div class="row"><div class="main"><div class="t">${x.type==='thanks'?'🌷':'📝'} ${esc(x.text)}</div><div class="s">${hijri(x.date)}${x.period?' · '+esc(x.period)+' · '+esc(x.grade||'')+' / '+esc(x.section||''):''} · ${esc(x.by||'')}</div></div><button class="btn sm ghost" type="button" data-notedel="${esc(x.id)}">حذف</button></div>`).join('')}</div>`:''}`;
+  ${prev.length?`<h3 style="margin-top:14px">المرسل سابقًا</h3><div class="panel">${prev.map(x=>`<div class="row"><div class="main"><div class="t">${x.type==='thanks'?'🌷 شكر:':'📌 توجيه:'} ${esc(x.text)}</div><div class="s">${hijri(x.date)}${x.period?' · '+esc(x.period)+' · '+esc(x.grade||'')+' / '+esc(x.section||''):''} · ${esc(x.by||'')}</div></div><button class="btn sm ghost" type="button" data-notedel="${esc(x.id)}">حذف</button></div>`).join('')}</div>`:''}`;
   $('#sheet').hidden=false;}
 document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-note],[data-ntype],[data-ntpl],#noteSend,#noteBack,[data-notedel],[data-noteseen]'):null;if(!b)return;
   if(b.dataset.noteseen){try{localStorage.setItem('rasd_noteSeen',new Date().toISOString());}catch(x){}renderMyDay();return;}
@@ -2272,11 +2272,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   if(b.dataset.notedel){if(!confirm('حذف هذه الرسالة؟'))return;try{await store.remove(b.dataset.notedel);}catch(x){writeErr(x)}openNote(nst.t);return;}
   if(b.id==='noteSend'){const text=$('#noteTx').value.trim();if(!text){toast('اكتبي الرسالة أو اختاري نصًا جاهزًا');return;}
     const v=$('#noteP').value;const [p,g,se]=v?v.split('|'):['','',''];b.disabled=true;
-    try{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:nst.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:isAdmin?'الموجّهة':supTitle(),dev:DEV,createdAt:new Date().toISOString()});
+    try{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:nst.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:supTitle(),dev:DEV,createdAt:new Date().toISOString()});
       toast('أُرسلت الرسالة إلى أ. '+nst.t+' ✓');nst.p='';openNote(nst.t);}catch(x){writeErr(x);b.disabled=false;}}});
 function myNotesHtml(me){const lim=addD(today(),-14);const ns=records.filter(x=>x.kind==='note'&&x.to===me&&(x.date||'')>=lim).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,6);
   if(!ns.length)return '';let seen='';try{seen=localStorage.getItem('rasd_noteSeen')||'';}catch(e){}const nw=ns.filter(x=>String(x.createdAt||'')>seen).length;
-  return `<div class="row" style="display:block"><div class="t">رسائل من الإدارة ${nw?`<span class="chip pend">${nw} جديدة</span>`:''}</div>${ns.map(x=>`<div class="s" style="margin-top:6px;${String(x.createdAt||'')>seen?'font-weight:700;color:var(--fg)':''}">${x.type==='thanks'?'🌷':'📝'} ${esc(x.text)}<br><span class="hint">${hijri(x.date)}${x.period?' · '+esc(x.period)+' · '+esc(x.grade||'')+' / '+esc(x.section||''):''} · ${esc(x.by||'')}</span></div>`).join('')}${nw?'<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-noteseen="1">قرأتها ✓</button></div>':''}</div>`;}
+  return `<div class="row" style="display:block"><div class="t">رسائل من الإدارة ${nw?`<span class="chip pend">${nw} جديدة</span>`:''}</div>${ns.map(x=>`<div class="s" style="margin-top:6px;${String(x.createdAt||'')>seen?'font-weight:700;color:var(--fg)':''}">${x.type==='thanks'?'🌷 شكر:':'📌 توجيه:'} ${esc(x.text)}<br><span class="hint">${hijri(x.date)}${x.period?' · '+esc(x.period)+' · '+esc(x.grade||'')+' / '+esc(x.section||''):''} · ${esc(x.by||'')}</span></div>`).join('')}${nw?'<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-noteseen="1">قرأتها ✓</button></div>':''}</div>`;}
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}.split>div:has(.hpick){grid-column:1/-1}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
