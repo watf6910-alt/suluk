@@ -2052,7 +2052,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261014104135';
+const APP_VER='20261014104539';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2249,7 +2249,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   try{for(const x of one){const m=rosterIdx.get(x.c[0]);for(const r of x.s.recs){await store.update(r.id,{name:x.c[0],grade:m.grade,section:m.section||''});n++;}}toast('اكتمل '+one.length+' اسم ('+n+' سجل) ✓');}catch(x){writeErr(x);}renderAll();});
 
 /* ---------- ملاحظات وشكر من وكيلة الشؤون التعليمية على حصص المعلمات ---------- */
-function canNote(){const t=supTitle();return canWrite&&role==='sup'&&!t.includes('الطالبات')&&!t.includes('المدرسية');}
+function canNote(){const t=supTitle();return canWrite&&(isAdmin||(role==='sup'&&!t.includes('الطالبات')&&!t.includes('المدرسية')));}
 const NOTE_T={thanks:['شكرًا لرصدك الحضور في وقته، جهد مقدّر','شكرًا لتميّز حصتك وتفاعل الطالبات','شكرًا لتعاونك في حصص الانتظار'],remark:['نوجّهكِ برصد الحضور في بداية الحصة','نوجّهكِ بالالتزام بوقت بداية الحصة ونهايتها','نوجّهكِ بمراجعة رصد هذه الحصة']};
 const nst={t:'',type:'thanks',p:'',date:''};
 function openNote(t,keep){if(!canNote())return;nst.t=t;if(!keep){nst.date=trep.day||today();}const d=dIdx(nst.date);
@@ -2275,7 +2275,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   if(b.dataset.notedel){if(!confirm('حذف هذه الرسالة؟'))return;try{await store.remove(b.dataset.notedel);}catch(x){writeErr(x)}openNote(nst.t,true);return;}
   if(b.id==='noteSend'){const text=$('#noteTx').value.trim();if(!text){toast('اكتبي الرسالة أو اختاري نصًا جاهزًا');return;}if(!$('#noteP').value){toast('اختاري الحصة');return;}
     const v=$('#noteP').value;const [p,g,se]=v?v.split('|'):['','',''];b.disabled=true;
-    try{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:nst.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:supTitle(),dev:DEV,createdAt:new Date().toISOString()});
+    try{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:nst.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});
       toast('أُرسلت الرسالة إلى أ. '+nst.t+' ✓');openTeachRep();}catch(x){writeErr(x);b.disabled=false;}}});
 function myNotesHtml(me){const lim=addD(today(),-14);const ns=records.filter(x=>x.kind==='note'&&x.to===me&&(x.date||'')>=lim).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,6);
   if(!ns.length)return '';let seen='';try{seen=localStorage.getItem('rasd_noteSeen')||'';}catch(e){}const nw=ns.filter(x=>String(x.createdAt||'')>seen).length;
