@@ -1893,13 +1893,13 @@ function openAbs(k,refresh){
     body=`<div class="split">
       <div class="tile"><b>${a.score}</b><span>درجة المواظبة من 100</span></div>
       <div class="tile"><b>${a.unexc}</b><span>أيام دون عذر (${a.pct}%)</span></div>
-      <div class="tile"><b>${a.exc}</b><span>أيام بعذر · ${a.late} تأخر</span></div></div>
+      <div class="tile"><b>${a.exc}</b><span>أيام بعذر</span></div></div>
       ${warn}
       ${a.days.length&&canSup?`<div class="actions"><button class="btn sm" id="absNoticeBtn">إشعار الغياب لولي الأمر</button>${bs?'<button class="btn sm ghost" id="absToBeh">سجل السلوك</button>':''}</div>`:''}
       ${pend&&canSup?`<h2>إجراءات مطلوبة</h2>${pend}`:''}${done?`<p style="margin-top:10px">${done}</p>`:''}
       <h2>أيام الغياب</h2>
       <div class="panel">${a.days.length?a.days.map(d=>`<div class="row" style="align-items:flex-start"><span class="stripe" style="background:${d.excuse?'var(--ok)':'var(--d5)'}"></span><div class="main"><div class="t">${hijri(d.date)}</div><div class="s">${esc(d.periods.join('، ')||'—')}${d.by.length?' · '+esc(d.by.join('، ')):''}</div>${canSup&&canWrite?`<select data-excuse="${d.date}" style="margin-top:6px;font-size:14px;padding:7px 10px">${excOpts(d)}</select><button type="button" class="btn sm ghost" style="margin-top:6px" data-tolate="${d.date}">كانت تأخرًا لا غيابًا</button>`:`<div class="s">${d.excuse?'بعذر: '+esc(d.excuse):'دون عذر'}</div>`}</div><span class="chip ${d.notified?'ok':'pend'}">${d.notified?'أُشعر':'لم يُشعر'}</span></div>`).join(''):'<div class="empty">لا توجد أيام غياب مرصودة.</div>'}</div>
-      ${a.lateList&&a.lateList.length?`<h2>أيام التأخر</h2><div class="panel">${a.lateList.map(d=>`<div class="row"><span class="stripe" style="background:var(--d3)"></span><div class="main"><div class="t">${hijri(d)}</div><div class="s">تأخر · حضرت بعد بداية اليوم</div></div></div>`).join('')}</div>`:''}
+      ${a.lateList&&a.lateList.length?`<p class="note">التأخر لا يُحسب في المواظبة؛ هو مخالفة سلوك تُرصد في سجل السلوك بإجراءاتها (${a.lateList.length} ${a.lateList.length===1?'يوم':'أيام'}: ${a.lateList.map(d=>hijri(d)).join('، ')}).</p>`:''}
       ${a.partial&&a.partial.length?`<h2>غياب عن حصص (حضرت اليوم)</h2><div class="panel">${a.partial.map(d=>`<div class="row"><span class="stripe" style="background:var(--d4,#b4532a)"></span><div class="main"><div class="t">${hijri(d.date)}</div><div class="s">${esc(d.periods.join('، '))}${d.by.length?' · '+esc(d.by.join('، ')):''} · لا يُحسب يوم غياب</div></div></div>`).join('')}</div>`:''}
       <p class="note">مهلة تقديم العذر 3 أيام عمل بعد الغياب، ويُقبل حتى 10 أيام عند وجود مبرر (المادة 31).</p>`;
   }
@@ -2077,7 +2077,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261015084208';
+const APP_VER='20261015084522';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2319,8 +2319,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   else{const x=SUPLATE.items.find(i=>i.k===b.dataset.lateviol);if(x){await addLateViol(x);toast('رُصدت مخالفة '+x.t);}}}catch(x){writeErr(x)}renderAll();},true);
 
 document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-tolate]'):null;if(!b||!canSup||!canWrite||!absOpen)return;
-  const d=b.dataset.tolate;if(!confirm('تحويل يوم '+hijri(d)+' من غياب إلى تأخر؟ يُحذف من أيام الغياب ومن إشعار ولي الأمر بالغياب.'))return;b.disabled=true;
-  try{for(const r of absRecs().filter(r=>absKeyOf(r)===absOpen&&r.date===d&&r.status!=='late'))await store.update(r.id,{status:'late'});toast('حُوّل اليوم إلى تأخر ✓');}catch(x){writeErr(x)}openAbs(absOpen,true);renderAll();});
+  const d=b.dataset.tolate;if(!confirm('تحويل يوم '+hijri(d)+' من غياب إلى تأخر؟ يُحذف من أيام الغياب وإشعار الغياب، وتُرصد مخالفة «التأخر الصباحي» في سجل السلوك.'))return;b.disabled=true;
+  try{const rs=absRecs().filter(r=>absKeyOf(r)===absOpen&&r.date===d);for(const r of rs.filter(r=>r.status!=='late'))await store.update(r.id,{status:'late'});
+    const r0=rs[0];if(r0){const nm=norm(r0.name);const t='التأخر الصباحي';if(!records.some(r=>r.kind==='viol'&&norm(r.name)===nm&&r.date===d&&(r.violation===t||r.violation==='التأخر في الدخول إلى الحصص'))){const p=procFor(nm,1,t);
+      await store.add({kind:'viol',name:nm,grade:r0.grade,section:r0.section||'',degree:1,violation:t,proc:p.n,pts:p.pts,steps:p.steps,date:d,period:r0.period||'',note:'حُوّل من الغياب',by:isAdmin?'الموجّهة الطلابية':supTitle(),notified:false,createdAt:new Date().toISOString()});}}
+    toast('حُوّل اليوم إلى تأخر، ورُصدت مخالفة «التأخر الصباحي» في السلوك ✓');}catch(x){writeErr(x)}openAbs(absOpen,true);renderAll();});
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}.split>div:has(.hpick){grid-column:1/-1}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
