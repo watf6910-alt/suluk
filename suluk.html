@@ -1668,13 +1668,20 @@ function attStats(key){
     const d=dm.get(r.date);if(r.period&&!d.periods.includes(r.period))d.periods.push(r.period);
     if(r.by&&!d.by.includes(r.by))d.by.push(r.by);if(r.excuse&&!d.excuse)d.excuse=r.excuse;if(r.notified)d.notified=true;d.ids.push(r.id);
   }
+  /* اليوم يُحسب غيابًا فقط إذا غابت عن كل الحصص المرصودة لفصلها. إن حضرت حصة لاحقة فهو تأخر، وإن حضرت ثم غابت فغياب حصص */
+  const PI=p=>(typeof PERIODS!=='undefined'?PERIODS.indexOf(p):-1);const part=[];
+  for(const d of [...dm.values()]){if(d.periods.includes('اليوم كاملاً'))continue;const r0=mine.find(r=>r.date===d.date);if(!r0)continue;
+    const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===d.date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+    const pres=[...rec].filter(p=>!d.periods.includes(p)).map(PI).filter(i=>i>=0);if(!pres.length)continue;
+    const ab=d.periods.map(PI).filter(i=>i>=0);const firstP=Math.min(...pres);
+    dm.delete(d.date);if(ab.length&&ab.every(i=>i<firstP))lateDays.add(d.date);else part.push({...d,partial:true});}
   const days=[...dm.values()].sort((a,b)=>b.date.localeCompare(a.date));
   for(const d of dm.values())lateDays.delete(d.date);
   const un=days.filter(d=>!d.excuse).map(d=>d.date).sort();
   let maxRun=un.length?1:0,run=1;for(let i=1;i<un.length;i++){run=un[i]===nextSchoolDay(un[i-1])?run+1:1;maxRun=Math.max(maxRun,run);}
   const unexc=un.length, exc=days.length-unexc, term=+settings.termDays||90;
   const done=new Set(records.filter(r=>r.kind==='absact'&&absKeyOf(r)===key).map(r=>r.stage));
-  const a={days,unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done};
+  const a={days,partial:part.sort((a,b)=>b.date.localeCompare(a.date)),lateList:[...lateDays].sort().reverse(),unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done};
   a.pending=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a)&&!done.has(k));
   a.reached=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a));
   return a;
@@ -1750,10 +1757,16 @@ function renderSup(){
   const date=$('#supDate').value||today();
   const day=absRecs().filter(r=>r.date===date);
   const keys=[...new Set(day.map(absKeyOf))];
-  const absentK=keys.filter(k=>day.some(r=>absKeyOf(r)===k&&r.status!=='late'));
-  const lateK=keys.filter(k=>!absentK.includes(k));
+  const PI=p=>(typeof PERIODS!=='undefined'?PERIODS.indexOf(p):-1);
+  const kindOf=k=>{const rs=day.filter(r=>absKeyOf(r)===k);const ab=rs.filter(r=>r.status!=='late');if(!ab.length)return 'late';if(ab.some(r=>r.period==='اليوم كاملاً'))return 'abs';
+    const r0=rs[0];const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+    const abP=ab.map(r=>r.period);const pres=[...rec].filter(p=>!abP.includes(p)).map(PI).filter(i=>i>=0);if(!pres.length)return 'abs';
+    return abP.map(PI).filter(i=>i>=0).every(i=>i<Math.min(...pres))?'late':'part';};
+  const KIND=new Map(keys.map(k=>[k,kindOf(k)]));
+  const absentK=keys.filter(k=>KIND.get(k)!=='late');
+  const lateK=keys.filter(k=>KIND.get(k)==='late');
   const info=k=>{const rs=day.filter(r=>absKeyOf(r)===k);const r0=rs[0];return {k,name:norm(r0.name),grade:r0.grade,sec:rs.find(r=>r.section)?.section||'',periods:[...new Set(rs.map(r=>r.period).filter(Boolean))],by:[...new Set(rs.map(r=>r.by).filter(Boolean))],excuse:rs.find(r=>r.excuse)?.excuse||'',notified:rs.some(r=>r.notified)};};
-  const row=(x,late)=>`<div class="row click" data-abs="${esc(x.k)}"><span class="stripe" style="background:${late?'var(--d3)':'var(--d5)'}"></span><div class="main"><div class="t">${esc(x.name)}</div><div class="s">${esc(x.grade)}${x.sec?' / '+esc(x.sec):''} · ${esc(x.periods.join('، ')||'—')}${x.by.length?' · رصدتها: '+esc(x.by.join('، ')):''}</div></div>${late?'<span class="chip pend">متأخرة</span>':`<div style="display:grid;gap:4px;justify-items:end"><span class="chip ${x.excuse?'ok':'abs'}">${x.excuse?'بعذر':'دون عذر'}</span><span class="chip ${x.notified?'ok':'pend'}">${x.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div>`}</div>`;
+  const row=(x,late)=>`<div class="row click" data-abs="${esc(x.k)}"><span class="stripe" style="background:${late?'var(--d3)':'var(--d5)'}"></span><div class="main"><div class="t">${esc(x.name)}${!late&&KIND.get(x.k)==='part'?' <span class="chip pend">غياب حصص فقط</span>':''}</div><div class="s">${esc(x.grade)}${x.sec?' / '+esc(x.sec):''} · ${esc(x.periods.join('، ')||'—')}${x.by.length?' · رصدتها: '+esc(x.by.join('، ')):''}</div></div>${late?'<span class="chip pend">متأخرة</span>':`<div style="display:grid;gap:4px;justify-items:end"><span class="chip ${x.excuse?'ok':'abs'}">${x.excuse?'بعذر':'دون عذر'}</span><span class="chip ${x.notified?'ok':'pend'}">${x.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div>`}</div>`;
   $('#supAbsList').innerHTML=absentK.length?absentK.map(k=>row(info(k),false)).join(''):'<div class="empty">لا توجد غائبات مرصودات في هذا اليوم.</div>';
   $('#supLateList').innerHTML=lateK.length?lateK.map(k=>row(info(k),true)).join(''):'<div class="empty">لا توجد متأخرات.</div>';
   const need=absStudents().filter(a=>a.st.pending.length);
@@ -1762,7 +1775,7 @@ function renderSup(){
   $('#supViolList').innerHTML=vd.length?vd.map(r=>recRow(r)).join(''):'<div class="empty">لا توجد مخالفات في هذا اليوم.</div>';
   const nn=behRecs().filter(r=>!isExc(r)&&!r.notified).sort(sortRec);
   $('#supNotifList').innerHTML=nn.length?nn.slice(0,15).map(r=>recRow(r)).join('')+(nn.length>15?`<div class="empty">و${nn.length-15} أخرى</div>`:''):'<div class="empty">كل المخالفات أُشعر أولياء أمورها.</div>';
-  $('#sAbs').textContent=absentK.length;$('#sLate').textContent=lateK.length;$('#sNeed').textContent=need.length;$('#sViol').textContent=vd.length;
+  $('#sAbs').textContent=absentK.filter(k=>KIND.get(k)==='abs').length;$('#sLate').textContent=lateK.length;$('#sNeed').textContent=need.length;$('#sViol').textContent=vd.length;
   renderUzrPanel();
 }
 $('#supDate').addEventListener('change',e=>{$('#supHijri').textContent=hijri(e.target.value);renderSup();});
@@ -1880,6 +1893,8 @@ function openAbs(k,refresh){
       ${pend&&canSup?`<h2>إجراءات مطلوبة</h2>${pend}`:''}${done?`<p style="margin-top:10px">${done}</p>`:''}
       <h2>أيام الغياب</h2>
       <div class="panel">${a.days.length?a.days.map(d=>`<div class="row" style="align-items:flex-start"><span class="stripe" style="background:${d.excuse?'var(--ok)':'var(--d5)'}"></span><div class="main"><div class="t">${hijri(d.date)}</div><div class="s">${esc(d.periods.join('، ')||'—')}${d.by.length?' · '+esc(d.by.join('، ')):''}</div>${canSup&&canWrite?`<select data-excuse="${d.date}" style="margin-top:6px;font-size:14px;padding:7px 10px">${excOpts(d)}</select>`:`<div class="s">${d.excuse?'بعذر: '+esc(d.excuse):'دون عذر'}</div>`}</div><span class="chip ${d.notified?'ok':'pend'}">${d.notified?'أُشعر':'لم يُشعر'}</span></div>`).join(''):'<div class="empty">لا توجد أيام غياب مرصودة.</div>'}</div>
+      ${a.lateList&&a.lateList.length?`<h2>أيام التأخر</h2><div class="panel">${a.lateList.map(d=>`<div class="row"><span class="stripe" style="background:var(--d3)"></span><div class="main"><div class="t">${hijri(d)}</div><div class="s">تأخر · حضرت بعد بداية اليوم</div></div></div>`).join('')}</div>`:''}
+      ${a.partial&&a.partial.length?`<h2>غياب عن حصص (حضرت اليوم)</h2><div class="panel">${a.partial.map(d=>`<div class="row"><span class="stripe" style="background:var(--d4,#b4532a)"></span><div class="main"><div class="t">${hijri(d.date)}</div><div class="s">${esc(d.periods.join('، '))}${d.by.length?' · '+esc(d.by.join('، ')):''} · لا يُحسب يوم غياب</div></div></div>`).join('')}</div>`:''}
       <p class="note">مهلة تقديم العذر 3 أيام عمل بعد الغياب، ويُقبل حتى 10 أيام عند وجود مبرر (المادة 31).</p>`;
   }
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>${esc(name)}</h3><div class="hint">${esc(grade)}${sec?' / فصل '+esc(sec):''} · المواظبة</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>${body}`;
@@ -2056,7 +2071,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261015080539';
+const APP_VER='20261015081737';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
