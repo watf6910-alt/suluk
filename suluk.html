@@ -360,6 +360,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
       <button class="btn sm ghost" type="button" id="supImpact">القيم: المؤشرات والدعم</button>
+      <button class="btn sm ghost" type="button" id="supSrv">استبانات الأهل</button>
       <button class="btn sm ghost" type="button" id="supBeh">لوحة السلوك</button>
       <button class="btn sm ghost" type="button" id="supLock">قفل</button>
     </div>
@@ -660,6 +661,8 @@ async function pull(){
     }
     records=[...m.values()].filter(x=>canSup||x.dev===DEV||(x.kind==='note'&&x.to&&x.to===myName()));roster=[...cm.values()];
     if(Array.isArray(j.excuses)!==!!lsGet('rasd_v2',false))lsSet('rasd_v2',Array.isArray(j.excuses));
+    if(Array.isArray(j.surveys)!==!!lsGet('rasd_v3',false))lsSet('rasd_v3',Array.isArray(j.surveys));
+    if(canSup&&Array.isArray(j.surveys)){surveys=j.surveys;lsSet('rasd_srv',surveys);}
     if(canSup&&Array.isArray(j.excuses)){const pend=new Map(SYNC.queue.filter(o=>o.op==='uzr').map(o=>[o.id,o]));uzrs=j.excuses.map(x=>pend.has(x.id)?{...x,...pend.get(x.id)}:x);lsSet('rasd_uzr',uzrs);}
     const st=ps||j.settings;if(st)settings={...DEF_SET,...st,school:st.school||DEF_SCHOOL};
     SYNC.last=new Date();SYNC.busy=false;cacheAll();fillSettings();renderAll();syncStatus(true);
@@ -702,13 +705,15 @@ function setSaveNote(){
     ?'المنصة مرتبطة بسجل المدرسة في Google Sheets: كل رصد يُرفع تلقائياً ويظهر عند الجميع، وإن انقطع الإنترنت يُحفظ على الجهاز ويُرفع عند عودته.'
     :'البيانات محفوظة في متصفح هذا الجهاز. لجعل رصد كل المعلمات في سجل واحد، اربطي المنصة بجدول Google Sheets من القسم أعلاه.';
 }
-const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets (الإصدار 2: حماية بالرمز + أعذار أولياء الأمور)
+const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets (الإصدار 3: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل)
 // إعداد الموجّهة الطلابية عواطف الحربي
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 const PROPS = PropertiesService.getScriptProperties();
 const REC_H = ['id','النوع','اسم الطالبة','الصف','الفصل','درجة المخالفة','المخالفة / الممارسة','الإجراء','الدرجات','التاريخ','إشعار ولي الأمر','الراصدة','بيانات'];
 const CLS_H = ['id','الصف','الفصل','عدد الطالبات','بيانات'];
 const UZR_H = ['id','تاريخ الإرسال','اسم الطالبة','الصف','الفصل','أيام الغياب','نوع العذر','ملاحظة','ولي الأمر','الجوال','المرفق','الحالة','سبب الرفض','اعتمدته','بيانات'];
+const SRV_H = ['id','تاريخ الإرسال','الاستبانة','القيمة','اللقاء','الصف','ملخص','بيانات'];
+const SRV_N = { needs: 'حصر الاحتياجات', values: 'القيم في المنزل', sat: 'رضا اللقاء' };
 const UZR_ST = { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
 
 function tab(name, head) {
@@ -756,7 +761,8 @@ function doGet(e) {
   const cls = rows(tab('الفصول', CLS_H), 5).map(r => parse(r[4])).filter(Boolean);
   const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
   const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(Boolean);
-  return out({ ok: true, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz });
+  const sv = rows(tab('الاستبانات', SRV_H), 8).map(r => parse(r[7])).filter(Boolean);
+  return out({ ok: true, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
 }
 
 function findRow(s, id) {
@@ -813,9 +819,29 @@ function addExcuse(b) {
   }
 }
 
+function addSurvey(b) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const S = tab('الاستبانات', SRV_H);
+    if (S.getLastRow() > 8000) return out({ ok: false, error: 'full' });
+    const type = String(b.type || '');
+    if (!SRV_N[type]) return out({ ok: false, error: 'data' });
+    const cut = v => typeof v === 'string' ? v.slice(0, 400) : Array.isArray(v) ? v.slice(0, 20).map(cut) : (v && typeof v === 'object') ? Object.fromEntries(Object.keys(v).slice(0, 20).map(k => [String(k).slice(0, 20), cut(v[k])])) : (typeof v === 'number' ? v : '');
+    const a = cut(b.a || {});
+    const x = { id: 's' + Date.now() + Math.floor(Math.random() * 1000), at: new Date().toISOString(), type: type, value: String(b.value || '').slice(0, 20), prog: String(b.prog || '').slice(0, 60), progTitle: String(b.progTitle || '').slice(0, 120), a: a };
+    const sum = type === 'needs' ? [(a.areas || []).join('، '), (a.topics || []).join('، '), a.skills || ''].filter(String).join(' | ') : type === 'values' ? Object.keys(a.r || {}).map(k => k + ':' + a.r[k]).join(' ') + (a.joined ? ' | شاركت: ' + a.joined : '') : 'الفائدة ' + (a.use || '') + ' | يطبقون: ' + (a.apply || '');
+    S.appendRow([x.id, new Date(), SRV_N[type], x.value, x.progTitle, a.stage || '', sum, JSON.stringify(x)]);
+    return out({ ok: true });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
   if (body.op === 'excuse') return addExcuse(body);
+  if (body.op === 'survey') return addSurvey(body);
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
@@ -2102,7 +2128,7 @@ function progCard(p,print){
    ${I.g?'':`<p class="hint">للمقارنة بين من حضر أولياؤهن وغيرهن، أضيفي أسماء الطالبات عند تسجيل اللقاء.</p>`}`;
   if(print)return `<h4>${esc(p.title||p.ptype)} — ${hijri(p.date)}</h4><p>${esc(p.ptype||'')}${p.count?` · حضور ${+p.count} ولي أمر`:''} · الأثر: ${I.vd.t}</p>${tbl}`;
   return `<div class="row" style="display:block"><div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between"><div class="main">${head}</div><span class="chip" style="color:${I.vd.c};border:1px solid currentColor;background:transparent;white-space:nowrap">${I.vd.s} ${I.vd.t}</span></div>${tbl}
-   ${isAdmin?`<div class="actions" style="margin-top:6px"><button class="btn sm danger" data-pdel="${p.id}">حذف</button></div><div data-confirm="${p.id}"></div>`:''}</div>`;
+   ${(()=>{const S=progSat(p),l=srvOn()?srvLink('sat',{p:p.id,pt:p.title||'',v:valKey(p.value)}):'';return `<div class="s" style="margin-top:6px">رضا الأسر: ${S.n?`الفائدة ${S.pct}٪ · سيطبّقون ${S.apply}٪ (${S.n} إجابة)`:'لا توجد إجابات بعد'}</div><div class="actions" style="margin-top:6px">${l?`<button class="btn sm ghost" type="button" data-srvcopy="${esc(l)}">رابط استبانة الرضا</button>`:''}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`;})()}</div>`;
 }
 /* ---------- مؤشر القيمة + نظام الدعم المتدرج + الخطط العلاجية ----------
    مؤشر القيمة = نسبة الطالبات اللواتي لم تُرصد عليهن مخالفة مرتبطة بالقيمة خلال آخر 30 يوماً.
@@ -2205,7 +2231,7 @@ function openImpact(){
   <div class="tiles" style="margin-top:12px"><div class="tile"><b style="color:${idxColor(avg)}">${avg}٪</b><span>المؤشر العام للقيم</span></div><div class="tile"><b>${t3}</b><span>طالبات في المستوى العلاجي</span></div><div class="tile"><b>${ap}</b><span>خطط جارية</span></div><div class="tile"><b>${progs().length}</b><span>لقاءات وبرامج للأسرة</span></div></div>
   <div class="vgrid">${cards}</div>
   <details class="hint" style="margin-top:10px"><summary>كيف يُحسب المؤشر والمستويات؟</summary><p><b>مؤشر القيمة:</b> نسبة الطالبات اللواتي لم تُرصد عليهن مخالفة مرتبطة بالقيمة خلال آخر 30 يوماً (أخضر 90٪ فأكثر، برتقالي 75٪ فأكثر، أحمر أقل من ذلك).</p>${TIERS.slice(1).map(x=>`<p><b style="color:${x.c}">${x.n}:</b> ${x.d}.</p>`).join('')}</details>
-  <div class="actions"><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>`;
+  <div class="actions"><button class="btn" type="button" id="valSrv">استبانات الأهل (${surveys.length})</button><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>`;
   $('#sheet').hidden=false;$('#sheetCard').scrollTop=0;
 }
 function openImpactVal(k){
@@ -2223,7 +2249,7 @@ function openImpactVal(k){
   const tabs=[['tier','المؤشر'],['plan',`الخطط${pl.filter(p=>p.status==='active').length?' ('+pl.filter(p=>p.status==='active').length+')':''}`],['fam','لقاءات الأسرة']];
   let body='';
   if(tab==='tier'){
-    body=`<div class="split" style="margin-top:12px;gap:12px"><div class="tile"><span>مؤشر القيمة</span>${idxGauge(I,true)}<small class="hint">${I.pop-I.aff} من ${I.pop} طالبة دون مخالفة مرتبطة</small></div><div class="tile star"><b>${I.excP}٪</b><span>نسبة الطالبات صاحبات سلوك متميز مرتبط</span></div></div>
+    body=`<div class="split" style="margin-top:12px;gap:12px"><div class="tile"><span>مؤشر القيمة</span>${idxGauge(I,true)}<small class="hint">${I.pop-I.aff} من ${I.pop} طالبة دون مخالفة مرتبطة</small></div><div class="tile star"><b>${I.excP}٪</b><span>نسبة الطالبات صاحبات سلوك متميز مرتبط</span></div></div>${(()=>{const F=famValue(v.k);return F.n?`<div class="tile" style="margin-top:10px"><b style="color:${idxColor(F.pct)}">${F.pct}٪</b><span>تقييم الأسر للقيمة في المنزل (${F.n} إجابة)</span></div>`:'';})()}
     <div class="tiles" style="margin-top:10px"><div class="tile"><b>${s.viol}</b><span>مخالفات مرتبطة · 30 يوماً</span></div>${v.abs?`<div class="tile"><b>${s.abs}</b><span>أيام غياب دون عذر</span></div>`:''}<div class="tile star"><b>${s.exc}</b><span>سلوك متميز مرتبط</span></div></div>
     <h2>نظام الدعم المتدرج</h2>
     <div class="tierbox" style="--tc:${TIERS[1].c}"><b>${TIERS[1].n} · ${T.t1} طالبة</b><span>${TIERS[1].d}. المشاركة الأسرية: ${v.fam}.</span></div>
@@ -2299,6 +2325,74 @@ document.addEventListener('submit',async e=>{
   }catch(x){btn.disabled=false;writeErr(x);}
 });
 
+/* ---------- استبانات الأهل ----------
+   صفحة istb.html يفتحها ولي الأمر برابط، وتصل الإجابات إلى ورقة «الاستبانات» في قوقل شيت (يتطلب كود الربط الإصدار 3). */
+let surveys=lsGet('rasd_srv',[]);
+const SRV_T={needs:'حصر احتياجات المدرسة من مشاركات أولياء الأمور',values:'القيم في المنزل',sat:'رضا الأسرة عن اللقاء'};
+const srvOn=()=>!hosted&&!!SYNC.url&&!!lsGet('rasd_v3',false);
+function srvLink(t,extra){
+  if(!SYNC.url)return '';
+  try{const u=new URL('istb.html',location.href);u.hash=new URLSearchParams({u:SYNC.url,t,sc:settings.school||DEF_SCHOOL,ph:schoolPhone(),...(extra||{})}).toString();return u.toString();}catch(e){return '';}
+}
+const srvMsg=(t,link,pt)=>t==='needs'?`أولياء أمور طالباتنا الكرام\nالسلام عليكم ورحمة الله وبركاته\n\nحرصًا على شراكتكم في تربية بناتنا، نأمل تعبئة استبانة حصر احتياجات المدرسة من مشاركات أولياء الأمور (دقيقتان):\n${link}\n\nشاكرين تعاونكم\n${settings.school||DEF_SCHOOL}`
+ :t==='values'?`أولياء أمور طالباتنا الكرام\nالسلام عليكم ورحمة الله وبركاته\n\nنأمل مشاركتكم في استبانة «القيم في المنزل» (دون اسم، دقيقتان) لنقيس معًا أثر برامج ترسيخ القيم:\n${link}\n\nشاكرين تعاونكم\n${settings.school||DEF_SCHOOL}`
+ :`شكرًا لحضوركم ${pt?'«'+pt+'»':'لقاءنا'}\nنأمل تقييم اللقاء في دقيقة واحدة:\n${link}\n\n${settings.school||DEF_SCHOOL}`;
+const avgPct=a=>a.length?Math.round((a.reduce((x,y)=>x+y,0)/a.length-1)/3*100):null;
+const srvOf=t=>surveys.filter(x=>x&&x.type===t);
+function countBars(title,arr,total){
+  const m=new Map();arr.forEach(x=>m.set(x,(m.get(x)||0)+1));const L=[...m.entries()].sort((a,b)=>b[1]-a[1]);
+  if(!L.length)return '';
+  return `<h4 style="margin:14px 0 6px">${title}</h4><div class="bars">${L.map(([k,n])=>`<div class="bar"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${total?n/total*100:0}%;background:var(--accent)"></div></div><span class="n">${n}</span></div>`).join('')}</div>`;
+}
+/* متوسط تقييم الأسر لقيمة (٪) — من استبانة القيم في المنزل */
+function famValue(k,list){const a=(list||srvOf('values')).map(x=>x.a&&x.a.r&&+x.a.r[k]).filter(Boolean);return {pct:avgPct(a),n:a.length};}
+function progSat(p){const L=srvOf('sat').filter(x=>x.prog===p.id);const u=L.map(x=>+x.a.use).filter(Boolean);return {n:L.length,pct:avgPct(u),apply:L.length?Math.round(100*L.filter(x=>x.a.apply==='نعم').length/L.length):0};}
+const SRVTAB={t:'needs'};
+function openSurveys(){
+  openKey=null;imp.open=false;absOpen=null;
+  const t=SRVTAB.t,L=srvOf(t),link=srvOn()?srvLink(t):'';
+  let res='';
+  if(t==='needs'){const A=L.map(x=>x.a||{});
+    res=countBars('مجالات المشاركة المفضلة',A.flatMap(a=>a.areas||[]),L.length)+countBars('أوقات المشاركة المناسبة',A.flatMap(a=>a.times||[]),L.length)+countBars('موضوعات اللقاءات المطلوبة',A.flatMap(a=>a.topics||[]),L.length)+countBars('الصف',A.map(a=>a.stage).filter(Boolean),L.length)
+    +(A.some(a=>a.skills)?`<h4 style="margin:14px 0 6px">المهارات والخبرات الممكن تقديمها</h4><div class="panel">${A.filter(a=>a.skills).map(a=>`<div class="row"><div class="main"><div class="s">${esc(a.skills)}</div></div></div>`).join('')}</div>`:'')
+    +(A.some(a=>a.sug)?`<h4 style="margin:14px 0 6px">مقترحات أخرى</h4><div class="panel">${A.filter(a=>a.sug).map(a=>`<div class="row"><div class="main"><div class="s">${esc(a.sug)}</div></div></div>`).join('')}</div>`:'');
+  }else if(t==='values'){
+    const J=L.filter(x=>x.a&&x.a.joined==='نعم'),N=L.filter(x=>x.a&&x.a.joined==='لا');
+    res=`<table class="imptbl"><thead><tr><th>القيمة</th><th>كل الأسر</th><th>شاركت في لقاء (${J.length})</th><th>لم تشارك (${N.length})</th></tr></thead><tbody>${VALUES.map(v=>{const a=famValue(v.k,L),j=famValue(v.k,J),n=famValue(v.k,N);const f=x=>x.pct==null?'—':`<b style="color:${idxColor(x.pct)}">${x.pct}٪</b>`;return `<tr><td>${v.n}</td><td>${f(a)}</td><td>${f(j)}</td><td>${f(n)}</td></tr>`;}).join('')}</tbody></table>
+    <p class="hint">النسبة = متوسط إجابات الأسر محوّلًا من (نادرًا … دائمًا) إلى 0–100٪. الفرق بين الأسر المشاركة وغير المشاركة مؤشر على أثر اللقاءات، وليس دليلًا قاطعًا عليه.</p>
+    ${L.some(x=>x.a&&x.a.sug)?`<h4 style="margin:14px 0 6px">ملاحظات الأسر</h4><div class="panel">${L.filter(x=>x.a&&x.a.sug).map(x=>`<div class="row"><div class="main"><div class="s">${esc(x.a.sug)}</div></div></div>`).join('')}</div>`:''}`;
+  }else{
+    const ps=progs();
+    res=ps.length?`<div class="panel">${ps.map(p=>{const S=progSat(p),v=VALUES.find(x=>x.k===valKey(p.value));const l=srvOn()?srvLink('sat',{p:p.id,pt:p.title||'',v:valKey(p.value)}):'';
+      return `<div class="row" style="display:block"><div class="t">${esc(p.title||p.ptype)}</div><div class="s">${v?v.n+' · ':''}${hijri(p.date)} · ${S.n?`${S.n} إجابة · الفائدة ${S.pct}٪ · سيطبّقون ${S.apply}٪`:'لا توجد إجابات بعد'}</div>
+      ${l?`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-srvcopy="${esc(l)}">نسخ رابط استبانة الرضا</button><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(srvMsg('sat',l,p.title))}">واتساب</a></div>`:''}</div>`;}).join('')}</div>`
+      :'<div class="empty"><b>لا توجد لقاءات مسجلة</b>سجّلي لقاء الأسرة من صفحة القيمة، وسيظهر هنا رابط استبانة الرضا الخاص به.</div>';
+  }
+  const share=t==='sat'?'':srvOn()?`<div class="panel" style="padding:12px;margin-top:12px"><div class="s">أرسلي الرابط لأولياء الأمور في مجموعات الفصول، وتصل الإجابات هنا تلقائيًا.</div><div class="actions"><button class="btn sm" type="button" data-srvcopy="${esc(link)}">نسخ الرابط</button><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(srvMsg(t,link))}">إرسال واتساب</a><a class="btn sm ghost" target="_blank" rel="noopener" href="${esc(link)}">معاينة</a></div></div>`:'';
+  const warn=srvOn()?'':`<div class="row" style="display:block;border:1px solid var(--d2);border-radius:var(--r);margin-top:12px"><div class="t">الاستبانات تحتاج تحديث كود الربط</div><div class="s">${hosted||!SYNC.url?'اربطي المنصة بقوقل شيت أولاً من الإعدادات.':'من الإعدادات انسخي «كود الربط» الجديد (الإصدار 3) والصقيه مكان القديم في Apps Script، ثم «نشر ← إدارة عمليات النشر ← تعديل ← إصدار جديد». بعدها تظهر الروابط هنا.'}</div></div>`;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>استبانات الأهل</h3><div class="hint">مبادرة إشراك أولياء الأمور · تصل الإجابات إلى المنصة تلقائيًا</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="vtabs">${[['needs','الاحتياجات'],['values','القيم بالمنزل'],['sat','الرضا']].map(([k,l])=>`<button type="button" data-srvtab="${k}" aria-current="${k===t}">${l} (${srvOf(k).length})</button>`).join('')}</div>
+  ${warn}<h2 style="margin-top:14px">${SRV_T[t]}</h2>${share}
+  ${t==='sat'?'':`<p class="hint">${L.length} إجابة</p>`}${L.length||t==='sat'?res:'<div class="empty"><b>لا توجد إجابات بعد</b>أرسلي الرابط لأولياء الأمور.</div>'}
+  <div class="actions">${surveys.length?'<button class="btn ghost" type="button" id="srvXls">تنزيل الإجابات Excel</button>':''}<button class="btn ghost" type="button" id="srvBackV">القيم والمؤشرات</button></div>`;
+  $('#sheet').hidden=false;
+}
+document.addEventListener('click',async e=>{
+  const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t)return;
+  if(t.id==='supSrv'||t.id==='valSrv'){openSurveys();$('#sheetCard').scrollTop=0;return;}
+  if(t.dataset.srvtab){SRVTAB.t=t.dataset.srvtab;openSurveys();return;}
+  if(t.dataset.srvcopy){copyText(t.dataset.srvcopy,'نُسخ الرابط، أرسليه لأولياء الأمور');return;}
+  if(t.id==='srvBackV'){openImpact();return;}
+  if(t.id==='srvXls'){
+    const VN=Object.fromEntries(VALUES.map(v=>[v.k,v.n])),dt=x=>String(x.at||'').slice(0,10);
+    const sh=[
+     {name:'حصر الاحتياجات',rows:srvOf('needs').map((x,i)=>({'م':i+1,'التاريخ':hijri(dt(x)),'الصف':x.a.stage||'','مجالات المشاركة':(x.a.areas||[]).join('، '),'المهارات والخبرات':x.a.skills||'','أوقات المشاركة':(x.a.times||[]).join('، '),'موضوعات اللقاءات':(x.a.topics||[]).join('، '),'مقترحات':x.a.sug||''})),widths:[5,14,14,40,36,30,44,36]},
+     {name:'القيم في المنزل',rows:srvOf('values').map((x,i)=>({'م':i+1,'التاريخ':hijri(dt(x)),'الصف':x.a.stage||'','شاركت في لقاء':x.a.joined||'',...Object.fromEntries(VALUES.map(v=>[v.n,(x.a.r||{})[v.k]||''])),'ملاحظات':x.a.sug||''})),widths:[5,14,14,12,10,10,10,10,10,12,36]},
+     {name:'رضا اللقاءات',rows:srvOf('sat').map((x,i)=>({'م':i+1,'التاريخ':hijri(dt(x)),'اللقاء':x.progTitle||'','القيمة':VN[x.value]||'','الفائدة (1-4)':x.a.use||'','الوضوح (1-4)':x.a.clear||'','سيطبّقون':x.a.apply||'','أكثر ما أفاد':x.a.best||'','مقترحات':x.a.sug||''})),widths:[5,14,30,14,10,10,10,36,36]}
+    ].map(s=>({...s,rows:s.rows.length?s.rows:[{'م':'لا توجد إجابات'}]}));
+    await saveFile('استبانات-الأهل.xlsx',XW.book(sh),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
+  }
+});
 /* ---------- الدعم الفني ---------- */
 const HELP_WA='966501550893';
 function helpLink(){const who=role==='admin'?'الموجّهة':role==='sup'?supTitle():'معلمة';
@@ -2380,7 +2474,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261019095823';
+const APP_VER='20261019100205';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}

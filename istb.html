@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6b60">
+<meta name="robots" content="noindex">
+<title>استبانة أولياء الأمور</title>
+<style>
+:root{--bg:#f3f6f5;--surface:#fff;--line:#d5dfdc;--fg:#17201e;--muted:#5b6a66;--accent:#0d6b60;--accent-ink:#fff;--accent-soft:#dcefeb;--danger:#b3261e;--ok:#1f7a4d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1716;--surface:#16211f;--line:#2a3b38;--fg:#e8efed;--muted:#9fb1ac;--accent:#3fb8a6;--accent-ink:#06201c;--accent-soft:#173a35;--danger:#ff8a80;--ok:#5fcf93;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:600px;margin:0 auto;padding:20px 16px 40px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+h1{font-size:22px;margin:0 0 4px}
+.muted{color:var(--muted);font-size:14px}
+fieldset{border:0;padding:0;margin:18px 0 0}
+legend,label.q{display:block;font-weight:700;margin:0 0 8px;padding:0}
+input[type=text],select,textarea{width:100%;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea{min-height:76px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer;font-weight:500}
+.opt input{width:20px;height:20px;margin:0;flex:none;accent-color:var(--accent)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.scale{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.scale .opt{justify-content:center;flex-direction:column;gap:2px;padding:8px 4px;font-size:14px;text-align:center}
+.vq{padding:12px 0;border-top:1px solid var(--line)}.vq:first-of-type{border-top:0}
+.vq b{display:block}.vq span{display:block;color:var(--muted);font-size:14px;margin-bottom:8px}
+button{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:12px 18px;min-height:48px;width:100%;margin-top:22px;cursor:pointer}
+button:disabled{opacity:.6}
+.err{color:var(--danger);font-weight:600;margin-top:12px}
+.ok{color:var(--ok);font-weight:700;font-size:20px}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+<div class="card" id="box"></div>
+<footer>منصة السلوك والانضباط — إعداد عواطف الوسيدي · جميع الحقوق محفوظة ©</footer>
+</main>
+<script>
+(function(){
+  const q=new URLSearchParams(location.hash.slice(1));
+  const P={u:q.get('u')||'',t:q.get('t')||'',sc:q.get('sc')||'',ph:(q.get('ph')||'').replace(/[^0-9+]/g,''),p:q.get('p')||'',pt:q.get('pt')||'',v:q.get('v')||''};
+  const $=s=>document.querySelector(s);
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const box=$('#box');
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!['needs','values','sat'].includes(P.t)){
+    box.innerHTML='<h1>الرابط غير صالح</h1><p class="muted">استخدموا الرابط الذي وصلكم من المدرسة.</p>';return;
+  }
+  const STAGES=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
+  const VALS=[['disc','الانضباط','تلتزم ابنتي بمواعيد النوم والاستيقاظ والحضور إلى المدرسة'],['will','العزيمة','تُكمل ابنتي مهامها وواجباتها رغم الصعوبات'],['hon','الأمانة','تصدق ابنتي في حديثها وتحافظ على ممتلكاتها وممتلكات غيرها'],['tol','التسامح','تحل ابنتي خلافاتها مع إخوتها وغيرهم باحترام'],['coop','التعاون','تساعد ابنتي في أعمال المنزل وتعمل مع الآخرين بروح الفريق'],['nat','الانتماء الوطني','تعتز ابنتي بوطنها وتحافظ على المرافق العامة']];
+  const SC=['نادرًا','أحيانًا','غالبًا','دائمًا'];
+  const chk=(n,arr,type)=>`<div class="opts">${arr.map(x=>`<label class="opt"><input type="${type||'checkbox'}" name="${n}" value="${esc(x)}"> ${esc(x)}</label>`).join('')}</div>`;
+  const scale=n=>`<div class="scale">${SC.map((x,i)=>`<label class="opt"><input type="radio" name="${n}" value="${i+1}"><span>${x}</span></label>`).join('')}</div>`;
+  const stage=`<fieldset><legend>صف ابنتكم</legend>${chk('stage',STAGES,'radio')}</fieldset>`;
+  const T={
+    needs:{title:'استبانة حصر احتياجات المدرسة من مشاركات أولياء الأمور',intro:'نسعد بمشاركتكم في برامج المدرسة وأنشطتها. إجاباتكم تساعدنا على تخطيط لقاءات وأنشطة تناسبكم.',
+      html:stage+`<fieldset><legend>مجالات المشاركة المفضلة</legend>${chk('areas',['الأنشطة اللامنهجية','البرامج الأكاديمية','العمل التطوعي','اللقاءات التوعوية','الأنشطة والمناسبات الوطنية','الإذاعة والفعاليات المدرسية'])}</fieldset>
+      <fieldset><label class="q" for="skills">المهارات والخبرات الممكن تقديمها</label><textarea id="skills" maxlength="400" placeholder="مثل: الطبخ، الخياطة، التقنية، الإسعافات الأولية، تجربة مهنية..."></textarea></fieldset>
+      <fieldset><legend>أوقات المشاركة المناسبة</legend>${chk('times',['صباحًا أثناء الدوام','بعد الظهر','مساءً','عن بُعد (لقاء إلكتروني)'])}</fieldset>
+      <fieldset><legend>موضوعات اللقاءات المطلوبة</legend>${chk('topics',['الانضباط وتنظيم الوقت','العزيمة وتحمل المسؤولية','الأمانة والصدق','التسامح وحل الخلافات','التعاون والعمل التطوعي','الانتماء الوطني','التعامل مع الأجهزة الذكية','المذاكرة والتحصيل الدراسي'])}</fieldset>
+      <fieldset><label class="q" for="sug">مقترحات أخرى</label><textarea id="sug" maxlength="400"></textarea></fieldset>`},
+    values:{title:'استبانة القيم في المنزل',intro:'كيف ترون ابنتكم في المنزل؟ اختاروا ما ينطبق عليها في الشهر الأخير. الاستبانة دون اسم.',
+      html:stage+`<fieldset><legend>السلوك في المنزل</legend>${VALS.map(v=>`<div class="vq"><b>${v[1]}</b><span>${v[2]}</span>${scale('v_'+v[0])}</div>`).join('')}</fieldset>
+      <fieldset><legend>هل شاركتم في لقاء أو برنامج من المدرسة هذا الفصل؟</legend>${chk('joined',['نعم','لا'],'radio')}</fieldset>
+      <fieldset><label class="q" for="sug">ملاحظات تودون إيصالها للمدرسة (اختياري)</label><textarea id="sug" maxlength="400"></textarea></fieldset>`},
+    sat:{title:'استبانة رضا الأسرة عن اللقاء',intro:P.pt?'اللقاء: '+P.pt:'رأيكم يساعدنا على تحسين لقاءاتنا.',
+      html:`<fieldset><legend>إلى أي مدى أفادكم اللقاء؟</legend>${scale('use')}</fieldset>
+      <fieldset><legend>هل كان المحتوى واضحًا؟</legend>${scale('clear')}</fieldset>
+      <fieldset><legend>هل ستطبقون ما تعلمتموه في المنزل؟</legend>${chk('apply',['نعم','ربما','لا'],'radio')}</fieldset>
+      <fieldset><label class="q" for="best">أكثر ما أفادكم</label><textarea id="best" maxlength="300"></textarea></fieldset>
+      <fieldset><label class="q" for="sug">مقترحات للقاءات القادمة</label><textarea id="sug" maxlength="300"></textarea></fieldset>`}
+  }[P.t];
+  box.innerHTML=`<h1>${esc(T.title)}</h1><div class="muted">${esc(P.sc)}${P.ph?' · للاستفسار: '+esc(P.ph):''}</div><p class="muted">${esc(T.intro)}</p><form id="f" novalidate>${T.html}<button type="submit" id="send">إرسال</button><div class="err" id="err" role="alert"></div></form>`;
+  const one=n=>{const x=document.querySelector(`input[name="${n}"]:checked`);return x?x.value:'';};
+  const many=n=>[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);
+  const txt=id=>{const x=$('#'+id);return x?x.value.trim():'';};
+  $('#f').addEventListener('submit',async e=>{
+    e.preventDefault();$('#err').textContent='';
+    let a={};
+    if(P.t==='needs'){a={stage:one('stage'),areas:many('areas'),skills:txt('skills'),times:many('times'),topics:many('topics'),sug:txt('sug')};
+      if(!a.areas.length&&!a.topics.length&&!a.skills){$('#err').textContent='اختاروا مجالًا أو موضوعًا واحدًا على الأقل.';return;}}
+    else if(P.t==='values'){a={stage:one('stage'),r:{},joined:one('joined'),sug:txt('sug')};let n=0;VALS.forEach(v=>{const x=one('v_'+v[0]);if(x){a.r[v[0]]=+x;n++;}});
+      if(n<VALS.length){$('#err').textContent='أجيبوا عن القيم الست كلها، من فضلكم.';return;}}
+    else{a={use:+one('use')||0,clear:+one('clear')||0,apply:one('apply'),best:txt('best'),sug:txt('sug')};
+      if(!a.use){$('#err').textContent='اختاروا مدى الفائدة من اللقاء.';return;}}
+    const b=$('#send');b.disabled=true;b.textContent='جارٍ الإرسال…';
+    try{
+      const r=await fetch(P.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'survey',type:P.t,prog:P.p,progTitle:P.pt,value:P.v,a})});
+      const j=await r.json();if(!j.ok)throw new Error(j.error||'x');
+      try{localStorage.setItem('istb_'+P.t+(P.p||''),'1');}catch(x){}
+      box.innerHTML='<p class="ok">✓ شكرًا لكم</p><p>وصلت إجابتكم إلى المدرسة. مشاركتكم تصنع الفرق في تربية بناتنا.</p>';
+    }catch(x){$('#err').textContent='تعذّر الإرسال، تأكدوا من الاتصال بالإنترنت وحاولوا مرة أخرى.';b.disabled=false;b.textContent='إرسال';}
+  });
+})();
+</script>
+</body>
+</html>
