@@ -188,6 +188,11 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   #printArea .foot{margin-top:30px;font-size:11px;color:#444;text-align:center}
 }
 @media (prefers-reduced-motion:no-preference){.sheet .card{animation:up .2s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+.vidx{display:grid;gap:3px;margin:4px 0}.vidx b{color:var(--ic)}.vidx small{font-size:12px;color:var(--muted)}
+.vbar{height:7px;border-radius:9px;background:var(--sunk);overflow:hidden}.vbar i{display:block;height:100%;background:var(--ic,var(--accent));border-radius:9px}
+.vtabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}.vtabs button{flex:1;white-space:nowrap;font:inherit;font-size:14px;font-weight:600;padding:9px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}.vtabs button[aria-current="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tierbox{display:grid;gap:2px;border-inline-start:5px solid var(--tc);background:var(--surface);border-radius:var(--r);padding:10px 12px;margin:12px 0 6px}.tierbox span{color:var(--muted);font-size:13px}
+.psteps{display:grid;gap:6px;margin-top:6px}.psteps label{display:flex;gap:8px;align-items:flex-start;font-size:14px;font-weight:400}.psteps input{width:20px;height:20px;min-height:0;flex:none;margin-top:2px}
 .vgrid{display:grid;gap:10px;margin-top:12px}
 .vcard{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;font:inherit;color:var(--fg);cursor:pointer}
 .vcard:hover{border-color:var(--accent)}
@@ -354,7 +359,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm ghost" type="button" id="supWait">الانتظار</button>
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
-      <button class="btn sm ghost" type="button" id="supImpact">قياس الأثر للقيم</button>
+      <button class="btn sm ghost" type="button" id="supImpact">القيم: المؤشرات والدعم</button>
       <button class="btn sm ghost" type="button" id="supBeh">لوحة السلوك</button>
       <button class="btn sm ghost" type="button" id="supLock">قفل</button>
     </div>
@@ -766,6 +771,7 @@ function recRow(x) {
   if (x.kind === 'abs') return [x.id, x.status === 'late' ? 'تأخر' : 'غياب', x.name || '', x.grade || '', x.section || '', '', x.excuse || (x.status === 'late' ? '' : 'دون عذر'), x.period || '', '', x.date || '', x.notified ? 'نعم' : 'لا', x.by || '', JSON.stringify(x)];
   if (x.kind === 'sess') return [x.id, 'تسجيل حضور', '', x.grade || '', x.section || '', '', '', x.period || '', '', x.date || '', '', x.teacher || x.by || '', JSON.stringify(x)];
   if (x.kind === 'note') return [x.id, x.type === 'thanks' ? 'شكر لمعلمة' : 'توجيه لمعلمة', x.to || '', x.grade || '', x.section || '', '', x.text || '', x.period || '', '', x.date || '', '', x.by || '', JSON.stringify(x)];
+  if (x.kind === 'plan') return [x.id, 'خطة علاجية', x.name || '', x.grade || '', x.section || '', x.tier || '', x.goal || '', x.status || '', '', x.start || x.date || '', '', x.by || '', JSON.stringify(x)];
   if (x.kind === 'prog') return [x.id, 'لقاء أو برنامج للأسرة', '', '', '', '', x.title || '', x.ptype || '', x.count || '', x.date || '', '', x.by || '', JSON.stringify(x)];
   if (x.kind === 'absact') return [x.id, 'إجراء غياب', x.name || '', x.grade || '', x.section || '', '', x.stage || '', '', '', x.date || '', '', x.by || '', JSON.stringify(x)];
   const exc = x.kind === 'exc' || x.kind === 'comp';
@@ -890,7 +896,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -1006,7 +1012,7 @@ function openStudent(k,refresh){
       <div class="tile star"><b>+${s.excPts}</b><span>السلوك المتميز</span></div></div>
       ${canWrite?`<div class="actions"><button class="btn sm" id="addFor">رصد مخالفة لها</button><button class="btn sm starbtn" id="addExc">رصد سلوك متميز لها</button>${hosted?'':'<button class="btn sm ghost" id="printR">طباعة تقرير الطالبة</button>'}</div>`:(hosted?'':'<div class="actions"><button class="btn sm ghost" id="printR">طباعة تقرير الطالبة</button></div>')}
       ${(()=>{const a=attStats(s.key);return `<div class="row click" style="border:1px solid var(--line);border-radius:var(--r);margin-top:12px" data-abs="${esc(s.key)}"><span class="stripe" style="background:var(--d5)"></span><div class="main"><div class="t">المواظبة: ${a.score} من 100</div><div class="s">أيام الغياب: ${a.unexc} دون عذر · ${a.exc} بعذر</div></div><span class="chip ghost">عرض الغياب</span></div>`;})()}
-      <h2>السجل</h2><div class="panel">${s.recs.map(r=>recRow(r,false)).join('')}</div>`;
+      ${(()=>{try{return studValBox(s);}catch(e){return ''}})()}<h2>السجل</h2><div class="panel">${s.recs.map(r=>recRow(r,false)).join('')}</div>`;
   }
   c.innerHTML=`<div class="head"><div><h3>${esc(s.name)}</h3><div class="hint">${esc(s.grade)}${s.sec?' / فصل '+esc(s.sec):''}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>${body}`;
   $('#sheet').hidden=false;
@@ -1336,7 +1342,7 @@ async function exportExcel(){
   const v=behRecs().filter(r=>!isExc(r));
   const byV=new Map();v.forEach(r=>{const k=DEGNAMES[D(r.degree)]+'|'+r.violation;byV.set(k,(byV.get(k)||0)+1);});
   const stats=[...byV.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>{const[d,t]=k.split('|');return {'الدرجة':d,'المخالفة':t,'عدد مرات الرصد':n};});
-  const teachers=new Map();records.forEach(r=>{if(r.kind==='absact'||r.kind==='sess'||r.kind==='prog')return;const k=r.by||'غير محدد';const o=teachers.get(k)||{v:0,x:0,a:0};isExc(r)?o.x++:r.kind==='abs'?o.a++:o.v++;teachers.set(k,o);});
+  const teachers=new Map();records.forEach(r=>{if(r.kind==='absact'||r.kind==='sess'||r.kind==='prog'||r.kind==='plan')return;const k=r.by||'غير محدد';const o=teachers.get(k)||{v:0,x:0,a:0};isExc(r)?o.x++:r.kind==='abs'?o.a++:o.v++;teachers.set(k,o);});
   const tRows=[...teachers.entries()].map(([k,o])=>({'الراصدة':k,'المخالفات':o.v,'السلوك المتميز':o.x,'رصد الغياب والتأخر':o.a}));
   const att=absStudents().map((a,i)=>({'م':i+1,'اسم الطالبة':a.name,'الصف':a.grade,'الفصل':a.sec||'','أيام دون عذر':a.st.unexc,'أيام بعذر':a.st.exc,'مرات التأخر':a.st.late,'أطول غياب متصل':a.st.maxRun,'درجة المواظبة (من 100)':a.st.score,'نسبة الغياب دون عذر %':a.st.pct,'إجراءات لم تُنفذ':a.st.pending.map(k=>ABS_STAGES[k].label).join('، ')}));
   const absLog=[];absStudents().forEach(a=>a.st.days.forEach(d=>absLog.push({'اسم الطالبة':a.name,'الصف':a.grade,'الفصل':a.sec||'','التاريخ الهجري':hijri(d.date),'التاريخ الميلادي':d.date,'الحصص':d.periods.join('، '),'العذر':d.excuse||'دون عذر','إشعار ولي الأمر':d.notified?'نعم':'لا','الراصدات':d.by.join('، ')})));
@@ -2042,7 +2048,7 @@ const valKey=k=>VOLD[k]||k;
 const PTYPES=['لقاء أسري حضوري','لقاء أسري عن بُعد','برنامج توعوي للأسر','ورشة عمل لأولياء الأمور','رسالة توعوية للأسر','نشاط مشترك مع الأسر'];
 const IMP_ICON='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/><path d="M4 21h16"/></svg>';
 const valIcon=(v,sz=26)=>`<span class="vic" style="--vc:${v.c};width:${sz+16}px;height:${sz+16}px"><svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${v.ic}</svg></span>`;
-const vimp={val:'',win:30,form:false};
+const vimp={val:'',win:30,form:false,tab:'tier',pf:null};
 const isProg=r=>r.kind==='prog';
 const progs=k=>records.filter(r=>isProg(r)&&(!k||valKey(r.value)===k)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 const hits=(t,list)=>!!t&&list.some(w=>t.includes(w));
@@ -2098,22 +2104,114 @@ function progCard(p,print){
   return `<div class="row" style="display:block"><div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between"><div class="main">${head}</div><span class="chip" style="color:${I.vd.c};border:1px solid currentColor;background:transparent;white-space:nowrap">${I.vd.s} ${I.vd.t}</span></div>${tbl}
    ${isAdmin?`<div class="actions" style="margin-top:6px"><button class="btn sm danger" data-pdel="${p.id}">حذف</button></div><div data-confirm="${p.id}"></div>`:''}</div>`;
 }
+/* ---------- مؤشر القيمة + نظام الدعم المتدرج + الخطط العلاجية ----------
+   مؤشر القيمة = نسبة الطالبات اللواتي لم تُرصد عليهن مخالفة مرتبطة بالقيمة خلال آخر 30 يوماً.
+   المستويات (آخر 60 يوماً): الأول وقائي لكل الطالبات (برامج الأسرة)، الثاني داعم (مخالفة أو اثنتان من الدرجة 1-2)،
+   الثالث علاجي (3 مخالفات فأكثر، أو مخالفة من الدرجة الثالثة فأعلى) ويُقترح له خطة علاجية. */
+const TIER_DAYS=60;
+const TIERS=[null,
+ {n:'المستوى الأول — وقائي',s:'وقائي',c:'var(--ok)',d:'كل الطالبات: لقاءات الأسرة وبرامج تعزيز القيمة'},
+ {n:'المستوى الثاني — داعم',s:'داعم',c:'var(--d2)',d:'مخالفة أو اثنتان من الدرجة الأولى أو الثانية خلال 60 يوماً'},
+ {n:'المستوى الثالث — علاجي',s:'علاجي',c:'var(--d5)',d:'3 مخالفات فأكثر أو مخالفة من الدرجة الثالثة فأعلى خلال 60 يوماً'}];
+const isPlan=r=>r.kind==='plan';
+const plansOf=(k,name)=>records.filter(r=>isPlan(r)&&valKey(r.value)===k&&(!name||norm(r.name)===name)).sort((a,b)=>(b.start||'').localeCompare(a.start||''));
+function popCount(){const n=new Set();for(const c of allRoster())for(const x of (c.names||[]))n.add(norm(x));for(const s of students())n.add(s.name);return n.size;}
+/* معلومات كل طالبة في قيمة واحدة خلال فترة */
+function valPeople(v,from,to){
+  const m=new Map();const get=r=>{const k=norm(r.name);if(!m.has(k))m.set(k,{name:k,grade:r.grade||'',sec:r.section||'',n:0,md:0,ad:new Set(),x:0});const o=m.get(k);if(r.section)o.sec=r.section;return o;};
+  for(const r of records){
+    if(!r.date||r.date<from||r.date>to||!r.name)continue;
+    if(r.kind==='abs'){if(v.abs&&r.status!=='late'&&!r.excuse)get(r).ad.add(r.date);continue;}
+    if(isAbsKind(r))continue;
+    if(!recVals(r).includes(v.k))continue;
+    const o=get(r);if(isExc(r))o.x++;else{o.n++;o.md=Math.max(o.md,D(r.degree));}
+  }
+  for(const o of m.values()){o.ad=o.ad.size;o.tier=(o.n>=3||o.md>=3||o.ad>=5)?3:(o.n>=1||o.ad>=3)?2:1;}
+  return m;
+}
+function valIndex(v,end){
+  const t=end||today(),pop=Math.max(1,popCount());
+  const cur=valPeople(v,addD(t,-29),t),prev=valPeople(v,addD(t,-59),addD(t,-30));
+  const aff=m=>[...m.values()].filter(o=>o.n||o.ad>=3).length,exc=m=>[...m.values()].filter(o=>o.x).length;
+  const idx=Math.round(100*(pop-aff(cur))/pop),pidx=Math.round(100*(pop-aff(prev))/pop);
+  return {pop,idx,pidx,delta:idx-pidx,aff:aff(cur),excP:Math.round(100*exc(cur)/pop)};
+}
+function valTiers(v){
+  const t=today(),m=valPeople(v,addD(t,-(TIER_DAYS-1)),t),list=[...m.values()];
+  const t3=list.filter(o=>o.tier===3).sort((a,b)=>b.n-a.n),t2=list.filter(o=>o.tier===2).sort((a,b)=>b.n-a.n);
+  const pop=popCount();return {pop,t1:Math.max(0,pop-t2.length-t3.length),t2,t3};
+}
+const idxColor=i=>i>=90?'var(--ok)':i>=75?'var(--warn-ink)':'var(--d5)';
+function idxGauge(I,big){
+  return `<div class="vidx" style="--ic:${idxColor(I.idx)}"><b style="font-size:${big?28:20}px">${I.idx}٪</b><div class="vbar"><i style="width:${I.idx}%"></i></div><small>${I.delta>0?'▲ +'+I.delta:I.delta<0?'▼ '+I.delta:'= 0'} عن الشهر السابق</small></div>`;
+}
+function planSteps(v,tier){
+  return tier>=3?['دراسة حالة الطالبة وتحديد أسباب السلوك',`عقد سلوكي مكتوب مع الطالبة هدفه: ${v.obs}`,`اجتماع مع ولي الأمر وتفعيل المشاركة الأسرية: ${v.fam}`,'جلسات إرشادية أسبوعية (فردية أو جماعية)',`تكليف الطالبة بمهمة تعزز قيمة ${v.n}`,'متابعة يومية من المعلمات وتوثيق الملاحظات','تقييم بعد أربعة أسابيع، والإحالة إلى لجنة التوجيه عند عدم التحسن']
+   :[`جلسة توجيه فردي للطالبة حول قيمة ${v.n}`,`تواصل مع ولي الأمر والاتفاق على: ${v.fam}`,`تعزيز السلوك الإيجابي فور ظهوره: ${v.obs}`,'متابعة لمدة أسبوعين ثم تقييم'];
+}
+function planImpact(p){
+  const v=VALUES.find(x=>x.k===valKey(p.value));if(!v||!p.start)return null;
+  const passed=Math.round((new Date(today()+'T12:00:00')-new Date(p.start+'T12:00:00'))/864e5),len=Math.max(0,Math.min(28,passed));
+  if(len<7)return {early:true,len};
+  const g=new Set([norm(p.name)]);
+  const b=valStats(v,addD(p.start,-len),addD(p.start,-1),g,true),a=valStats(v,addD(p.start,1),addD(p.start,len),g,true);
+  return {len,b,a,vd:verdict(b,a)};
+}
+const PST={active:'جارية',done:'مكتملة — تحسّنت',ref:'مكتملة — أُحيلت للجنة التوجيه'};
+function planCard(p,print){
+  const st=p.steps||[],dn=st.filter(x=>x.d).length,I=planImpact(p),T=TIERS[p.tier||3];
+  const late=p.status==='active'&&p.review&&p.review<today();
+  const imp=!I?'':I.early?`مضى ${I.len} ${I.len===1?'يوم':'أيام'} على بدء الخطة`:`مخالفات القيمة: ${I.b.neg} قبل الخطة ← ${I.a.neg} بعدها (${I.len} يوماً) · <b style="color:${I.vd.c}">${I.vd.t}</b>`;
+  if(print)return `<tr><td>${esc(p.name)}</td><td>${esc(p.grade||'')}${p.section?' / '+esc(p.section):''}</td><td>${T.s}</td><td>${hijri(p.start)}</td><td>${dn}/${st.length}</td><td>${PST[p.status]||''}</td><td>${I&&!I.early?I.b.neg+' ← '+I.a.neg+' ('+I.vd.t+')':'—'}</td></tr>`;
+  return `<div class="row" style="display:block"><div style="display:flex;gap:8px;justify-content:space-between;align-items:flex-start"><div class="main"><div class="t">${esc(p.name)}</div><div class="s">${esc(p.grade||'')}${p.section?' / '+esc(p.section):''} · بدأت ${hijri(p.start)}${p.review?` · المراجعة ${hijri(p.review)}`:''}</div><div class="s"><b>الهدف:</b> ${esc(p.goal||'')}</div></div>
+   <span class="chip" style="color:${T.c};border:1px solid currentColor;background:transparent;white-space:nowrap">${T.s}</span></div>
+   ${late?'<div class="s" style="color:var(--d5);font-weight:700;margin-top:4px">حان موعد مراجعة الخطة</div>':''}
+   <div class="vbar" style="--ic:var(--accent);margin:8px 0 4px"><i style="width:${st.length?dn/st.length*100:0}%"></i></div><div class="s">${dn} من ${st.length} خطوات · ${PST[p.status]||''}</div>
+   <div class="psteps">${st.map((x,i)=>`<label><input type="checkbox" data-pstep="${p.id}|${i}" ${x.d?'checked':''} ${canWrite&&p.status==='active'?'':'disabled'}> <span>${esc(x.t)}</span></label>`).join('')}</div>
+   ${imp?`<div class="s" style="margin-top:6px">${imp}</div>`:''}${p.note?`<div class="s">${esc(p.note)}</div>`:''}
+   ${canWrite?`<div class="actions" style="margin-top:6px">${p.status==='active'?`<button class="btn sm" data-pend="${p.id}|done">إنهاء: تحسّنت</button><button class="btn sm ghost" data-pend="${p.id}|ref">إنهاء: إحالة للجنة</button>`:`<button class="btn sm ghost" data-pend="${p.id}|active">إعادة فتح</button>`}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`:''}</div>`;
+}
+function tierRow(o,v){
+  const has=plansOf(v.k,o.name).some(p=>p.status==='active');
+  return `<div class="row" style="align-items:center"><span class="stripe" style="background:${TIERS[o.tier].c}"></span><div class="main"><div class="t">${esc(o.name)}</div><div class="s">${esc(o.grade)}${o.sec?' / '+esc(o.sec):''} · ${o.n} مخالفة مرتبطة${o.md?' · أعلى درجة '+DEGNAMES[o.md]:''}${o.ad?' · '+o.ad+' غياب':''}</div></div>
+  ${has?'<span class="chip ok">خطة جارية</span>':canWrite?`<button class="btn sm ${o.tier===3?'':'ghost'}" type="button" data-pnew="${esc(o.name)}|${o.tier}">${o.tier===3?'خطة علاجية':'خطة دعم'}</button>`:''}</div>`;
+}
+function planForm(v){
+  const f=vimp.pf;if(!f)return '';const t=today();
+  return `<form id="planF" class="panel" style="padding:12px;margin-top:12px" autocomplete="off"><h4 style="margin:0 0 8px">${f.tier>=3?'خطة علاجية':'خطة دعم'} — ${esc(f.name)} · ${v.n}</h4>
+  <label for="plGoal">الهدف السلوكي</label><input id="plGoal" value="${esc(v.obs)}">
+  <label for="plSteps">الخطوات (خطوة في كل سطر، عدّليها حسب الحالة)</label><textarea id="plSteps" rows="${f.tier>=3?8:5}">${esc(planSteps(v,f.tier).join('\n'))}</textarea>
+  <div class="split"><div><label for="plStart">تاريخ البدء</label><input id="plStart" type="date" value="${t}" max="${t}"></div><div><label for="plReview">موعد المراجعة</label><input id="plReview" type="date" value="${addD(t,f.tier>=3?28:14)}"></div></div>
+  <label for="plNote">ملاحظات</label><input id="plNote" placeholder="مثل: اتُّفق مع الأم على متابعة يومية">
+  <div class="actions"><button class="btn" type="submit" id="plSave">حفظ الخطة</button><button class="btn ghost" type="button" id="plCancel">إلغاء</button></div></form>`;
+}
+/* لوحة القيم في ملف الطالبة */
+function studValBox(s){
+  const t=today(),rows=[];
+  for(const v of VALUES){const o=valPeople(v,addD(t,-(TIER_DAYS-1)),t).get(s.name);const ap=plansOf(v.k,s.name).filter(p=>p.status==='active');
+    if((o&&o.tier>1)||ap.length)rows.push(`<button type="button" class="row click" style="width:100%;font:inherit;text-align:start;background:none;border:0;border-bottom:1px solid var(--line)" data-val="${v.k}" data-vtab="tier"><span class="stripe" style="background:${TIERS[o?o.tier:1].c}"></span><span class="main"><span class="t" style="display:block">${v.n}: ${TIERS[o?o.tier:1].s}</span><span class="s" style="display:block">${o?o.n+' مخالفة مرتبطة':''}${ap.length?' · خطة جارية':''}</span></span></button>`);}
+  return rows.length&&canSup?`<h2>القيم والدعم المتدرج</h2><div class="panel">${rows.join('')}</div>`:'';
+}
 function openImpact(){
-  openKey=null;imp.open=false;absOpen=null;vimp.val='';vimp.form=false;
+  openKey=null;imp.open=false;absOpen=null;vimp.val='';vimp.form=false;vimp.pf=null;
   const t=today(),f=addD(t,-29);
-  const cards=VALUES.map(v=>{const s=valStats(v,f,t),ps=progs(v.k),I=ps[0]?progImpact(ps[0]):null;
-    return `<button type="button" class="vcard" data-val="${v.k}">${valIcon(v)}<span class="vt"><b>${v.n}</b><small>آخر 30 يوماً: ${s.viol} مخالفة${v.abs?` · ${s.abs} غياب`:''} · ${s.exc} تميّز</small><small>السلوك الملاحظ: ${v.obs}</small><small>${ps.length?`${ps.length} لقاء/برنامج للأسرة`:'مشاركة الأسرة المقترحة: '+v.fam}</small></span>
-    <span class="vimp" title="قياس الأثر" style="color:${I?I.vd.c:'var(--accent)'}">${IMP_ICON}<small>${I?I.vd.t:'قياس الأثر'}</small></span></button>`;}).join('');
-  $('#sheetCard').innerHTML=`<div class="head"><div><h3>قياس الأثر لكل قيمة</h3><div class="hint">القيم الست لمبادرة إشراك أولياء الأمور · لقاءات الأسرة ومقارنة السلوك قبلها وبعدها</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  const all=VALUES.map(v=>({v,I:valIndex(v),T:valTiers(v)}));
+  const avg=Math.round(all.reduce((a,x)=>a+x.I.idx,0)/all.length);
+  const ap=records.filter(r=>isPlan(r)&&r.status==='active').length,t3=new Set(all.flatMap(x=>x.T.t3.map(o=>o.name))).size;
+  const cards=all.map(({v,I,T})=>{const s=valStats(v,f,t),ps=progs(v.k),P=ps[0]?progImpact(ps[0]):null,pl=plansOf(v.k).filter(p=>p.status==='active').length;
+    return `<button type="button" class="vcard" data-val="${v.k}">${valIcon(v)}<span class="vt"><b>${v.n}</b>${idxGauge(I)}<small>${s.viol} مخالفة${v.abs?` · ${s.abs} غياب`:''} · ${s.exc} تميّز · آخر 30 يوماً</small><small>داعم: ${T.t2.length} · علاجي: ${T.t3.length}${pl?` · ${pl} خطة جارية`:''} · ${ps.length} لقاء أسري</small></span>
+    <span class="vimp" title="قياس الأثر" style="color:${P?P.vd.c:'var(--accent)'}">${IMP_ICON}<small>${P?P.vd.t:'قياس الأثر'}</small></span></button>`;}).join('');
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>القيم: المؤشرات والدعم والأثر</h3><div class="hint">القيم الست لمبادرة إشراك أولياء الأمور · نظام دعم متدرج وخطط علاجية</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="tiles" style="margin-top:12px"><div class="tile"><b style="color:${idxColor(avg)}">${avg}٪</b><span>المؤشر العام للقيم</span></div><div class="tile"><b>${t3}</b><span>طالبات في المستوى العلاجي</span></div><div class="tile"><b>${ap}</b><span>خطط جارية</span></div><div class="tile"><b>${progs().length}</b><span>لقاءات وبرامج للأسرة</span></div></div>
   <div class="vgrid">${cards}</div>
-  <div class="actions"><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>
-  <p class="hint">تُحسب المؤشرات تلقائياً من رصد المخالفات والسلوك المتميز والغياب. اضغطي على أي قيمة لتسجيل لقاء أو برنامج للأسرة وقياس أثره.</p>`;
+  <details class="hint" style="margin-top:10px"><summary>كيف يُحسب المؤشر والمستويات؟</summary><p><b>مؤشر القيمة:</b> نسبة الطالبات اللواتي لم تُرصد عليهن مخالفة مرتبطة بالقيمة خلال آخر 30 يوماً (أخضر 90٪ فأكثر، برتقالي 75٪ فأكثر، أحمر أقل من ذلك).</p>${TIERS.slice(1).map(x=>`<p><b style="color:${x.c}">${x.n}:</b> ${x.d}.</p>`).join('')}</details>
+  <div class="actions"><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>`;
   $('#sheet').hidden=false;$('#sheetCard').scrollTop=0;
 }
 function openImpactVal(k){
   const v=VALUES.find(x=>x.k===k);if(!v)return openImpact();
-  vimp.val=k;imp.open=false;openKey=null;absOpen=null;
-  const t=today(),f=addD(t,-29),s=valStats(v,f,t),ps=progs(k);
+  vimp.val=k;imp.open=false;openKey=null;absOpen=null;const tab=vimp.tab||'tier';
+  const t=today(),f=addD(t,-29),s=valStats(v,f,t),ps=progs(k),I=valIndex(v),T=valTiers(v),pl=plansOf(k);
   const form=vimp.form?`<form id="valF" class="panel" style="padding:12px;margin-top:12px" autocomplete="off"><h4 style="margin:0 0 8px">لقاء أو برنامج جديد للأسرة — ${v.n}</h4>
    <label for="pTitle">العنوان</label><input id="pTitle" required placeholder="مثال: لقاء «قيمنا حياة» مع أمهات الصف الأول">
    <div class="split"><div><label for="pType">النوع</label><select id="pType">${[v.fam,...PTYPES].map(x=>`<option>${x}</option>`).join('')}</select></div>
@@ -2122,26 +2220,63 @@ function openImpactVal(k){
    <label for="pNames">أسماء الطالبات اللواتي حضر أولياء أمورهن (اسم في كل سطر، اختياري)</label><textarea id="pNames" rows="4" placeholder="تُستخدم لمقارنة سلوكهن ببقية الطالبات"></textarea>
    <label for="pNote">ملاحظات أو شواهد</label><input id="pNote" placeholder="رابط الصور، محضر اللقاء...">
    <div class="actions"><button class="btn" type="submit" id="pSave">حفظ</button><button class="btn ghost" type="button" id="pCancel">إلغاء</button></div></form>`:'';
-  $('#sheetCard').innerHTML=`<div class="head"><div style="display:flex;gap:10px;align-items:center">${valIcon(v,22)}<div><h3>${v.n}</h3><div class="hint">قياس الأثر</div></div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
-  <div class="tiles" style="margin-top:12px"><div class="tile"><b>${s.viol}</b><span>مخالفات مرتبطة · آخر 30 يوماً</span></div>${v.abs?`<div class="tile"><b>${s.abs}</b><span>أيام غياب دون عذر</span></div>`:''}<div class="tile star"><b>${s.exc}</b><span>سلوك متميز مرتبط</span></div><div class="tile"><b>${ps.length}</b><span>لقاءات وبرامج للأسرة</span></div></div>
-  <div class="panel" style="padding:10px 12px;margin-top:12px"><div class="s"><b>مشاركة الأسرة:</b> ${v.fam}</div><div class="s"><b>السلوك القابل للملاحظة:</b> ${v.obs}</div></div>
-  <div class="split" style="margin-top:12px;align-items:end"><div><label for="valWin">مدة المقارنة قبل اللقاء وبعده</label><select id="valWin">${[14,30,60].map(n=>`<option value="${n}" ${n===vimp.win?'selected':''}>${n} يوماً</option>`).join('')}</select></div></div>
-  ${canWrite&&!vimp.form?`<div class="actions"><button class="btn" type="button" id="valAdd">+ تسجيل لقاء أو برنامج للأسرة</button><button class="btn ghost" type="button" id="valPrint">طباعة تقرير القيمة</button><button class="btn ghost" type="button" id="valBack">كل القيم</button></div>`:`<div class="actions"><button class="btn ghost" type="button" id="valPrint">طباعة تقرير القيمة</button><button class="btn ghost" type="button" id="valBack">كل القيم</button></div>`}
-  ${form}
-  <h2>اللقاءات والبرامج وأثرها</h2><div class="panel">${ps.length?ps.map(p=>progCard(p)).join(''):'<div class="empty"><b>لا توجد لقاءات بعد</b>سجّلي أول لقاء أو برنامج للأسرة، وستظهر المقارنة قبل وبعد تلقائياً.</div>'}</div>
+  const tabs=[['tier','المؤشر'],['plan',`الخطط${pl.filter(p=>p.status==='active').length?' ('+pl.filter(p=>p.status==='active').length+')':''}`],['fam','لقاءات الأسرة']];
+  let body='';
+  if(tab==='tier'){
+    body=`<div class="split" style="margin-top:12px;gap:12px"><div class="tile"><span>مؤشر القيمة</span>${idxGauge(I,true)}<small class="hint">${I.pop-I.aff} من ${I.pop} طالبة دون مخالفة مرتبطة</small></div><div class="tile star"><b>${I.excP}٪</b><span>نسبة الطالبات صاحبات سلوك متميز مرتبط</span></div></div>
+    <div class="tiles" style="margin-top:10px"><div class="tile"><b>${s.viol}</b><span>مخالفات مرتبطة · 30 يوماً</span></div>${v.abs?`<div class="tile"><b>${s.abs}</b><span>أيام غياب دون عذر</span></div>`:''}<div class="tile star"><b>${s.exc}</b><span>سلوك متميز مرتبط</span></div></div>
+    <h2>نظام الدعم المتدرج</h2>
+    <div class="tierbox" style="--tc:${TIERS[1].c}"><b>${TIERS[1].n} · ${T.t1} طالبة</b><span>${TIERS[1].d}. المشاركة الأسرية: ${v.fam}.</span></div>
+    <div class="tierbox" style="--tc:${TIERS[2].c}"><b>${TIERS[2].n} · ${T.t2.length} طالبة</b><span>${TIERS[2].d}. الإجراء: توجيه فردي وتواصل مع الأسرة وتعزيز «${v.obs}».</span></div>
+    <div class="panel">${T.t2.length?T.t2.map(o=>tierRow(o,v)).join(''):'<div class="empty">لا توجد طالبات في هذا المستوى</div>'}</div>
+    <div class="tierbox" style="--tc:${TIERS[3].c}"><b>${TIERS[3].n} · ${T.t3.length} طالبة</b><span>${TIERS[3].d}. الإجراء: خطة علاجية مكتوبة بمتابعة الموجّهة.</span></div>
+    <div class="panel">${T.t3.length?T.t3.map(o=>tierRow(o,v)).join(''):'<div class="empty">لا توجد طالبات في هذا المستوى</div>'}</div>`;
+  }else if(tab==='plan'){
+    body=`${planForm(v)}<h2>الخطط العلاجية وخطط الدعم</h2><div class="panel">${pl.length?pl.map(p=>planCard(p)).join(''):'<div class="empty"><b>لا توجد خطط بعد</b>من تبويب «المؤشر» اضغطي «خطة علاجية» أمام الطالبة.</div>'}</div>`;
+  }else{
+    body=`<div class="split" style="margin-top:12px;align-items:end"><div><label for="valWin">مدة المقارنة قبل اللقاء وبعده</label><select id="valWin">${[14,30,60].map(n=>`<option value="${n}" ${n===vimp.win?'selected':''}>${n} يوماً</option>`).join('')}</select></div></div>
+    ${canWrite&&!vimp.form?`<div class="actions"><button class="btn" type="button" id="valAdd">+ تسجيل لقاء أو برنامج للأسرة</button></div>`:''}${form}
+    <h2>اللقاءات والبرامج وأثرها</h2><div class="panel">${ps.length?ps.map(p=>progCard(p)).join(''):'<div class="empty"><b>لا توجد لقاءات بعد</b>سجّلي أول لقاء أو برنامج للأسرة، وستظهر المقارنة قبل وبعد تلقائياً.</div>'}</div>`;
+  }
+  $('#sheetCard').innerHTML=`<div class="head"><div style="display:flex;gap:10px;align-items:center">${valIcon(v,22)}<div><h3>${v.n}</h3><div class="hint">السلوك الملاحظ: ${v.obs} · مشاركة الأسرة: ${v.fam}</div></div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="vtabs">${tabs.map(([k2,l])=>`<button type="button" data-vtabgo="${k2}" aria-current="${k2===tab}">${l}</button>`).join('')}</div>
+  ${body}
+  <div class="actions"><button class="btn ghost" type="button" id="valPrint">طباعة تقرير القيمة</button><button class="btn ghost" type="button" id="valBack">كل القيم</button></div>
   <details class="hint" style="margin-top:10px"><summary>ما الذي يُحسب في هذه القيمة؟</summary><p>المخالفات التي تحتوي على: ${v.v.length?v.v.map(esc).join('، '):'لا توجد'}.<br>السلوك المتميز الذي يحتوي على: ${v.x.length?v.x.map(esc).join('، '):'لا يوجد'}.${v.abs?'<br>وأيام الغياب دون عذر.':''}</p></details>`;
   $('#sheet').hidden=false;
 }
 function valPrintHtml(list){
-  return list.map(v=>{const t=today(),s=valStats(v,addD(t,-29),t),ps=progs(v.k);
-    return `<h4>${v.n}</h4><p>مشاركة الأسرة: ${v.fam} · السلوك الملاحظ: ${v.obs}</p><p>آخر 30 يوماً: ${s.viol} مخالفة مرتبطة${v.abs?` · ${s.abs} يوم غياب دون عذر`:''} · ${s.exc} سلوك متميز · ${ps.length} لقاء/برنامج للأسرة</p>${ps.map(p=>progCard(p,true)).join('')}`;}).join('');
+  return list.map(v=>{const t=today(),s=valStats(v,addD(t,-29),t),ps=progs(v.k),I=valIndex(v),T=valTiers(v),pl=plansOf(v.k);
+    return `<h4>${v.n} — المؤشر ${I.idx}٪ (${I.delta>=0?'+':''}${I.delta} عن الشهر السابق)</h4><p>مشاركة الأسرة: ${v.fam} · السلوك الملاحظ: ${v.obs}</p><p>آخر 30 يوماً: ${s.viol} مخالفة مرتبطة${v.abs?` · ${s.abs} يوم غياب دون عذر`:''} · ${s.exc} سلوك متميز · المستويات: وقائي ${T.t1} · داعم ${T.t2.length} · علاجي ${T.t3.length}</p>
+    ${pl.length?`<table class="imptbl"><thead><tr><th>الطالبة</th><th>الصف</th><th>المستوى</th><th>البدء</th><th>الخطوات</th><th>الحالة</th><th>المخالفات قبل ← بعد</th></tr></thead><tbody>${pl.map(p=>planCard(p,true)).join('')}</tbody></table>`:''}${ps.map(p=>progCard(p,true)).join('')}`;}).join('');
 }
 document.addEventListener('click',async e=>{
   const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t)return;
+  if(t.dataset.vtabgo){vimp.tab=t.dataset.vtabgo;vimp.form=false;vimp.pf=null;openImpactVal(vimp.val);return;}
+  if(t.dataset.pnew){const [name,tier]=t.dataset.pnew.split('|');vimp.pf={name,tier:+tier};vimp.tab='plan';openImpactVal(vimp.val);$('#sheetCard').scrollTop=0;return;}
+  if(t.id==='plCancel'){vimp.pf=null;openImpactVal(vimp.val);return;}
+  if(t.dataset.pend){const [id,st]=t.dataset.pend.split('|');try{await store.update(id,{status:st,endedAt:st==='active'?'':today()});toast(st==='active'?'أُعيد فتح الخطة':'أُنهيت الخطة');setTimeout(()=>openImpactVal(vimp.val),250);}catch(x){writeErr(x)}return;}
+});
+document.addEventListener('change',async e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.pstep)return;
+  const [id,i]=t.dataset.pstep.split('|');const p=records.find(r=>r.id===id);if(!p)return;
+  const steps=(p.steps||[]).map((x,j)=>j===+i?{...x,d:t.checked}:x);
+  try{await store.update(id,{steps});setTimeout(()=>openImpactVal(vimp.val),200);}catch(x){writeErr(x)}
+});
+document.addEventListener('submit',async e=>{
+  if(!e.target||e.target.id!=='planF')return;e.preventDefault();const f=vimp.pf;if(!f)return;
+  const steps=$('#plSteps').value.split('\n').map(x=>x.trim()).filter(Boolean).map(t=>({t,d:false}));
+  if(!steps.length){toast('اكتبي خطوة واحدة على الأقل');return;}
+  const info=rosterIdx.get(f.name)||{};const s=students().find(x=>x.name===f.name)||{};
+  $('#plSave').disabled=true;
+  try{await store.add({kind:'plan',value:vimp.val,name:f.name,grade:s.grade||info.grade||'',section:s.sec||info.section||'',tier:f.tier,goal:$('#plGoal').value.trim(),steps,start:$('#plStart').value||today(),date:$('#plStart').value||today(),review:$('#plReview').value,status:'active',note:$('#plNote').value.trim(),by:role==='sup'?supTitle():'الموجّهة الطلابية',createdAt:new Date().toISOString()});
+    toast('حُفظت الخطة');vimp.pf=null;setTimeout(()=>openImpactVal(vimp.val),300);}catch(x){$('#plSave').disabled=false;writeErr(x);}
+});
+document.addEventListener('click',async e=>{
+  const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t)return;
   if(t.id==='supImpact'){openImpact();return;}
-  if(t.dataset.val){vimp.form=false;openImpactVal(t.dataset.val);$('#sheetCard').scrollTop=0;return;}
+  if(t.dataset.val){vimp.form=false;vimp.pf=null;vimp.tab=t.dataset.vtab||'tier';openImpactVal(t.dataset.val);$('#sheetCard').scrollTop=0;return;}
   if(t.id==='valBack'){openImpact();return;}
-  if(t.id==='valAdd'){vimp.form=true;openImpactVal(vimp.val);setTimeout(()=>{const x=$('#pTitle');if(x){x.scrollIntoView({block:'center'});x.focus();}},50);return;}
+  if(t.id==='valAdd'){vimp.form=true;vimp.tab='fam';openImpactVal(vimp.val);setTimeout(()=>{const x=$('#pTitle');if(x){x.scrollIntoView({block:'center'});x.focus();}},50);return;}
   if(t.id==='pCancel'){vimp.form=false;openImpactVal(vimp.val);return;}
   if(t.id==='valPrint'){const v=VALUES.find(x=>x.k===vimp.val);if(!v)return;closeSheet();doPrint(printHead('تقرير قياس الأثر — قيمة '+v.n)+valPrintHtml([v])+`<div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ....................</span></div>`);return;}
   if(t.id==='valPrintAll'){closeSheet();doPrint(printHead('تقرير قياس الأثر للقيم — مشروع ترسيخ القيم وتعزيز الهوية الوطنية')+valPrintHtml(VALUES)+`<div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ....................</span></div>`);return;}
@@ -2245,7 +2380,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261019095353';
+const APP_VER='20261019095823';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
