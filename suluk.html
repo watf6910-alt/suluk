@@ -2011,32 +2011,40 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden
    لكل قيمة: مؤشرات سلوكية تُحسب تلقائياً من سجل الرصد (مخالفات مرتبطة بالقيمة، سلوك متميز، غياب دون عذر)،
    ولقاءات وبرامج مقدمة للأسرة. قياس الأثر = مقارنة المؤشرات قبل اللقاء وبعده بفترتين متساويتين،
    ومقارنة طالبات حضر أولياء أمورهن ببقية الطالبات. */
+/* القيم الست المعتمدة في مبادرة إشراك أولياء الأمور (وكالة التعليم العام 1448هـ) ومصفوفة تطبيقها:
+   لكل قيمة: مشاركة أسرية (fam) وسلوك قابل للملاحظة (obs). ربط المخالفات والتميز بكل قيمة اجتهاد قابل للتعديل. */
 const VALUES=[
- {k:'disc',n:'الانضباط والمسؤولية',c:'#0d6b60',ic:'<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 3h5"/>',abs:true,
-  v:['التأخر','الاصطفاف','النوم داخل الفصل','الخروج والدخول','التجمهر','عدم حضور الحصة','الهروب','دون استئذان','الزي المدرسي','إعاقة سير الحصص'],
-  x:['الانضباط وعدم الغياب','القيادة والمسؤولية','إدارة الوقت']},
- {k:'resp',n:'الاحترام وحسن التعامل',c:'#7a3e9d',ic:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
-  v:['الشجار','حركات مخلة','كلمات نابية','ألفاظ','السخرية','تهديد المعلمات','تهديدهن','تعمد إصابة','الاعتداء','التنمر','ابتزاز','إثارة الفوضى'],
-  x:['رسالة شكر','التعاون مع الزميلات','مهارات الاتصال']},
- {k:'hon',n:'الأمانة والنزاهة',c:'#1f5fa8',ic:'<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
-  v:['سرقة','سرقتها','التوقيع عن','التزوير','الغش'],x:[]},
- {k:'prop',n:'المحافظة على الممتلكات',c:'#9a5410',ic:'<path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M10 20v-5h4v5"/>',
-  v:['الضرر المتعمد بممتلكات','الضرر بممتلكات','تجهيزات المدرسة','امتهان الكتب','إشعال النار'],x:[]},
- {k:'nat',n:'الانتماء والهوية الوطنية',c:'#2f7d3a',ic:'<path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/>',
-  v:['الدولة أو رموزها','شعائر الإسلام','أفكار متطرفة','الأديان','العنصرية'],
-  x:['الإذاعة','فعالية حوارية','لصالح المجتمع المدرسي']},
- {k:'safe',n:'السلامة والوقاية',c:'#a51d2d',ic:'<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><path d="M12 8v5M12 16.5v.01"/>',
-  v:['السجائر','التدخين','المخدرات','الأسلحة','المواد أو الألعاب الخطرة','المواد الإعلامية','التصوير','الجرائم المعلوماتية','التحرش','الشذوذ'],
-  x:['حملة توعوية']},
- {k:'give',n:'العطاء والتطوع',c:'#b8860b',ic:'<path d="M3 13h4l3 2h5a2 2 0 0 1 0 4H9"/><path d="M15 17l5-2.5a1.6 1.6 0 0 1 1.5 2.8L14 21H3"/><path d="M14 4.5a2 2 0 0 1 3.5 1.3c0 1.7-3.5 3.7-3.5 3.7s-3.5-2-3.5-3.7A2 2 0 0 1 14 4.5z"/>',
-  v:[],x:['الخدمة المجتمعية','تجارب شخصية','حملة توعوية','الالتحاق ببرنامج']}
+ {k:'disc',n:'الانضباط',c:'#1f4e8c',fam:'خطة انتظام منزلية',obs:'الالتزام بالحضور والمواعيد',abs:true,
+  ic:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  v:['التأخر','الاصطفاف','النوم داخل الفصل','الخروج والدخول','التجمهر','عدم حضور الحصة','الهروب','دون استئذان','الزي المدرسي','إعاقة سير الحصص','السجائر','التدخين','المخدرات','الأسلحة','المواد أو الألعاب الخطرة','المواد الإعلامية'],
+  x:['الانضباط وعدم الغياب','إدارة الوقت']},
+ {k:'will',n:'العزيمة',c:'#8c2f3c',fam:'متابعة هدف أسبوعي',obs:'إكمال مهمة رغم الصعوبات',
+  ic:'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20.5h7M9.5 17h5"/>',
+  v:[],x:['الالتحاق ببرنامج','تجارب شخصية','القيادة والمسؤولية','المهارات الرقمية']},
+ {k:'hon',n:'الأمانة',c:'#3d6b4a',fam:'موقف أسري موثق',obs:'المحافظة على الممتلكات والصدق',
+  ic:'<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
+  v:['سرقة','سرقتها','التوقيع عن','التزوير','الغش','الضرر المتعمد بممتلكات','الضرر بممتلكات','تجهيزات المدرسة','امتهان الكتب','التصوير','الجرائم المعلوماتية'],x:[]},
+ {k:'tol',n:'التسامح',c:'#1f4e8c',fam:'حوار أسري تطبيقي',obs:'حل الخلاف باحترام',
+  ic:'<path d="M3 11l4-4 3 1 3-2 3 3"/><path d="M21 11l-4-4M3 11l6 6a1.5 1.5 0 0 0 2-2M11 15l1.5 1.5a1.5 1.5 0 0 0 2-2L13 13M14.5 14.5a1.5 1.5 0 0 0 2-2L13 9"/>',
+  v:['الشجار','حركات مخلة','كلمات نابية','ألفاظ','السخرية','تهديد المعلمات','تهديدهن','تعمد إصابة','الاعتداء','التنمر','ابتزاز','التحرش','الأديان','العنصرية'],
+  x:['فعالية حوارية','رسالة شكر']},
+ {k:'coop',n:'التعاون',c:'#8c2f3c',fam:'نشاط تطوعي مشترك',obs:'مساعدة الزملاء والعمل الجماعي',
+  ic:'<circle cx="12" cy="7" r="2.5"/><circle cx="5.5" cy="10" r="2"/><circle cx="18.5" cy="10" r="2"/><path d="M7.5 20v-3a4.5 4.5 0 0 1 9 0v3M2.5 19v-2a3 3 0 0 1 3-3M21.5 19v-2a3 3 0 0 0-3-3"/>',
+  v:['إثارة الفوضى'],x:['التعاون مع الزميلات','مهارات الاتصال','الخدمة المجتمعية','حملة توعوية']},
+ {k:'nat',n:'الانتماء الوطني',c:'#3d6b4a',fam:'نشاط وطني مشترك',obs:'المحافظة على المرافق والاعتزاز بالوطن',
+  ic:'<path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/>',
+  v:['الدولة أو رموزها','شعائر الإسلام','أفكار متطرفة','إشعال النار','العبث بتجهيزات'],
+  x:['الإذاعة','لصالح المجتمع المدرسي']}
 ];
+/* مفاتيح الإصدار الأول (سبع قيم) تُحوَّل إلى القيم الست */
+const VOLD={resp:'tol',prop:'hon',safe:'disc',give:'coop'};
+const valKey=k=>VOLD[k]||k;
 const PTYPES=['لقاء أسري حضوري','لقاء أسري عن بُعد','برنامج توعوي للأسر','ورشة عمل لأولياء الأمور','رسالة توعوية للأسر','نشاط مشترك مع الأسر'];
 const IMP_ICON='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/><path d="M4 21h16"/></svg>';
 const valIcon=(v,sz=26)=>`<span class="vic" style="--vc:${v.c};width:${sz+16}px;height:${sz+16}px"><svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${v.ic}</svg></span>`;
 const vimp={val:'',win:30,form:false};
 const isProg=r=>r.kind==='prog';
-const progs=k=>records.filter(r=>isProg(r)&&(!k||r.value===k)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+const progs=k=>records.filter(r=>isProg(r)&&(!k||valKey(r.value)===k)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 const hits=(t,list)=>!!t&&list.some(w=>t.includes(w));
 const recVals=r=>{if(isExc(r))return VALUES.filter(v=>hits(r.practice||r.note,v.x)).map(v=>v.k);if(r.kind==='viol'||(!r.kind&&r.violation))return VALUES.filter(v=>hits(r.violation,v.v)).map(v=>v.k);return [];};
 /* المؤشرات لقيمة واحدة بين تاريخين (شامل)، مع تصفية اختيارية لمجموعة طالبات */
@@ -2063,7 +2071,7 @@ function verdict(b,a){
 const pct=(b,a)=>b?Math.round((a-b)/b*100):(a?100:0);
 /* مقارنة قبل/بعد لقاء: فترتان متساويتين، الطول = نافذة القياس أو ما مضى منذ اللقاء */
 function progImpact(p){
-  const v=VALUES.find(x=>x.k===p.value);if(!v||!p.date)return null;
+  const v=VALUES.find(x=>x.k===valKey(p.value));if(!v||!p.date)return null;
   const t=today();const passed=Math.round((new Date(t+'T12:00:00')-new Date(p.date+'T12:00:00'))/864e5);
   const len=Math.max(0,Math.min(vimp.win,passed));
   const bT=addD(p.date,-1),aF=addD(p.date,1),aT=addD(p.date,len);
@@ -2094,9 +2102,9 @@ function openImpact(){
   openKey=null;imp.open=false;absOpen=null;vimp.val='';vimp.form=false;
   const t=today(),f=addD(t,-29);
   const cards=VALUES.map(v=>{const s=valStats(v,f,t),ps=progs(v.k),I=ps[0]?progImpact(ps[0]):null;
-    return `<button type="button" class="vcard" data-val="${v.k}">${valIcon(v)}<span class="vt"><b>${v.n}</b><small>آخر 30 يوماً: ${s.viol} مخالفة${v.abs?` · ${s.abs} غياب`:''} · ${s.exc} تميّز</small><small>${ps.length?`${ps.length} لقاء/برنامج للأسرة`:'لم يُسجّل لقاء للأسرة بعد'}</small></span>
+    return `<button type="button" class="vcard" data-val="${v.k}">${valIcon(v)}<span class="vt"><b>${v.n}</b><small>آخر 30 يوماً: ${s.viol} مخالفة${v.abs?` · ${s.abs} غياب`:''} · ${s.exc} تميّز</small><small>السلوك الملاحظ: ${v.obs}</small><small>${ps.length?`${ps.length} لقاء/برنامج للأسرة`:'مشاركة الأسرة المقترحة: '+v.fam}</small></span>
     <span class="vimp" title="قياس الأثر" style="color:${I?I.vd.c:'var(--accent)'}">${IMP_ICON}<small>${I?I.vd.t:'قياس الأثر'}</small></span></button>`;}).join('');
-  $('#sheetCard').innerHTML=`<div class="head"><div><h3>قياس الأثر لكل قيمة</h3><div class="hint">لقاءات وبرامج الأسرة ومقارنة السلوك قبلها وبعدها</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>قياس الأثر لكل قيمة</h3><div class="hint">القيم الست لمبادرة إشراك أولياء الأمور · لقاءات الأسرة ومقارنة السلوك قبلها وبعدها</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="vgrid">${cards}</div>
   <div class="actions"><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>
   <p class="hint">تُحسب المؤشرات تلقائياً من رصد المخالفات والسلوك المتميز والغياب. اضغطي على أي قيمة لتسجيل لقاء أو برنامج للأسرة وقياس أثره.</p>`;
@@ -2108,7 +2116,7 @@ function openImpactVal(k){
   const t=today(),f=addD(t,-29),s=valStats(v,f,t),ps=progs(k);
   const form=vimp.form?`<form id="valF" class="panel" style="padding:12px;margin-top:12px" autocomplete="off"><h4 style="margin:0 0 8px">لقاء أو برنامج جديد للأسرة — ${v.n}</h4>
    <label for="pTitle">العنوان</label><input id="pTitle" required placeholder="مثال: لقاء «قيمنا حياة» مع أمهات الصف الأول">
-   <div class="split"><div><label for="pType">النوع</label><select id="pType">${PTYPES.map(x=>`<option>${x}</option>`).join('')}</select></div>
+   <div class="split"><div><label for="pType">النوع</label><select id="pType">${[v.fam,...PTYPES].map(x=>`<option>${x}</option>`).join('')}</select></div>
    <div><label for="pDate">التاريخ</label><input id="pDate" type="date" value="${t}" max="${t}"><div class="hint" id="pHijri">${hijri(t)}</div></div>
    <div><label for="pCount">عدد أولياء الأمور الحاضرين</label><input id="pCount" type="number" min="0" inputmode="numeric"></div></div>
    <label for="pNames">أسماء الطالبات اللواتي حضر أولياء أمورهن (اسم في كل سطر، اختياري)</label><textarea id="pNames" rows="4" placeholder="تُستخدم لمقارنة سلوكهن ببقية الطالبات"></textarea>
@@ -2116,6 +2124,7 @@ function openImpactVal(k){
    <div class="actions"><button class="btn" type="submit" id="pSave">حفظ</button><button class="btn ghost" type="button" id="pCancel">إلغاء</button></div></form>`:'';
   $('#sheetCard').innerHTML=`<div class="head"><div style="display:flex;gap:10px;align-items:center">${valIcon(v,22)}<div><h3>${v.n}</h3><div class="hint">قياس الأثر</div></div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="tiles" style="margin-top:12px"><div class="tile"><b>${s.viol}</b><span>مخالفات مرتبطة · آخر 30 يوماً</span></div>${v.abs?`<div class="tile"><b>${s.abs}</b><span>أيام غياب دون عذر</span></div>`:''}<div class="tile star"><b>${s.exc}</b><span>سلوك متميز مرتبط</span></div><div class="tile"><b>${ps.length}</b><span>لقاءات وبرامج للأسرة</span></div></div>
+  <div class="panel" style="padding:10px 12px;margin-top:12px"><div class="s"><b>مشاركة الأسرة:</b> ${v.fam}</div><div class="s"><b>السلوك القابل للملاحظة:</b> ${v.obs}</div></div>
   <div class="split" style="margin-top:12px;align-items:end"><div><label for="valWin">مدة المقارنة قبل اللقاء وبعده</label><select id="valWin">${[14,30,60].map(n=>`<option value="${n}" ${n===vimp.win?'selected':''}>${n} يوماً</option>`).join('')}</select></div></div>
   ${canWrite&&!vimp.form?`<div class="actions"><button class="btn" type="button" id="valAdd">+ تسجيل لقاء أو برنامج للأسرة</button><button class="btn ghost" type="button" id="valPrint">طباعة تقرير القيمة</button><button class="btn ghost" type="button" id="valBack">كل القيم</button></div>`:`<div class="actions"><button class="btn ghost" type="button" id="valPrint">طباعة تقرير القيمة</button><button class="btn ghost" type="button" id="valBack">كل القيم</button></div>`}
   ${form}
@@ -2125,7 +2134,7 @@ function openImpactVal(k){
 }
 function valPrintHtml(list){
   return list.map(v=>{const t=today(),s=valStats(v,addD(t,-29),t),ps=progs(v.k);
-    return `<h4>${v.n}</h4><p>آخر 30 يوماً: ${s.viol} مخالفة مرتبطة${v.abs?` · ${s.abs} يوم غياب دون عذر`:''} · ${s.exc} سلوك متميز · ${ps.length} لقاء/برنامج للأسرة</p>${ps.map(p=>progCard(p,true)).join('')}`;}).join('');
+    return `<h4>${v.n}</h4><p>مشاركة الأسرة: ${v.fam} · السلوك الملاحظ: ${v.obs}</p><p>آخر 30 يوماً: ${s.viol} مخالفة مرتبطة${v.abs?` · ${s.abs} يوم غياب دون عذر`:''} · ${s.exc} سلوك متميز · ${ps.length} لقاء/برنامج للأسرة</p>${ps.map(p=>progCard(p,true)).join('')}`;}).join('');
 }
 document.addEventListener('click',async e=>{
   const t=e.target&&e.target.closest?e.target.closest('button'):null;if(!t)return;
@@ -2236,7 +2245,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261019095022';
+const APP_VER='20261019095353';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
