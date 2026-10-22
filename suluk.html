@@ -2474,7 +2474,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261022085430';
+const APP_VER='20261022090045';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2757,16 +2757,23 @@ async function openCase(vid){if(!canSup)return;const v=records.find(r=>r.id===vi
   const rec=records.find(r=>r.kind==='case'&&r.ref===vid);const d=rec?(await caseDec(rec))||{}:{};
   const tgt=/المعلمات|الإداريات/.test(v.violation||'')?'إفادة الطرف المتضرر (المعلمة أو الإدارية)':'إفادة الطرف الآخر';
   $('#sheetCard').innerHTML=caseHead(v)+`<div class="row" style="display:block;margin-top:10px"><div class="t">${esc(v.violation)}</div><div class="s">الدرجة ${DEGNAMES[D(v.degree)]}${v.proc?' · الإجراء '+PROCNAMES[v.proc]:''} · رصدتها: ${esc(v.by||'')}</div></div>
-    <p class="hint">يُحفظ مشفّرًا، ولا يظهر إلا للمشرفات اللواتي يعرفن رمز ملفات الحالات.</p>
+    <h4 style="margin:12px 0 4px">ملخص المخالفة (من المنصة تلقائيًا)</h4><div class="notice" style="white-space:pre-wrap">${esc(caseAuto(v))}</div>
+    <h4 style="margin:14px 0 6px">هل ما حدث مطابق للمخالفة المسجّلة؟</h4><div class="actions" style="margin-top:0">${[['yes','مطابق'],['part','مطابق جزئيًا'],['no','غير مطابق']].map(([k,l])=>`<label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="radio" name="cfMatch" value="${k}" ${d.match===k?'checked':''} style="width:20px;height:20px;min-height:0"> ${l}</label>`).join('')}</div>
+    <div id="cfAltBox" ${d.match&&d.match!=='yes'?'':'hidden'} style="margin-top:8px"><label for="cf_alt">التصنيف الأنسب في رأي اللجنة</label><select id="cf_alt"><option value="">— اختاري —</option>${[1,2,3,4,'4s',5,'5s'].map(g=>(VIOL[g]||[]).map(x=>`<option ${d.alt===x?'selected':''}>${esc(x)}</option>`).join('')).join('')}</select><div class="hint">لتعديل المخالفة نفسها في المنصة استخدمي «تعديل» في سجل الطالبة.</div></div>
+    <p class="hint" style="margin-top:10px">يُحفظ مشفّرًا، ولا يظهر إلا للمشرفات اللواتي يعرفن رمز ملفات الحالات.</p>
     ${CASE_F.map(([k,l])=>`<label for="cf_${k}" style="margin-top:10px">${k==='staff'?tgt:l}</label><textarea id="cf_${k}" rows="${k==='what'||k==='stu'?4:3}" style="min-height:${k==='what'||k==='stu'?110:80}px">${esc(d[k]||'')}</textarea>`).join('')}
     <div class="actions" style="margin-top:12px"><button class="btn" type="button" id="cfSave">حفظ المحضر</button>${hosted?'':'<button class="btn ghost" type="button" id="cfPrint">طباعة</button>'}</div>
     ${rec?`<p class="hint">آخر حفظ: ${rec.savedAt?new Date(rec.savedAt).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):''}${rec.savedBy?' · '+esc(rec.savedBy):''}</p>`:''}`;
   $('#sheet').hidden=false;}
-function caseFormData(){const o={};for(const [k] of CASE_F){const el=$('#cf_'+k);o[k]=el?el.value.trim():'';}return o;}
+function caseAuto(v){const p=v.proc&&PROCS[D(v.degree)]&&PROCS[D(v.degree)][v.proc-1];const st=v.steps&&v.steps.length?v.steps:(p?p.steps:[]);
+  return `رُصدت على الطالبة ${v.name} (${v.grade}${v.section?' / '+v.section:''}) مخالفة «${v.violation}» من الدرجة ${DEGNAMES[D(v.degree)]}، بتاريخ ${hijri(v.date)}${v.period?' ('+v.period+')':''}، رصدتها ${v.by||'—'}. الإجراء المطبّق: ${v.proc?'الإجراء '+PROCNAMES[v.proc]:'—'}${st.length?'، ويشمل: '+st.join('؛ '):''}${v.note?'. ملاحظة الرصد: '+v.note:''}.`;}
+function caseFormData(){const o={};for(const [k] of CASE_F){const el=$('#cf_'+k);o[k]=el?el.value.trim():'';}const m=document.querySelector('input[name="cfMatch"]:checked');o.match=m?m.value:'';o.alt=($('#cf_alt')||{}).value||'';return o;}
 function printCase(v,d){const row=(l,t)=>`<h4 style="margin:14px 0 4px">${esc(l)}</h4><div style="border:1px solid #999;min-height:60px;padding:8px;white-space:pre-wrap">${esc(t||'')}</div>`;
   doPrint(printHead('محضر واقعة سلوكية')+`<table><tbody><tr><th>اسم الطالبة</th><td>${esc(v.name)}</td><th>الصف</th><td>${esc(v.grade)}${v.section?' / '+esc(v.section):''}</td></tr><tr><th>التاريخ</th><td>${hijri(v.date)}</td><th>الحصة</th><td>${esc(v.period||'')}</td></tr><tr><th>المخالفة</th><td colspan="3">${esc(v.violation)} (الدرجة ${DEGNAMES[D(v.degree)]}${v.proc?'، الإجراء '+PROCNAMES[v.proc]:''})</td></tr></tbody></table>`
+   +row('ملخص المخالفة',caseAuto(v))+row('مطابقة الواقعة للمخالفة المسجّلة',({yes:'مطابق',part:'مطابق جزئيًا',no:'غير مطابق'})[d.match]?(({yes:'مطابق',part:'مطابق جزئيًا',no:'غير مطابق'})[d.match]+(d.alt&&d.match!=='yes'?' — التصنيف الأنسب: '+d.alt:'')):'')
    +CASE_F.map(([k,l])=>row(k==='staff'&&/المعلمات|الإداريات/.test(v.violation||'')?'إفادة الطرف المتضرر':l,d[k])).join('')
    +`<div class="sig"><span>الطالبة: ..........</span><span>الموجّهة الطلابية: ..........</span><span>وكيلة شؤون الطالبات: ..........</span><span>مديرة المدرسة: ${esc(settings.principal||'..........')}</span></div>`);}
+document.addEventListener('change',e=>{if(e.target&&e.target.name==='cfMatch'){const bx=$('#cfAltBox');if(bx)bx.hidden=e.target.value==='yes';}});
 document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-case],#ccMake,#ccOpen,#cfSave,#cfPrint'):null;if(!b)return;
   if(b.dataset.case){e.stopPropagation();openCase(b.dataset.case);return;}
   if(!canSup)return;const v=records.find(r=>r.id===cst.vid);
