@@ -922,7 +922,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -955,7 +955,7 @@ function recRow(r,showName=true){
   return `<div ${click}><span class="stripe" style="background:${degColor(r.degree)}"></span>
   <div class="main"><div class="t">${showName?esc(r.name):esc(r.violation)}</div>
   <div class="s">${showName?esc(r.violation)+' · ':''}الدرجة ${DEGNAMES[D(r.degree)]}${r.proc?' · الإجراء '+PROCNAMES[r.proc]:''} · ${where}${showName&&r.by?' · رصدتها: '+esc(r.by):''}${!showName&&r.period?' · '+esc(r.period):''}${!showName&&r.note?'<br>'+esc(r.note):''}${!showName&&r.by?'<br>الراصدة: '+esc(r.by):''}</div>
-  ${!showName?`<div class="actions" style="margin-top:6px">${r.notified||!canSup?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canWrite?editBtn(r)+delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
+  ${!showName?`<div class="actions" style="margin-top:6px">${r.notified||!canSup?'':`<button class="btn sm ghost" data-notice="${r.id}">إشعار ولي الأمر</button>`}${canSup&&!isExc(r)&&D(r.degree)>=3?`<button class="btn sm ghost" data-case="${r.id}">📄 ${records.some(x=>x.kind==='case'&&x.ref===r.id)?'محضر الواقعة ✓':'محضر الواقعة'}</button>`:''}${canWrite?editBtn(r)+delBtn(r):''}</div><div data-confirm="${r.id}"></div>`:''}</div>
   <div style="display:grid;gap:4px;justify-items:end">${ded?`<span class="chip neg" dir="ltr">−${ded}</span>`:''}<span class="chip ${r.notified?'ok':'pend'}">${r.notified?'أُشعر ولي الأمر':'لم يُشعر'}</span></div></div>`;
 }
 const editBtn=r=>`<button class="btn sm ghost" data-edit="${r.id}">تعديل</button>`;
@@ -2474,7 +2474,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261019100205';
+const APP_VER='20261022085430';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2733,6 +2733,49 @@ async function lateViolFor(ar){if(!ar||!ar.id)return;const t=(typeof PERIODS!=='
   if(records.some(r=>r.kind==='viol'&&(r.absRef===ar.id||(norm(r.name)===nm&&r.date===ar.date&&r.violation===t))))return;
   const p=procFor(nm,1,t);await store.add({kind:'viol',name:nm,grade:ar.grade,section:ar.section||'',degree:1,violation:t,proc:p.n,pts:p.pts,steps:p.steps,date:ar.date,period:ar.period||'',note:'من رصد الحضور',by:ar.by||'',absRef:ar.id,notified:false,createdAt:new Date().toISOString()});}
 async function dropLateViol(absId){const v=records.find(r=>r.kind==='viol'&&r.absRef===absId);if(v)await store.remove(v.id);}
+
+/* ---------- محضر الواقعة: يُكتب من الجوال أو الآيباد ويُحفظ مشفّرًا برمز الحالات (للمشرفات فقط) ---------- */
+const CASE_F=[['what','وصف ما حدث'],['words','الألفاظ أو الأفعال بنصها'],['wit','الشاهدات وما شاهدنه'],['parent','التواصل مع ولي الأمر (الوقت ومن تواصل وما قيل)'],['stu','إفادة الطالبة كما قالتها'],['staff','إفادة الطرف الآخر'],['amic','عرض الحل الودي والاعتذار وموقف الطالبة'],['comm','قرار لجنة التوجيه والإجراءات المعتمدة'],['plan','خطة تعديل السلوك والمتابعة']];
+const cst={vid:'',key:null};
+function b64(u){return btoa(String.fromCharCode(...new Uint8Array(u)));}function ub64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
+async function caseHash(code){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('rasd-case:'+code));return b64(b);}
+async function caseKeyFrom(code){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode('rasd-case-key:'+code),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('suluk-case-'+(settings.caseSalt||'')),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function caseKey(){if(cst.key)return cst.key;let c='';try{c=localStorage.getItem('rasd_casecode')||'';}catch(e){}
+  if(c&&settings.caseCheck&&await caseHash(c)===settings.caseCheck){cst.key=await caseKeyFrom(c);return cst.key;}return null;}
+async function caseEnc(obj){const k=await caseKey();const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(JSON.stringify(obj)));return {iv:b64(iv),ct:b64(ct)};}
+async function caseDec(r){const k=await caseKey();if(!k||!r)return null;try{const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(r.iv)},k,ub64(r.ct));return JSON.parse(new TextDecoder().decode(pt));}catch(e){return null;}}
+function caseHead(v){return `<div class="head"><div><h3>محضر الواقعة</h3><div class="hint">${esc(v.name)} · ${esc(v.grade)}${v.section?' / '+esc(v.section):''} · ${hijri(v.date)}${v.period?' · '+esc(v.period):''}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>`;}
+async function openCase(vid){if(!canSup)return;const v=records.find(r=>r.id===vid);if(!v)return;cst.vid=vid;openKey=null;imp.open=false;absOpen=null;
+  if(!settings.caseCheck){
+    $('#sheetCard').innerHTML=caseHead(v)+(isAdmin?`<p class="hint" style="margin-top:12px">أول مرة: أنشئي «رمز ملفات الحالات». المحاضر تُحفظ مشفّرة به، ولا يقرؤها إلا من يعرفه (أنتِ والوكيلات اللواتي تعطينهن الرمز). المعلمات لا يستطعن قراءتها حتى لو وصلت بياناتها لأجهزتهن.</p>
+      <label for="cc1">رمز ملفات الحالات (6 أحرف أو أرقام على الأقل)</label><input id="cc1" type="password" autocomplete="off" dir="ltr"><label for="cc2" style="margin-top:8px">أعيدي كتابته</label><input id="cc2" type="password" autocomplete="off" dir="ltr">
+      <div class="actions" style="margin-top:10px"><button class="btn" type="button" id="ccMake">إنشاء الرمز</button></div><p class="note">إن نُسي هذا الرمز لا يمكن فتح المحاضر المحفوظة أبدًا. احفظيه في مكان آمن.</p>`
+      :'<p class="hint" style="margin-top:12px">لم تُنشئ الموجّهة رمز ملفات الحالات بعد.</p>');$('#sheet').hidden=false;return;}
+  if(!(await caseKey())){
+    $('#sheetCard').innerHTML=caseHead(v)+`<p class="hint" style="margin-top:12px">أدخلي «رمز ملفات الحالات» مرة واحدة على هذا الجهاز لفتح المحاضر.</p><input id="ccIn" type="password" autocomplete="off" dir="ltr"><div class="actions" style="margin-top:10px"><button class="btn" type="button" id="ccOpen">فتح</button></div>`;$('#sheet').hidden=false;return;}
+  const rec=records.find(r=>r.kind==='case'&&r.ref===vid);const d=rec?(await caseDec(rec))||{}:{};
+  const tgt=/المعلمات|الإداريات/.test(v.violation||'')?'إفادة الطرف المتضرر (المعلمة أو الإدارية)':'إفادة الطرف الآخر';
+  $('#sheetCard').innerHTML=caseHead(v)+`<div class="row" style="display:block;margin-top:10px"><div class="t">${esc(v.violation)}</div><div class="s">الدرجة ${DEGNAMES[D(v.degree)]}${v.proc?' · الإجراء '+PROCNAMES[v.proc]:''} · رصدتها: ${esc(v.by||'')}</div></div>
+    <p class="hint">يُحفظ مشفّرًا، ولا يظهر إلا للمشرفات اللواتي يعرفن رمز ملفات الحالات.</p>
+    ${CASE_F.map(([k,l])=>`<label for="cf_${k}" style="margin-top:10px">${k==='staff'?tgt:l}</label><textarea id="cf_${k}" rows="${k==='what'||k==='stu'?4:3}" style="min-height:${k==='what'||k==='stu'?110:80}px">${esc(d[k]||'')}</textarea>`).join('')}
+    <div class="actions" style="margin-top:12px"><button class="btn" type="button" id="cfSave">حفظ المحضر</button>${hosted?'':'<button class="btn ghost" type="button" id="cfPrint">طباعة</button>'}</div>
+    ${rec?`<p class="hint">آخر حفظ: ${rec.savedAt?new Date(rec.savedAt).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):''}${rec.savedBy?' · '+esc(rec.savedBy):''}</p>`:''}`;
+  $('#sheet').hidden=false;}
+function caseFormData(){const o={};for(const [k] of CASE_F){const el=$('#cf_'+k);o[k]=el?el.value.trim():'';}return o;}
+function printCase(v,d){const row=(l,t)=>`<h4 style="margin:14px 0 4px">${esc(l)}</h4><div style="border:1px solid #999;min-height:60px;padding:8px;white-space:pre-wrap">${esc(t||'')}</div>`;
+  doPrint(printHead('محضر واقعة سلوكية')+`<table><tbody><tr><th>اسم الطالبة</th><td>${esc(v.name)}</td><th>الصف</th><td>${esc(v.grade)}${v.section?' / '+esc(v.section):''}</td></tr><tr><th>التاريخ</th><td>${hijri(v.date)}</td><th>الحصة</th><td>${esc(v.period||'')}</td></tr><tr><th>المخالفة</th><td colspan="3">${esc(v.violation)} (الدرجة ${DEGNAMES[D(v.degree)]}${v.proc?'، الإجراء '+PROCNAMES[v.proc]:''})</td></tr></tbody></table>`
+   +CASE_F.map(([k,l])=>row(k==='staff'&&/المعلمات|الإداريات/.test(v.violation||'')?'إفادة الطرف المتضرر':l,d[k])).join('')
+   +`<div class="sig"><span>الطالبة: ..........</span><span>الموجّهة الطلابية: ..........</span><span>وكيلة شؤون الطالبات: ..........</span><span>مديرة المدرسة: ${esc(settings.principal||'..........')}</span></div>`);}
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-case],#ccMake,#ccOpen,#cfSave,#cfPrint'):null;if(!b)return;
+  if(b.dataset.case){e.stopPropagation();openCase(b.dataset.case);return;}
+  if(!canSup)return;const v=records.find(r=>r.id===cst.vid);
+  if(b.id==='ccMake'){if(!isAdmin)return;const a=$('#cc1').value.trim(),c=$('#cc2').value.trim();if(a.length<6){toast('الرمز 6 أحرف أو أرقام على الأقل');return;}if(a!==c){toast('الرمزان غير متطابقين');return;}
+    const salt=b64(crypto.getRandomValues(new Uint8Array(12)));try{await store.saveSettings({...settings,caseSalt:salt,caseCheck:await caseHash(a)});try{localStorage.setItem('rasd_casecode',a);}catch(x){}cst.key=null;toast('أُنشئ رمز ملفات الحالات');openCase(cst.vid);}catch(x){writeErr(x)}return;}
+  if(b.id==='ccOpen'){const a=$('#ccIn').value.trim();if(await caseHash(a)!==settings.caseCheck){toast('الرمز غير صحيح');return;}try{localStorage.setItem('rasd_casecode',a);}catch(x){}cst.key=null;openCase(cst.vid);return;}
+  if(b.id==='cfSave'&&v){b.disabled=true;try{const enc=await caseEnc(caseFormData());const rec=records.find(r=>r.kind==='case'&&r.ref===v.id);const meta={...enc,savedAt:new Date().toISOString(),savedBy:isAdmin?'الموجّهة الطلابية':supTitle()};
+      if(rec)await store.update(rec.id,meta);else await store.add({kind:'case',ref:v.id,name:v.name,grade:v.grade,section:v.section||'',date:v.date,...meta,dev:DEV,createdAt:new Date().toISOString()});toast('حُفظ المحضر مشفّرًا ✓');openCase(v.id);}catch(x){writeErr(x);b.disabled=false;}return;}
+  if(b.id==='cfPrint'&&v){printCase(v,caseFormData());}},true);
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}.split>div:has(.hpick){grid-column:1/-1}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
