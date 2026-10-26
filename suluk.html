@@ -358,6 +358,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm" type="button" id="supWeek">التقرير الأسبوعي</button>
       <button class="btn sm ghost" type="button" id="supWait">الانتظار</button>
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
+      <button class="btn sm ghost" type="button" id="supNoor">قائمة نور</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
       <button class="btn sm ghost" type="button" id="supImpact">القيم: المؤشرات والدعم</button>
       <button class="btn sm ghost" type="button" id="supSrv">استبانات الأهل</button>
@@ -922,7 +923,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -2474,7 +2475,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261022090712';
+const APP_VER='20261026180823';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2674,11 +2675,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
 function canNote(){const t=supTitle();return canWrite&&(isAdmin||(role==='sup'&&!t.includes('الطالبات')&&!t.includes('المدرسية')));}
 const NOTE_T={thanks:['شكرًا لرصدك الحضور في وقته','حصة متميزة وتفاعل جميل من الطالبات','أثرك واضح في انضباط الفصل','شكرًا لتعاونك في حصة الانتظار','بارك الله في جهدك وعطائك'],remark:['نأمل رصد الحضور في بداية الحصة','نأمل الالتزام بوقت بداية الحصة ونهايتها','نأمل مراجعة رصد هذه الحصة','نأمل متابعة انضباط الطالبات داخل الفصل','نسعد بالتواصل معكِ لمناقشة هذه الحصة']};
 const nst={t:'',type:'thanks',p:'',date:'',edit:''};
-function openNote(t,keep){if(!canNote())return;nst.t=t;if(!keep){nst.date=trep.day||today();}const d=dIdx(nst.date);
-  const sl=d<=4?slotsOf(t,d).concat(Object.entries(dayCfg(nst.date).w.as).filter(([k,v])=>v===t).map(([k])=>{const [g,se,p]=k.split('|');return {p:+p,grade:g,sec:se};})).sort((a,b)=>a.p-b.p):[];
+function openNote(t,keep){if(!canNote())return;nst.t=t;if(!keep){noorSt.date=trep.day||today();}const d=dIdx(noorSt.date);
+  const sl=d<=4?slotsOf(t,d).concat(Object.entries(dayCfg(noorSt.date).w.as).filter(([k,v])=>v===t).map(([k])=>{const [g,se,p]=k.split('|');return {p:+p,grade:g,sec:se};})).sort((a,b)=>a.p-b.p):[];
   const prev=records.filter(x=>x.kind==='note'&&x.to===t).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,6);
   openKey=null;imp.open=false;absOpen=null;
-  $('#sheetCard').innerHTML=`<div class="head"><div><h3>رسالة إلى أ. ${esc(t)}</h3><div class="hint">${DAYN[d]||''} · ${hijri(nst.date)} · تصلها في «حصصك اليوم»</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>رسالة إلى أ. ${esc(t)}</h3><div class="hint">${DAYN[d]||''} · ${hijri(noorSt.date)} · تصلها في «حصصك اليوم»</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="actions" style="margin-top:12px"><button class="btn ${nst.type==='thanks'?'':'ghost'}" type="button" data-ntype="thanks">🌷 شكر</button><button class="btn ${nst.type==='remark'?'':'ghost'}" type="button" data-ntype="remark">📌 توجيه</button></div>
   <label for="noteP" style="margin-top:10px">الحصة</label><select id="noteP">${sl.map(s=>{const v=s.p+'|'+s.grade+'|'+s.sec;return `<option value="${esc(v)}" ${nst.p===v?'selected':''}>${PERIODS[s.p]} · ${esc(s.grade)} / ${esc(s.sec)}</option>`;}).join('')}</select>
   <label for="noteTx" style="margin-top:10px">النص <span class="hint">اكتبي بأسلوبك، والعبارات الجاهزة تُضاف للنص ويمكن تعديلها</span></label><div class="chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${NOTE_T[nst.type].map(x=>`<button class="btn sm ghost" type="button" data-ntpl="${esc(x)}">${esc(x)}</button>`).join('')}</div>
@@ -2690,16 +2691,16 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   if(b.dataset.noteseen){try{localStorage.setItem('rasd_noteSeen',new Date().toISOString());}catch(x){}renderMyDay();return;}
   if(!canNote())return;
   if(b.dataset.note){nst.p='';nst.edit='';openNote(b.dataset.note);return;}
-  if(b.dataset.notep){const [t,dt,p,g,se]=b.dataset.notep.split('|');nst.date=dt;nst.p=p+'|'+g+'|'+se;nst.type='thanks';nst.edit='';openNote(t,true);setTimeout(()=>{try{$('#noteTx').focus();}catch(x){}},50);return;}
+  if(b.dataset.notep){const [t,dt,p,g,se]=b.dataset.notep.split('|');noorSt.date=dt;nst.p=p+'|'+g+'|'+se;nst.type='thanks';nst.edit='';openNote(t,true);setTimeout(()=>{try{$('#noteTx').focus();}catch(x){}},50);return;}
   if(b.dataset.ntype){nst.type=b.dataset.ntype;nst.p=$('#noteP').value;const tx=$('#noteTx').value;openNote(nst.t,true);$('#noteTx').value=tx;return;}
   if(b.dataset.ntpl){const ta=$('#noteTx');const cur=ta.value.trim();ta.value=cur?(cur.replace(/[.،]?$/,'')+'، '+b.dataset.ntpl):b.dataset.ntpl;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);return;}
   if(b.id==='noteBack'){openTeachRep();return;}
-  if(b.dataset.noteedit){const x=records.find(r=>r.id===b.dataset.noteedit);if(!x)return;nst.edit=x.id;nst.type=x.type;nst.date=x.date;const pi=PERIODS.indexOf(x.period);nst.p=pi>=0?pi+'|'+x.grade+'|'+x.section:'';openNote(nst.t,true);$('#noteTx').value=x.text;$('#noteTx').focus();return;}
+  if(b.dataset.noteedit){const x=records.find(r=>r.id===b.dataset.noteedit);if(!x)return;nst.edit=x.id;nst.type=x.type;noorSt.date=x.date;const pi=PERIODS.indexOf(x.period);nst.p=pi>=0?pi+'|'+x.grade+'|'+x.section:'';openNote(nst.t,true);$('#noteTx').value=x.text;$('#noteTx').focus();return;}
   if(b.dataset.notedel){if(!confirm('حذف هذه الرسالة؟'))return;try{await store.remove(b.dataset.notedel);}catch(x){writeErr(x)}openNote(nst.t,true);return;}
   if(b.id==='noteSend'){const text=$('#noteTx').value.trim();if(!text){toast('اكتبي الرسالة أو اختاري نصًا جاهزًا');return;}if(!$('#noteP').value){toast('اختاري الحصة');return;}
     const v=$('#noteP').value;const [p,g,se]=v?v.split('|'):['','',''];b.disabled=true;
     try{if(nst.edit){await store.update(nst.edit,{type:nst.type,text,period:PERIODS[+p],grade:g,section:se,editedAt:new Date().toISOString()});nst.edit='';toast('حُفظ التعديل ✓');}
-      else{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:nst.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});toast('أُرسلت الرسالة إلى أ. '+nst.t+' ✓');}openTeachRep();}catch(x){writeErr(x);b.disabled=false;}}});
+      else{await store.add({kind:'note',to:nst.t,type:nst.type,text,date:noorSt.date,period:v?PERIODS[+p]:'',grade:g||'',section:se||'',by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});toast('أُرسلت الرسالة إلى أ. '+nst.t+' ✓');}openTeachRep();}catch(x){writeErr(x);b.disabled=false;}}});
 function myNotesHtml(me){const lim=addD(today(),-14);const ns=records.filter(x=>x.kind==='note'&&x.to===me&&(x.date||'')>=lim).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,6);
   if(!ns.length)return '';let seen='';try{seen=localStorage.getItem('rasd_noteSeen')||'';}catch(e){}const nw=ns.filter(x=>String(x.createdAt||'')>seen).length;
   return `<div class="row" style="display:block"><div class="t">رسائل من الإدارة ${nw?`<span class="chip pend">${nw} جديدة</span>`:''}</div>${ns.map(x=>`<div class="s" style="margin-top:6px;${String(x.createdAt||'')>seen?'font-weight:700;color:var(--fg)':''}">${x.type==='thanks'?'🌷 شكر:':'📌 توجيه:'} ${esc(x.text)}<br><span class="hint">${hijri(x.date)}${x.period?' · '+esc(x.period)+' · '+esc(x.grade||'')+' / '+esc(x.section||''):''} · ${esc(x.by||'')}</span></div>`).join('')}${nw?'<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-noteseen="1">قرأتها ✓</button></div>':''}</div>`;}
@@ -2790,6 +2791,41 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   if(b.id==='cfPlanGo'&&v&&canWrite){const val=caseVal(v),tier=D(v.degree)>=3?3:2;const lines=($('#cf_plan').value||'').split('\n').map(x=>x.replace(/^\d+\.\s*/,'').trim()).filter(x=>x&&!/^(الهدف السلوكي|المدة|دور ولي الأمر|التقويم):/.test(x));
     const steps=(lines.length?lines:planSteps(val,tier)).map(t=>({t,d:false}));const t=today();b.disabled=true;
     try{await store.add({kind:'plan',value:val.k,name:norm(v.name),grade:v.grade||'',section:v.section||'',tier,goal:val.obs,steps,start:t,date:t,review:addD(t,tier>=3?28:14),status:'active',note:'من محضر الواقعة: '+v.violation,by:isAdmin?'الموجّهة الطلابية':supTitle(),createdAt:new Date().toISOString()});toast('بدأت متابعة الخطة في «القيم» ✓');openCase(v.id);}catch(x){writeErr(x);b.disabled=false;}}},true);
+
+/* ---------- قائمة نور اليومية: غياب اليوم مرتبًا بالفصول لإدخاله في نظام نور، مع متابعة ما أُدخل ---------- */
+function dayKinds(date){const day=absRecs().filter(r=>r.date===date);const PI=p=>PERIODS.indexOf(p);const keys=[...new Set(day.map(absKeyOf))];
+  return keys.map(k=>{const rs=day.filter(r=>absKeyOf(r)===k);const r0=rs[0];const ab=rs.filter(r=>r.status!=='late');let kind='late';
+    if(ab.length){kind='abs';if(!ab.some(r=>r.period==='اليوم كاملاً')){const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+      const abP=ab.map(r=>r.period);const pres=[...rec].filter(p=>!abP.includes(p)).map(PI).filter(i=>i>=0);
+      if(pres.length&&abP.length<pres.length)kind=abP.map(PI).filter(i=>i>=0).every(i=>i<Math.min(...pres))?'late':'part';}}
+    const ex=rs.find(r=>r.excuse);return {k,name:norm(r0.name),grade:r0.grade,sec:String(rs.find(r=>r.section)?.section||''),kind,excuse:ex?ex.excuse:'',periods:[...new Set(rs.map(r=>r.period).filter(Boolean))]};});}
+const noorDone=(date,cls)=>records.find(r=>r.kind==='noor'&&r.date===date&&r.cls===cls);
+const noorSt={date:''};
+function openNoor(){if(!canSup)return;const date=noorSt.date||$('#supDate').value||today();noorSt.date=date;const L=dayKinds(date);
+  const cls=[...new Set(L.filter(x=>x.kind==='abs'||x.kind==='late').map(x=>x.grade+'|'+x.sec))].sort((a,b)=>GRADES.indexOf(a.split('|')[0])-GRADES.indexOf(b.split('|')[0])||a.localeCompare(b));
+  const nAbs=L.filter(x=>x.kind==='abs').length,nLate=L.filter(x=>x.kind==='late').length,doneN=cls.filter(c=>noorDone(date,c)).length;
+  const pendDays=[...new Set(absRecs().filter(r=>r.date<today()&&r.date>=addD(today(),-14)).map(r=>r.date))].filter(d=>{const cl=[...new Set(dayKinds(d).filter(x=>x.kind==='abs'||x.kind==='late').map(x=>x.grade+'|'+x.sec))];return cl.some(c=>!noorDone(d,c));}).sort().reverse();
+  openKey=null;imp.open=false;absOpen=null;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>قائمة نور اليومية</h3><div class="hint">${DAYN[dIdx(date)]||''} ${hijri(date)} · غائبات ${nAbs} · متأخرات ${nLate}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <p class="hint" style="margin-top:10px">أدخلي الغياب في نظام نور من هذه القائمة، ثم علّمي كل فصل «أُدخل في نور». الغياب عن حصص مع حضور اليوم لا يُدخل غياب يوم.</p>
+  <div class="split"><div><label for="noorDate">اليوم</label><input id="noorDate" type="date" value="${date}" max="${today()}"></div></div>
+  ${pendDays.length?`<div class="row" style="display:block;border:1px solid var(--d5);border-radius:var(--r);margin-top:8px"><div class="t">أيام لم يكتمل إدخالها في نور</div><div class="s">${pendDays.map(d=>`<button class="btn sm ghost" type="button" data-noorday="${d}" style="margin:2px">${DAYN[dIdx(d)]||''} ${hijri(d)}</button>`).join('')}</div></div>`:''}
+  <div class="actions" style="margin-top:8px"><span class="chip ${doneN===cls.length&&cls.length?'ok':'pend'}">أُدخل ${doneN} من ${cls.length} فصل</span>${cls.length&&!hosted?'<button class="btn sm ghost" type="button" id="noorPrint">طباعة</button>':''}${cls.length?'<button class="btn sm ghost" type="button" id="noorXls">تنزيل Excel</button>':''}</div>
+  ${cls.length?cls.map(c=>{const [g,sec]=c.split('|');const xs=L.filter(x=>x.grade===g&&x.sec===sec);const ab=xs.filter(x=>x.kind==='abs').sort((a,b)=>a.name.localeCompare(b.name,'ar')),lt=xs.filter(x=>x.kind==='late').sort((a,b)=>a.name.localeCompare(b.name,'ar'));const dn=noorDone(date,c);
+    return `<div class="panel" style="margin-top:10px"><div class="row" style="align-items:center"><div class="main"><div class="t">${esc(g)} / ${esc(sec)}</div><div class="s">غائبات ${ab.length} · متأخرات ${lt.length}${dn?` · أُدخل بواسطة ${esc(dn.by||'')}`:''}</div></div>${canWrite?`<button class="btn sm ${dn?'ghost':''}" type="button" data-noorcls="${esc(c)}">${dn?'✓ أُدخل في نور':'تم الإدخال في نور'}</button>`:''}</div>
+      ${ab.map((x,i)=>`<div class="row"><span class="stripe" style="background:var(--d5)"></span><div class="main"><div class="t">${i+1}. ${esc(x.name)}</div><div class="s">غياب يوم${x.excuse?' · بعذر: '+esc(x.excuse):' · دون عذر'}</div></div></div>`).join('')}
+      ${lt.map(x=>`<div class="row"><span class="stripe" style="background:var(--d2)"></span><div class="main"><div class="t">${esc(x.name)}</div><div class="s">متأخرة · ${esc(x.periods.join('، '))}</div></div></div>`).join('')}</div>`;}).join(''):'<div class="empty" style="margin-top:10px">لا يوجد غياب مرصود في هذا اليوم.</div>'}`;
+  $('#sheet').hidden=false;}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='noorDate'){noorSt.date=e.target.value||today();openNoor();}});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('#supNoor,[data-noorcls],[data-noorday],#noorPrint,#noorXls'):null;if(!b||!canSup)return;
+  if(b.id==='supNoor'){noorSt.date=$('#supDate').value||today();openNoor();return;}
+  if(b.dataset.noorday){noorSt.date=b.dataset.noorday;openNoor();return;}
+  if(b.dataset.noorcls){if(!canWrite)return;const c=b.dataset.noorcls,dn=noorDone(noorSt.date,c);b.disabled=true;
+    try{if(dn)await store.remove(dn.id);else await store.add({kind:'noor',date:noorSt.date,cls:c,by:isAdmin?'الموجّهة الطلابية':supTitle(),at:new Date().toISOString(),dev:DEV});}catch(x){writeErr(x)}openNoor();return;}
+  const L=dayKinds(noorSt.date).filter(x=>x.kind==='abs'||x.kind==='late').sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||a.sec.localeCompare(b.sec)||(a.kind===b.kind?0:a.kind==='abs'?-1:1)||a.name.localeCompare(b.name,'ar'));
+  if(b.id==='noorXls'){const out=L.map((x,i)=>({'م':i+1,'الصف':x.grade,'الفصل':x.sec,'اسم الطالبة':x.name,'الحالة':x.kind==='abs'?'غياب':'تأخر','العذر':x.excuse||(x.kind==='abs'?'دون عذر':''),'التاريخ':hijri(noorSt.date)}));
+    try{const ws=XLSX.utils.json_to_sheet(out);ws['!cols']=[{wch:4},{wch:14},{wch:6},{wch:38},{wch:8},{wch:22},{wch:18}];const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'غياب اليوم');XLSX.writeFile(wb,'قائمة-نور-'+noorSt.date+'.xlsx');}catch(x){toast('تعذّر التنزيل');}return;}
+  if(b.id==='noorPrint'){doPrint(printHead('قائمة الغياب لإدخالها في نظام نور — '+hijri(noorSt.date))+`<table><thead><tr><th>م</th><th>الصف / الفصل</th><th>اسم الطالبة</th><th>الحالة</th><th>العذر</th><th>أُدخل</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.grade)} / ${esc(x.sec)}</td><td>${esc(x.name)}</td><td>${x.kind==='abs'?'غياب':'تأخر'}</td><td>${esc(x.excuse||'')}</td><td>☐</td></tr>`).join('')}</tbody></table>`);}});
 /* ---------- Hijri date picker (replaces the Gregorian date fields) ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.hpHidden{display:none!important}.hpick{display:grid;grid-template-columns:1fr 2fr 1.4fr;gap:6px}.hpick select{width:100%;min-width:0;padding-left:6px;padding-right:8px}.toprow>div:has(.hpick){flex:1 1 100%}.split>div:has(.hpick){grid-column:1/-1}#hijri,#eHijri,#absHijri,#supHijri{display:none}';document.head.appendChild(st);})();
 const H_MONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
