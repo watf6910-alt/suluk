@@ -2475,7 +2475,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261026193114';
+const APP_VER='20261026193407';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2805,14 +2805,17 @@ function madOpen(date,period,grade,sec){const P=madPayload(date,period,grade,sec
   <p class="hint" style="margin-top:6px"><b>بعد النسخ:</b></p><ol class="hint" style="line-height:1.9;margin:0 18px">
    <li>في مدرستي: الحصة نفسها ← «الحضور والتحفيز».</li>
    <li>افتحي المفضلة واضغطي «رصد إلى مدرستي».</li>
-   <li>الصقي في المربع الذي يظهر ← موافق، ثم راجعي الإطارات الحمراء.</li></ol>
+   <li>اضغطي «لصق» ← متابعة ← تأشير، ثم راجعي واضغطي «حفظ» في أسفل صفحة مدرستي.</li></ol>
   <details style="margin-top:12px"><summary class="t" style="cursor:pointer">تثبيت زر «رصد إلى مدرستي» (مرة واحدة لكل جهاز)</summary>
    <div class="actions" style="margin-top:8px"><button class="btn sm ghost" type="button" id="madInst">انسخي رمز الزر</button></div>
-   <p class="hint" style="margin-top:6px"><b>الآيباد والجوال (سفاري):</b></p>
-   <ol class="hint" style="line-height:1.9;margin:0 18px">
-    <li>اضغطي «انسخي رمز الزر» أعلاه.</li>
-    <li>في سفاري افتحي أي صفحة ← زر المشاركة ← «إضافة إشارة مرجعية» ← سمّيها: رصد إلى مدرستي ← حفظ.</li>
-    <li>افتحي المفضلة ← «تعديل» ← اختاري «رصد إلى مدرستي» ← امسحي العنوان كله والصقي الرمز مكانه ← تم.</li></ol>
+   <p class="hint" style="margin-top:6px"><b>الآيباد والجوال (سفاري) — دقيقتان، مرة واحدة:</b></p>
+   <ol class="hint" style="line-height:2;margin:0 18px">
+    <li>اضغطي «انسخي رمز الزر» أعلاه. <b>لا تنسخي أي شيء آخر بعدها</b> حتى تنتهي.</li>
+    <li>زر المشاركة (المربع والسهم أعلى الشاشة) ← «إضافة إشارة مرجعية إلى…» ← امسحي الاسم واكتبي: <b>رصد إلى مدرستي</b> ← الموقع: <b>المفضلة</b> ← حفظ.</li>
+    <li>الشريط الجانبي (المستطيل أعلى الزاوية) ← الإشارات ← المفضلة ← اضغطي مطولًا على «رصد إلى مدرستي» ← <b>تعديل</b>.</li>
+    <li>اضغطي على السطر الثاني (العنوان https://…) ← ⓧ لمسحه ← اضغطي مطولًا فيه ← <b>لصق</b> ← حفظ.</li></ol>
+   <p class="hint" style="margin-top:6px;color:var(--d5)">⚠️ لا تلصقي الرمز في شريط العنوان أعلى سفاري، ولا تكتبيه بيدك. مكانه الوحيد خانة «العنوان» في نافذة «تعديل الإشارة المرجعية». بعد اللصق يجب أن ينتهي النص بـ <code dir="ltr" style="unicode-bidi:isolate;display:inline-block">appendChild(s);})();</code></p>
+   <p class="hint" style="margin-top:6px"><b>الاستخدام:</b> في مدرستي افتحي الحصة ← «الحضور والتحفيز» ← انتظري ظهور الأسماء ← اضغطي «رصد إلى مدرستي» في المفضلة ← لصق ← متابعة ← تأشير ← راجعي ← <b>حفظ</b> في أسفل الصفحة.</p>
    <p class="hint" style="margin-top:6px"><b>الحاسب (كروم أو إيدج):</b> زر الفأرة الأيمن على شريط المفضلة ← «إضافة صفحة» ← الاسم: رصد إلى مدرستي، والعنوان: الصقي الرمز.</p>
    <p class="hint">الزر يعمل داخل حسابك في مدرستي فقط، ولا يرسل بياناتك ولا رمزك إلى أي جهة.</p></details>`;
   $('#sheet').hidden=false;madOpen.txt=P.txt;}
