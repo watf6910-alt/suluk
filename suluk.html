@@ -926,7 +926,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet'||r.kind==='dsig';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet'||r.kind==='dsig'||r.kind==='noorsnap';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -1726,9 +1726,11 @@ function attStats(key){
   for(const d of dm.values())lateDays.delete(d.date);
   const un=days.filter(d=>!d.excuse).map(d=>d.date).sort();
   let maxRun=un.length?1:0,run=1;for(let i=1;i<un.length;i++){run=un[i]===nextSchoolDay(un[i-1])?run+1:1;maxRun=Math.max(maxRun,run);}
-  const unexc=un.length, exc=days.length-unexc, term=+settings.termDays||90;
+  let unexc=un.length, exc=days.length-unexc;const term=+settings.termDays||90;let noorV=null;
+  {const S=noorSnap();if(S&&S.m.has(key)){noorV=S.m.get(key);const af=days.filter(d=>d.date>S.date);unexc=noorV.u+af.filter(d=>!d.excuse).length;exc=noorV.e+af.filter(d=>d.excuse).length;for(const d of [...lateDays])if(d<=S.date)lateDays.delete(d);noorV={...noorV,date:S.date,pre:S.pre};}}
   const done=new Set(records.filter(r=>r.kind==='absact'&&absKeyOf(r)===key).map(r=>r.stage));
-  const a={days,partial:part.sort((a,b)=>b.date.localeCompare(a.date)),lateList:[...lateDays].sort().reverse(),unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done};
+  if(noorV&&noorV.pre){const b0={unexc:noorV.u,exc:noorV.e,maxRun:0};for(const k of Object.keys(ABS_STAGES))if(ABS_STAGES[k].test(b0))done.add(k);}
+  const a={days,partial:part.sort((a,b)=>b.date.localeCompare(a.date)),lateList:[...lateDays].sort().reverse(),unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done,noor:noorV};if(noorV)a.late+=noorV.l;
   a.pending=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a)&&!done.has(k));
   a.reached=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a));
   return a;
@@ -1736,6 +1738,7 @@ function attStats(key){
 function absStudents(){
   const m=new Map();
   for(const r of absRecs()){const k=absKeyOf(r);if(!m.has(k))m.set(k,{key:k,name:norm(r.name),grade:r.grade,sec:r.section||''});if(r.section)m.get(k).sec=r.section;}
+  {const S=noorSnap();if(S)for(const [k,v] of S.m)if(!m.has(k)&&(v.e+v.u+v.l)>0)m.set(k,{key:k,name:v.n,grade:v.g,sec:v.s||''});}
   return [...m.values()].map(x=>({...x,st:attStats(x.key)})).sort((a,b)=>b.st.unexc-a.st.unexc||a.name.localeCompare(b.name,'ar'));
 }
 
@@ -2482,7 +2485,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101101413';
+const APP_VER='20261101103348';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3001,6 +3004,53 @@ document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest(
   if(b.id==='absMad'){const {date,period,cls}=absCtx();if(!cls){toast('اختاري الفصل أولًا');return;}if(period==='اليوم كاملاً'){toast('اختاري الحصة نفسها');return;}madOpen(date,period,cls.grade,cls.section||'');return;}
   if(b.id==='madCopy'){const t=madOpen.txt||'';try{navigator.clipboard.writeText(t).catch(()=>{});}catch(x){}const w=window.open('https://schools.madrasati.sa/','_blank');if(!w){copyText(t,'نُسخ الغياب — افتحي مدرستي');}else toast('نُسخ الغياب');return;}
   if(b.id==='madInst'){copyText(MAD_BM,'نُسخ رمز الزر');return;}});
+
+/* ---------- مطابقة نور: رفع «إحصائية الغياب والتأخير على مستوى الطالب» (PDF) واعتماد أرقامها أساسًا ---------- */
+let _ns={len:-1,v:null};
+function noorSnap(){if(_ns.len===records.length)return _ns.v;const L=records.filter(r=>r.kind==='noorsnap').sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));let v=null;
+  if(L[0]){const m=new Map();for(const x of (L[0].rows||[])){const [n,g,s,e,u,l]=x;m.set(norm(n)+'|'+g,{n,g,s,e:+e||0,u:+u||0,l:+l||0});}v={date:L[0].date,m,id:L[0].id,at:L[0].createdAt,pre:!!L[0].pre};}
+  _ns={len:records.length,v};return v;}
+const NPDF='https://watf6910-alt.github.io/suluk/pdfjs/';
+const nfix=s=>{let o='';for(const ch of s){const c=ch.codePointAt(0);if(ch==='ௌ'){o+='ﷲ';continue;}if(ch==='˯'){o+='ء';continue;}if(c===3){o+=' ';continue;}if(c<32)continue;if(c===0xB7){o+=String.fromCodePoint(0x387+0xFB00);continue;}if(c>=0x370&&c<=0x3FF){o+=String.fromCodePoint(c+0xFB00);continue;}if(c===0x2F0)continue;o+=ch;}return [...o].reverse().join('').normalize('NFKC');};
+const nsq=s=>String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,'');
+async function noorParse(file){const pdfjs=await import(NPDF+'pdf.min.mjs');pdfjs.GlobalWorkerOptions.workerSrc=NPDF+'pdf.worker.min.mjs';
+  const doc=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const L=new Map();
+    for(const it of tc.items){if(!it.str||!it.str.trim())continue;const y=Math.round(it.transform[5]);let k=[...L.keys()].find(z=>Math.abs(z-y)<3);if(k==null){k=y;L.set(k,[]);}L.get(k).push({x:it.transform[4],s:it.str.trim()});}
+    for(const it of L.values()){it.sort((a,b)=>a.x-b.x);const r=it.map(z=>z.s);if(r.length===8&&/^\d+$/.test(r[7])&&/^\d+$/.test(r[0])&&/^\d+$/.test(r[1])&&/^\d+$/.test(r[2])){
+      const gs=nsq(nfix(r[4]));const g=GRADES.find(x=>nsq(x)===gs)||nfix(r[4]);out.push({l:+r[0],u:+r[1],e:+r[2],s:r[3],g,raw:nfix(r[6])});}}}
+  if(!out.length)throw new Error('format');return out;}
+function noorMatch(rows){const R=allRoster(),used=new Set(),res=[],miss=[];
+  const idx=[];for(const c of R)for(const n of (c.names||[])){const t=norm(n).split(/\s+/).filter(w=>w&&w!=='بن'&&w!=='بنت').map(nsq);idx.push({c,n,t});}
+  const fits=(ns,t)=>{if(!ns.startsWith(t[0])||!ns.endsWith(t[t.length-1]))return false;let p=0;for(const w of t){const i=ns.indexOf(w,p);if(i<0)return false;p=i+w.length;}return true;};
+  for(const r of rows){const ns=nsq(r.raw).replace(/^(.+?)بنت/,'$1');let C=idx.filter(x=>x.c.grade===r.g&&fits(nsq(r.raw),x.t));
+    if(C.length>1)C=C.filter(x=>String(x.c.section)===String(r.s));if(C.length>1)C=C.filter(x=>!used.has(x.n+'|'+x.c.grade));
+    if(C.length===1){used.add(C[0].n+'|'+C[0].c.grade);res.push({...r,n:C[0].n,cs:C[0].c.section,moved:String(C[0].c.section)!==String(r.s)});}else miss.push(r);}
+  const notInNoor=idx.filter(x=>!used.has(x.n+'|'+x.c.grade));return {res,miss,notInNoor};}
+const nst2={data:null,busy:false};
+function openNoorRec(){if(!canSup)return;openKey=null;imp.open=false;absOpen=null;const D=nst2.data,S=noorSnap();
+  let body='';
+  if(!D){body=`<p class="hint">في نور افتحي تقرير <b>«إحصائية الغياب والتأخير على مستوى الطالب»</b> لكل الصفوف، وصدّريه PDF، ثم ارفعيه هنا. تقرأ المنصة الملف على جهازك وتطابقه مع أسماء الطالبات، ولا يُرفع الملف إلى أي جهة.</p>
+    ${S?`<div class="row" style="display:block;border:1px solid var(--ok);border-radius:var(--r)"><div class="t">آخر اعتماد لأرقام نور: ${hijri(S.date)}</div><div class="s">${S.m.size} طالبة · الغياب بعد هذا التاريخ يُضاف من رصد المنصة</div></div>`:''}
+    ${canWrite?`<div class="drop" style="margin-top:10px"><label class="btn filebtn" for="noorPdf">${nst2.busy?'جارٍ القراءة…':'رفع تقرير نور (PDF)'}<input id="noorPdf" type="file" accept="application/pdf,.pdf" ${nst2.busy?'disabled':''}></label></div>`:''}`;}
+  else{const {res,miss,notInNoor}=D;const diff=res.map(r=>{const st=attStats(norm(r.n)+'|'+r.g);const pu=st.noor?st.unexc-(st.noor.u)+r.u:null;return {...r,pe:st.noor?null:st.exc,pu2:st.noor?null:st.unexc};});
+    const dl=diff.filter(r=>r.pe!=null&&(r.pe!==r.e||r.pu2!==r.u));
+    body=`<div class="tiles" style="margin-top:6px"><div class="tile"><b>${res.length+miss.length}</b><span>طالبة في تقرير نور</span></div><div class="tile"><b>${res.length}</b><span>طوبقت مع المنصة</span></div><div class="tile"><b style="color:${miss.length?'var(--d5)':'inherit'}">${miss.length}</b><span>في نور وليست في المنصة</span></div><div class="tile"><b style="color:${notInNoor.length?'var(--d2)':'inherit'}">${notInNoor.length}</b><span>في المنصة وليست في نور</span></div></div>
+    ${canWrite?`<div class="row" style="display:block;border:2px solid var(--accent);border-radius:var(--r);margin-top:10px"><div class="t">اعتماد أرقام نور أساسًا للمنصة</div><div class="s">يصبح عدد أيام الغياب بعذر ودون عذر لكل طالبة كما في نور حتى اليوم، ويُضاف إليه ما يُرصد في المنصة بعد اليوم. تتحدّث إجراءات الغياب (3 و5 و10 أيام) تلقائيًا بناءً عليها.</div>${(()=>{const n=res.filter(r=>Object.keys(ABS_STAGES).some(k=>ABS_STAGES[k].test({unexc:r.u,exc:r.e,maxRun:0}))).length;return n?`<div class="row" style="display:block;background:var(--surface);border-radius:var(--r);margin-top:8px"><div class="s"><b style="color:var(--d5)">${n} طالبة</b> بلغت حتى اليوم حدّ إجراء غياب (3 أو 5 أو 10 أيام) وفق أرقام نور.</div><label style="display:flex;gap:8px;align-items:flex-start;margin-top:6px;cursor:pointer"><input type="checkbox" id="noorPre" style="width:20px;height:20px;flex:none;margin-top:3px"><span>اعتبري الإجراءات المستحقة حتى اليوم <b>منفّذة</b> (إن كانت نُفّذت ورقيًا)، فلا يظهر في «بحاجة إجراء غياب» إلا ما يُستحق من الآن.</span></label></div>`:'';})()}
+    <div class="actions"><button class="btn" type="button" id="noorApply">اعتماد أرقام نور (${res.length} طالبة)</button><button class="btn ghost" type="button" id="noorBack">رفع ملف آخر</button></div></div>`:''}
+    ${miss.length?`<h4 style="margin:14px 0 6px">في نور وليست في المنصة (${miss.length}) — أرسليها للموجّهة لإضافتها</h4><div class="panel">${miss.map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.raw)}</div><div class="s">${esc(r.g)} / ${esc(r.s)} · بعذر ${r.e} · دون عذر ${r.u}</div></div></div>`).join('')}</div><div class="actions"><button class="btn sm ghost" type="button" data-srvcopy="${esc(miss.map(r=>r.raw+' — '+r.g+' / '+r.s).join('\n'))}">نسخ القائمة</button></div>`:''}
+    ${res.some(r=>r.moved)?`<h4 style="margin:14px 0 6px">فصلها في نور يختلف عن المنصة (${res.filter(r=>r.moved).length})</h4><div class="panel">${res.filter(r=>r.moved).map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.n)}</div><div class="s">${esc(r.g)} · نور: ${esc(r.s)} · المنصة: ${esc(r.cs)}</div></div></div>`).join('')}</div>`:''}
+    ${notInNoor.length?`<details style="margin-top:10px"><summary class="t" style="cursor:pointer">في المنصة وليست في تقرير نور (${notInNoor.length})</summary><div class="panel">${notInNoor.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.n)}</div><div class="s">${esc(x.c.grade)} / ${esc(x.c.section||'')}</div></div></div>`).join('')}</div></details>`:''}
+    ${dl.length?`<details style="margin-top:10px"><summary class="t" style="cursor:pointer">فرق الأرقام بين نور والمنصة (${dl.length} طالبة)</summary><div class="panel pv" style="overflow-x:auto"><table class="imptbl"><thead><tr><th>الطالبة</th><th>الفصل</th><th>بعذر: نور / المنصة</th><th>دون عذر: نور / المنصة</th></tr></thead><tbody>${dl.map(r=>`<tr><td>${esc(r.n)}</td><td>${esc(r.g.replace(' الثانوي',''))}/${esc(r.s)}</td><td>${r.e} / ${r.pe}</td><td>${r.u} / ${r.pu2}</td></tr>`).join('')}</tbody></table></div></details>`:''}`;}
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>مطابقة الغياب مع نور</h3><div class="hint">نور هو المرجع الرسمي للأعذار وأيام الغياب</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>${body}`;$('#sheet').hidden=false;}
+document.addEventListener('change',async e=>{const t=e.target;if(!t||t.id!=='noorPdf')return;const f=t.files&&t.files[0];if(!f)return;nst2.busy=true;openNoorRec();
+  try{const rows=await noorParse(f);nst2.data=noorMatch(rows);}catch(x){toast(x&&x.message==='format'?'هذا الملف ليس تقرير «إحصائية الغياب والتأخير على مستوى الطالب»':'تعذّرت قراءة الملف، تأكدي من الاتصال بالإنترنت');}nst2.busy=false;openNoorRec();});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('#noorRec,#noorApply,#noorBack'):null;if(!b||!canSup)return;
+  if(b.id==='noorRec'){nst2.data=null;openNoorRec();return;}
+  if(b.id==='noorBack'){nst2.data=null;openNoorRec();return;}
+  if(b.id==='noorApply'){if(!canWrite||!nst2.data)return;if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='اضغطي مرة أخرى للتأكيد';return;}b.disabled=true;
+    const rows=nst2.data.res.map(r=>[r.n,r.g,r.cs||r.s,r.e,r.u,r.l]);
+    const pre=!!($('#noorPre')&&$('#noorPre').checked);try{await store.add({kind:'noorsnap',date:today(),rows,n:rows.length,pre,by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});_ns.len=-1;toast('اعتُمدت أرقام نور لـ '+rows.length+' طالبة');nst2.data=null;openNoorRec();try{renderAll();}catch(x){}}catch(x){writeErr(x);b.disabled=false;}}});
 /* ---------- قائمة نور اليومية: غياب اليوم مرتبًا بالفصول لإدخاله في نظام نور، مع متابعة ما أُدخل ---------- */
 function dayKinds(date){const day=absRecs().filter(r=>r.date===date);const PI=p=>PERIODS.indexOf(p);const keys=[...new Set(day.map(absKeyOf))];
   return keys.map(k=>{const rs=day.filter(r=>absKeyOf(r)===k);const r0=rs[0];const ab=rs.filter(r=>r.status!=='late');let kind='late';
@@ -3016,6 +3066,7 @@ function openNoor(){if(!canSup)return;const date=noorSt.date||$('#supDate').valu
   const pendDays=[...new Set(absRecs().filter(r=>r.date<today()&&r.date>=addD(today(),-14)).map(r=>r.date))].filter(d=>{const cl=[...new Set(dayKinds(d).filter(x=>x.kind==='abs'||x.kind==='late').map(x=>x.grade+'|'+x.sec))];return cl.some(c=>!noorDone(d,c));}).sort().reverse();
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>قائمة نور اليومية</h3><div class="hint">${DAYN[dIdx(date)]||''} ${hijri(date)} · غائبات ${nAbs} · متأخرات ${nLate}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="actions" style="margin-top:8px"><button class="btn sm" type="button" id="noorRec">مطابقة مع نور (رفع تقرير PDF)</button></div>
   <p class="hint" style="margin-top:10px">أدخلي الغياب في نظام نور من هذه القائمة، ثم علّمي كل فصل «أُدخل في نور». الغياب عن حصص مع حضور اليوم لا يُدخل غياب يوم.</p>
   <div class="split"><div><label for="noorDate">اليوم</label><input id="noorDate" type="date" value="${date}" max="${today()}"></div></div>
   ${pendDays.length?`<div class="row" style="display:block;border:1px solid var(--d5);border-radius:var(--r);margin-top:8px"><div class="t">أيام لم يكتمل إدخالها في نور</div><div class="s">${pendDays.map(d=>`<button class="btn sm ghost" type="button" data-noorday="${d}" style="margin:2px">${DAYN[dIdx(d)]||''} ${hijri(d)}</button>`).join('')}</div></div>`:''}
