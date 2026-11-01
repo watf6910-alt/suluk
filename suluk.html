@@ -360,6 +360,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm ghost" type="button" id="supWait">الانتظار</button>
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
       <button class="btn sm ghost" type="button" id="supNoor">قائمة نور</button>
+      <button class="btn sm ghost" type="button" id="supDisc">ملف الانضباط</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
       <button class="btn sm ghost" type="button" id="supImpact">القيم: المؤشرات والدعم</button>
       <button class="btn sm ghost" type="button" id="supSrv">استبانات الأهل</button>
@@ -715,7 +716,7 @@ const REC_H = ['id','النوع','اسم الطالبة','الصف','الفصل'
 const CLS_H = ['id','الصف','الفصل','عدد الطالبات','بيانات'];
 const UZR_H = ['id','تاريخ الإرسال','اسم الطالبة','الصف','الفصل','أيام الغياب','نوع العذر','ملاحظة','ولي الأمر','الجوال','المرفق','الحالة','سبب الرفض','اعتمدته','بيانات'];
 const SRV_H = ['id','تاريخ الإرسال','الاستبانة','القيمة','اللقاء','الصف','ملخص','بيانات'];
-const SRV_N = { needs: 'حصر الاحتياجات', values: 'القيم في المنزل', sat: 'رضا اللقاء' };
+const SRV_N = { needs: 'حصر الاحتياجات', values: 'القيم في المنزل', sat: 'رضا اللقاء', iltizam: 'إقرار الالتزام المدرسي' };
 const UZR_ST = { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
 
 function tab(name, head) {
@@ -832,7 +833,7 @@ function addSurvey(b) {
     const cut = v => typeof v === 'string' ? v.slice(0, 400) : Array.isArray(v) ? v.slice(0, 20).map(cut) : (v && typeof v === 'object') ? Object.fromEntries(Object.keys(v).slice(0, 20).map(k => [String(k).slice(0, 20), cut(v[k])])) : (typeof v === 'number' ? v : '');
     const a = cut(b.a || {});
     const x = { id: 's' + Date.now() + Math.floor(Math.random() * 1000), at: new Date().toISOString(), type: type, value: String(b.value || '').slice(0, 20), prog: String(b.prog || '').slice(0, 60), progTitle: String(b.progTitle || '').slice(0, 120), a: a };
-    const sum = type === 'needs' ? [(a.areas || []).join('، '), (a.topics || []).join('، '), a.skills || ''].filter(String).join(' | ') : type === 'values' ? Object.keys(a.r || {}).map(k => k + ':' + a.r[k]).join(' ') + (a.joined ? ' | شاركت: ' + a.joined : '') : 'الفائدة ' + (a.use || '') + ' | يطبقون: ' + (a.apply || '');
+    const sum = type === 'iltizam' ? [a.name || '', a.stage || '', a.sec || '', 'ولي الأمر: ' + (a.parent || '')].join(' | ') : type === 'needs' ? [(a.areas || []).join('، '), (a.topics || []).join('، '), a.skills || ''].filter(String).join(' | ') : type === 'values' ? Object.keys(a.r || {}).map(k => k + ':' + a.r[k]).join(' ') + (a.joined ? ' | شاركت: ' + a.joined : '') : 'الفائدة ' + (a.use || '') + ' | يطبقون: ' + (a.apply || '');
     S.appendRow([x.id, new Date(), SRV_N[type], x.value, x.progTitle, a.stage || '', sum, JSON.stringify(x)]);
     return out({ ok: true });
   } finally {
@@ -924,7 +925,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -971,9 +972,9 @@ function renderAll(){
   const t=today(), mo=t.slice(0,7);
   const st=students();
   $('#kToday').textContent=v.filter(r=>r.date===t).length;
-  $('#kMonth').textContent=v.filter(r=>(r.date||'').startsWith(mo)).length;
+  $('#kMonth').textContent=v.filter(r=>inMo(r.date,mo)).length;
   $('#kPend').textContent=v.filter(r=>!r.notified).length;
-  $('#kExc').textContent=x.filter(r=>(r.date||'').startsWith(mo)).length;
+  $('#kExc').textContent=x.filter(r=>inMo(r.date,mo)).length;
   const latest=behRecs().sort(sortRec).slice(0,6);
   $('#latest').innerHTML=latest.length?latest.map(r=>recRow(r)).join(''):`<div class="empty"><b>لا يوجد رصد بعد</b>اضغطي «رصد مخالفة» أو «سلوك متميز» في الأسفل لتسجيل أول رصد.</div>`;
   const cnt=[0,0,0,0,0,0];v.forEach(r=>cnt[D(r.degree)]++);const mx=Math.max(1,...cnt);
@@ -2478,7 +2479,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101085111';
+const APP_VER='20261101095138';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2796,6 +2797,99 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
     try{await store.add({kind:'plan',value:val.k,name:norm(v.name),grade:v.grade||'',section:v.section||'',tier,goal:val.obs,steps,start:t,date:t,review:addD(t,tier>=3?28:14),status:'active',note:'من محضر الواقعة: '+v.violation,by:isAdmin?'الموجّهة الطلابية':supTitle(),createdAt:new Date().toISOString()});toast('بدأت متابعة الخطة في «القيم» ✓');openCase(v.id);}catch(x){writeErr(x);b.disabled=false;}}},true);
 
 
+
+/* ---------- ملف الانضباط: الالتزام (توقيع أولياء الأمور) + الأنشطة والشواهد + محاضر لجنة التوجيه + المؤشرات الشهرية + الملف الكامل ---------- */
+const DACT_T=['نشرة توعوية','برنامج توعوي','إذاعة مدرسية','رسالة لأولياء الأمور','لقاء أولياء الأمور','تكريم المنضبطات','ورشة / محاضرة','أخرى'];
+const DACT_A=['الطالبات','أولياء الأمور','المعلمات','الجميع'];
+const dActs=()=>records.filter(r=>r.kind==='dact').sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+const dMeets=()=>records.filter(r=>r.kind==='dmeet').sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+const iltz=()=>surveys.filter(x=>x&&x.a&&(x.type==='iltizam'||(x.type==='sat'&&x.prog==='ILT')));
+const dtok=s=>norm(s).replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').split(/\s+/).filter(w=>w&&w!=='بن'&&w!=='بنت');
+function iltMatch(){const R=allRoster(),sig=new Map(),un=[];
+  for(const x of iltz()){const a=x.a,tk=dtok(a.name||'');if(tk.length<2){un.push(x);continue;}
+    const C=R.filter(c=>!a.stage||c.grade===a.stage);let hit=[];
+    for(const c of C)for(const n of (c.names||[])){const nt=new Set(dtok(n));if(tk.every(w=>nt.has(w)))hit.push({c,n});}
+    if(hit.length>1&&a.sec)hit=hit.filter(h=>String(h.c.section)===String(a.sec).replace(/[^0-9]/g,'')||!String(a.sec).trim());
+    if(hit.length===1)sig.set(norm(hit[0].n)+'|'+hit[0].c.grade,x);else un.push(x);}
+  return {sig,un};}
+function dImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{let w=Math.min(640,im.width),q=.6,out='';for(let k=0;k<8;k++){const h=Math.round(im.height*w/im.width),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);out=cv.toDataURL('image/jpeg',q);if(out.length<42000)break;q=Math.max(.3,q-.1);if(q<=.35)w=Math.round(w*.8);}res(out.length<48000?out:'');};im.src=fr.result;};fr.readAsDataURL(file);});}
+const hMo=d=>{try{return hijri(d).replace(/^\S+\s+/,'');}catch(e){return (d||'').slice(0,7);}};
+function dMonths(){const m=new Map();for(const r of records){if(r.date&&/^\d{4}-\d{2}-\d{2}/.test(r.date)&&r.date<=today()){const k=hMo(r.date);if(!m.has(k)||m.get(k)>r.date)m.set(k,r.date);}}const k=hMo(today());if(!m.has(k))m.set(k,today());return [...m.entries()].sort((a,b)=>a[1].localeCompare(b[1])).map(x=>x[0]);}
+const inMo=(d,mo)=>!!d&&hMo(d)===mo;
+function dStats(mo){const N=allRoster().reduce((a,c)=>a+(c.names||[]).length,0);
+  const days=[...new Set(records.filter(r=>(r.kind==='sess'||r.kind==='abs')&&inMo(r.date,mo)&&r.date<=today()).map(r=>r.date))].sort();
+  let ab=0,lt=0;for(const d of days){const K=dayKinds(d);ab+=K.filter(x=>x.kind==='abs').length;lt+=K.filter(x=>x.kind==='late').length;}
+  const V=behRecs().filter(r=>!isExc(r)&&inMo(r.date,mo)),X=records.filter(r=>isExc(r)&&inMo(r.date,mo));
+  const deg={};V.forEach(r=>{const k=String(r.degree||'').replace('s','');deg[k]=(deg[k]||0)+1;});
+  const att=N&&days.length?Math.round(1000-ab/(N*days.length)*1000)/10:null;
+  return {mo,N,days:days.length,ab,lt,att,viol:V.length,deg,good:X.length,acts:records.filter(r=>r.kind==='absact'&&inMo(r.date,mo)).length,
+    da:dActs().filter(r=>inMo(r.date,mo)).length,dm:dMeets().filter(r=>inMo(r.date,mo)).length};}
+const moName=mo=>mo;
+const dst={tab:'sig',edit:'',img:''};
+function iltLink(){if(!SYNC.url)return '';try{const u=new URL('istb.html',location.href);u.hash=new URLSearchParams({u:SYNC.url,t:'iltizam',sc:settings.school||DEF_SCHOOL,ph:schoolPhone()}).toString();return u.toString();}catch(e){return '';}}
+const iltMsg=l=>`أولياء أمور طالباتنا الكرام\nالسلام عليكم ورحمة الله وبركاته\n\nحرصًا على انتظام بناتنا، نأمل الاطلاع على أبرز ما ورد في قواعد السلوك والمواظبة (الإصدار الخامس 1447) والتوقيع إلكترونيًا على نموذج الالتزام المدرسي (دقيقة واحدة):\n${l}\n\nشاكرين تعاونكم\n${settings.school||DEF_SCHOOL}`;
+function openDisc(tab){if(!canSup)return;if(tab)dst.tab=tab;openKey=null;imp.open=false;absOpen=null;const t=dst.tab;
+  const tabs=[['sig','التوقيعات'],['act','الأنشطة والشواهد'],['meet','محاضر لجنة التوجيه'],['ind','المؤشرات الشهرية']];
+  let body='';
+  if(t==='sig'){const {sig,un}=iltMatch(),R=[...allRoster()].sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||String(a.section).localeCompare(String(b.section),'ar'));
+    const tot=R.reduce((a,c)=>a+(c.names||[]).length,0),l=iltLink();
+    body=`<p class="hint">يفتح ولي الأمر الرابط، ويطّلع على ملخص قواعد السلوك والمواظبة، ويوقّع إلكترونيًا على نموذج الالتزام المدرسي باسمه. يصل التوقيع هنا ويُطابَق مع اسم الطالبة.</p>
+    ${l?`<div class="actions"><button class="btn sm" type="button" data-srvcopy="${esc(l)}">نسخ رابط التوقيع</button><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(iltMsg(l))}">إرسال بواتساب</a><button class="btn sm ghost" type="button" id="dSync">تحديث التوقيعات</button></div>`:'<div class="empty">اربطي المنصة بقوقل شيت أولًا من الإعدادات.</div>'}
+    <div class="row" style="margin-top:8px"><div class="main"><div class="t">وقّع ${sig.size} من ${tot} (${tot?Math.round(sig.size/tot*100):0}٪)</div><div class="s">${un.length?un.length+' توقيع لم يُطابَق باسم طالبة — راجعيه أسفل القائمة':'كل التوقيعات مطابَقة'}</div></div></div>
+    ${R.map(c=>{const ns=c.names||[],ok=ns.filter(n=>sig.has(norm(n)+'|'+c.grade)),no=ns.filter(n=>!sig.has(norm(n)+'|'+c.grade));return `<details class="panel" style="margin-top:8px;padding:8px 12px"><summary style="cursor:pointer"><b>${esc(c.grade)} / ${esc(c.section||'')}</b> — وقّع ${ok.length} من ${ns.length}</summary><div class="s" style="margin-top:6px"><b>لم يوقّع:</b> ${no.map(esc).join('، ')||'—'}</div></details>`;}).join('')}
+    ${un.length?`<h4 style="margin:14px 0 6px">توقيعات لم تُطابَق</h4><div class="panel">${un.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.a.name||'')}</div><div class="s">${esc(x.a.stage||'')} ${esc(x.a.sec||'')} · ولي الأمر: ${esc(x.a.parent||'')} · ${hijri((x.at||'').slice(0,10))}</div></div></div>`).join('')}</div>`:''}`;}
+  else if(t==='act'||t==='meet'){const L=t==='act'?dActs():dMeets(),e=L.find(r=>r.id===dst.edit)||{};
+    const form=t==='act'?`<div class="fgrid"><div><label for="daDate">التاريخ</label><input id="daDate" type="date" value="${e.date||today()}"></div><div><label for="daType">النوع</label><select id="daType">${DACT_T.map(x=>`<option ${x===e.type?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="full"><label for="daTitle">العنوان</label><input id="daTitle" value="${esc(e.title||'')}" placeholder="مثل: نشرة «المواظبة طريق التميز»"></div>
+      <div><label for="daAud">المستهدف</label><select id="daAud">${DACT_A.map(x=>`<option ${x===e.aud?'selected':''}>${x}</option>`).join('')}</select></div><div><label for="daN">عدد المستفيدات</label><input id="daN" type="number" min="0" value="${esc(e.n||'')}"></div>
+      <div class="full"><label for="daDesc">الوصف</label><textarea id="daDesc" rows="2">${esc(e.desc||'')}</textarea></div></div>`
+     :`<div class="fgrid"><div><label for="daDate">التاريخ</label><input id="daDate" type="date" value="${e.date||today()}"></div><div><label for="daNo">رقم الاجتماع</label><input id="daNo" type="number" min="1" value="${esc(e.no||String(L.length+1))}"></div>
+      <div class="full"><label for="daAtt">الحاضرات (اسم – الصفة، كل واحدة في سطر)</label><textarea id="daAtt" rows="3" placeholder="مديرة المدرسة – رئيسة اللجنة&#10;الموجّهة الطلابية – مقررة">${esc(e.att||'')}</textarea></div>
+      <div class="full"><label for="daAg">جدول الأعمال</label><textarea id="daAg" rows="2">${esc(e.ag||'')}</textarea></div>
+      <div class="full"><label for="daDec">القرارات والتوصيات</label><textarea id="daDec" rows="3">${esc(e.dec||'')}</textarea></div>
+      <div class="full"><label for="daStu">الطالبات المحالات أو المناقشة حالاتهن (اختياري)</label><textarea id="daStu" rows="2">${esc(e.stu||'')}</textarea></div></div>`;
+    body=`<div class="panel" style="padding:12px"><div class="t" style="margin-bottom:6px">${e.id?'تعديل':'إضافة'} ${t==='act'?'نشاط':'محضر اجتماع'}</div>${form}
+      <div class="fgrid" style="margin-top:6px"><div class="full"><label for="daImg">صورة الشاهد (اختياري)</label><input id="daImg" type="file" accept="image/*"><div id="daPrev" style="margin-top:6px">${(dst.img||e.img)?`<img src="${dst.img||e.img}" alt="الشاهد" style="max-width:200px;border-radius:8px">`:''}</div></div>
+      <div class="full"><label for="daLink">رابط الشاهد الأصلي (درايف أو غيره، اختياري)</label><input id="daLink" dir="ltr" value="${esc(e.link||'')}" placeholder="https://"></div></div>
+      <div class="actions"><button class="btn" type="button" id="daSave">${e.id?'حفظ التعديل':'حفظ'}</button>${e.id?'<button class="btn ghost" type="button" id="daCancel">إلغاء</button>':''}</div></div>
+      <h4 style="margin:14px 0 6px">${t==='act'?'الأنشطة المسجلة':'المحاضر المسجلة'} (${L.length})</h4>
+      <div class="panel">${L.length?[...L].reverse().map(r=>`<div class="row">${r.img?`<img src="${r.img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`:''}<div class="main"><div class="t">${t==='act'?esc(r.title||r.type):'الاجتماع رقم '+esc(r.no||'')}</div><div class="s">${hijri(r.date)} · ${t==='act'?esc(r.type)+' · '+esc(r.aud||'')+(r.n?' · '+esc(r.n)+' مستفيدة':''):esc((r.dec||'').slice(0,90))}${r.link?' · <a href="'+esc(r.link)+'" target="_blank" rel="noopener">الشاهد</a>':''}</div></div>${canWrite?`<button class="btn sm ghost" type="button" data-daedit="${r.id}">تعديل</button><button class="btn sm danger" type="button" data-dadel="${r.id}" aria-label="حذف">✕</button>`:''}</div>`).join(''):'<div class="empty">لا يوجد شيء مسجّل بعد.</div>'}</div>`;}
+  else{const M=dMonths(),S=M.map(dStats).reverse();
+    body=`<p class="hint">تُحسب آليًا من الرصد في المنصة. نسبة الحضور = 100 − (أيام غياب اليوم الكامل ÷ (عدد الطالبات × أيام الرصد)). الغياب الجزئي لا يُحسب غياب يوم، والتأخر يُعدّ منفصلًا.</p>
+    <div class="panel pv" style="overflow-x:auto"><table class="imptbl"><thead><tr><th>الشهر</th><th>أيام الرصد</th><th>الحضور</th><th>أيام الغياب</th><th>التأخر</th><th>المخالفات</th><th>السلوك المتميز</th><th>إجراءات الغياب المنفذة</th><th>أنشطة</th><th>اجتماعات</th></tr></thead><tbody>
+    ${S.map(s=>`<tr><td>${esc(moName(s.mo))}</td><td>${s.days}</td><td><b>${s.att==null?'—':s.att+'٪'}</b></td><td>${s.ab}</td><td>${s.lt}</td><td>${s.viol}${s.viol?' <span class="hint">('+Object.keys(s.deg).sort().map(k=>'د'+k+':'+s.deg[k]).join(' ')+')</span>':''}</td><td>${s.good}</td><td>${s.acts}</td><td>${s.da}</td><td>${s.dm}</td></tr>`).join('')}</tbody></table></div>`;}
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>ملف الانضباط</h3><div class="hint">وفق قواعد السلوك والمواظبة — الإصدار الخامس 1447 · من بداية الفصل الدراسي</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="actions" style="margin-top:8px">${tabs.map(([k,v])=>`<button type="button" class="btn sm ${k===t?'':'ghost'}" data-dtab="${k}">${v}</button>`).join('')}${hosted?'':'<button type="button" class="btn sm ghost" id="dPrint">🖨 طباعة الملف كاملًا</button>'}</div>
+  <div style="margin-top:10px">${body}</div>`;
+  $('#sheet').hidden=false;}
+function printDisc(){const {sig,un}=iltMatch(),R=[...allRoster()].sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||String(a.section).localeCompare(String(b.section),'ar'));
+  const tot=R.reduce((a,c)=>a+(c.names||[]).length,0),A=dActs(),Mt=dMeets(),S=dMonths().map(dStats);
+  const absDone=records.filter(r=>r.kind==='absact').sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const sec=(n,t)=>`<h3 style="margin-top:24px;page-break-before:always">${n}. ${t}</h3>`;
+  doPrint(printHead('ملف الانضباط المدرسي')+`<p style="text-align:center">وفق قواعد السلوك والمواظبة لطلبة التعليم العام — الإصدار الخامس 1447هـ<br>إعداد: الموجّهة الطلابية</p>
+  <h4>المحتويات</h4><ol><li>التعريف بالقواعد ونموذج الالتزام المدرسي (توقيع أولياء الأمور)</li><li>الأنشطة التوعوية والشواهد</li><li>محاضر اجتماعات لجنة التوجيه الطلابي</li><li>مؤشرات الانضباط الشهرية</li><li>إجراءات الغياب المنفذة</li></ol>
+  ${sec(1,'التعريف بالقواعد ونموذج الالتزام المدرسي')}<p>وقّع إلكترونيًا ${sig.size} وليّ أمر من ${tot} (${tot?Math.round(sig.size/tot*100):0}٪).</p>
+  <table><thead><tr><th>الفصل</th><th>العدد</th><th>وقّع</th><th>النسبة</th><th>لم يوقّع</th></tr></thead><tbody>${R.map(c=>{const ns=c.names||[],ok=ns.filter(n=>sig.has(norm(n)+'|'+c.grade)).length;return `<tr><td>${esc(c.grade)} / ${esc(c.section||'')}</td><td>${ns.length}</td><td>${ok}</td><td>${ns.length?Math.round(ok/ns.length*100):0}٪</td><td style="font-size:12px">${ns.filter(n=>!sig.has(norm(n)+'|'+c.grade)).map(esc).join('، ')}</td></tr>`;}).join('')}</tbody></table>
+  ${sec(2,'الأنشطة التوعوية والشواهد')}${A.length?A.map((r,i)=>`<div style="border:1px solid #999;border-radius:6px;padding:8px;margin:8px 0;page-break-inside:avoid"><b>${i+1}. ${esc(r.title||r.type)}</b> — ${esc(r.type)} · ${hijri(r.date)} · المستهدف: ${esc(r.aud||'')}${r.n?' · '+esc(r.n)+' مستفيدة':''}${r.desc?'<br>'+esc(r.desc):''}${r.link?'<br>رابط الشاهد: '+esc(r.link):''}${r.img?`<br><img src="${r.img}" style="max-width:300px;margin-top:6px">`:''}</div>`).join(''):'<p>لا توجد أنشطة مسجلة.</p>'}
+  ${sec(3,'محاضر اجتماعات لجنة التوجيه الطلابي')}${Mt.length?Mt.map(r=>`<div style="border:1px solid #999;border-radius:6px;padding:8px;margin:8px 0;page-break-inside:avoid"><b>محضر الاجتماع رقم ${esc(r.no||'')}</b> — ${hijri(r.date)}<br><b>الحاضرات:</b><br>${esc(r.att||'').replace(/\n/g,'<br>')}<br><b>جدول الأعمال:</b> ${esc(r.ag||'')}<br><b>القرارات والتوصيات:</b><br>${esc(r.dec||'').replace(/\n/g,'<br>')}${r.stu?'<br><b>الحالات:</b> '+esc(r.stu):''}${r.img?`<br><img src="${r.img}" style="max-width:300px;margin-top:6px">`:''}</div>`).join(''):'<p>لا توجد محاضر مسجلة.</p>'}
+  ${sec(4,'مؤشرات الانضباط الشهرية')}<table><thead><tr><th>الشهر</th><th>أيام الرصد</th><th>نسبة الحضور</th><th>أيام الغياب</th><th>التأخر</th><th>المخالفات</th><th>السلوك المتميز</th><th>إجراءات منفذة</th><th>أنشطة</th><th>اجتماعات</th></tr></thead><tbody>${S.map(s=>`<tr><td>${esc(moName(s.mo))}</td><td>${s.days}</td><td>${s.att==null?'—':s.att+'٪'}</td><td>${s.ab}</td><td>${s.lt}</td><td>${s.viol}</td><td>${s.good}</td><td>${s.acts}</td><td>${s.da}</td><td>${s.dm}</td></tr>`).join('')}</tbody></table>
+  ${sec(5,'إجراءات الغياب المنفذة')}${absDone.length?`<table><thead><tr><th>م</th><th>الطالبة</th><th>الصف</th><th>الإجراء</th><th>التاريخ</th><th>بواسطة</th></tr></thead><tbody>${absDone.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${esc(r.grade)} / ${esc(r.section||'')}</td><td>${esc((ABS_STAGES[r.stage]||{}).label||r.stage)}</td><td>${hijri(r.date)}</td><td>${esc(r.by||'')}</td></tr>`).join('')}</tbody></table>`:'<p>لا توجد إجراءات غياب منفذة مسجلة.</p>'}
+  <div style="display:flex;justify-content:space-between;margin-top:40px"><div>الموجّهة الطلابية<br><br>..........................</div><div>مديرة المدرسة<br><br>..........................</div></div>`);}
+document.addEventListener('change',async e=>{if(e.target&&e.target.id==='daImg'){const f=e.target.files&&e.target.files[0];if(!f)return;try{dst.img=await dImg(f);$('#daPrev').innerHTML=dst.img?`<img src="${dst.img}" alt="الشاهد" style="max-width:200px;border-radius:8px">`:'<span class="hint">تعذّر تصغير الصورة، جرّبي صورة أخرى</span>';}catch(x){toast('تعذّر قراءة الصورة');}}});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('#supDisc,[data-dtab],#dPrint,#daSave,#daCancel,[data-daedit],[data-dadel],#dSync'):null;if(!b||!canSup)return;
+  if(b.id==='supDisc'){dst.edit='';dst.img='';openDisc();return;}
+  if(b.dataset.dtab){dst.edit='';dst.img='';openDisc(b.dataset.dtab);return;}
+  if(b.id==='dPrint'){printDisc();return;}
+  if(b.id==='dSync'){try{await pull();}catch(x){}openDisc();toast('حُدّثت التوقيعات');return;}
+  if(b.id==='daCancel'){dst.edit='';dst.img='';openDisc();return;}
+  if(b.dataset.daedit){dst.edit=b.dataset.daedit;dst.img='';openDisc();return;}
+  if(b.dataset.dadel){if(!canWrite)return;if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='تأكيد الحذف';return;}try{await store.remove(b.dataset.dadel);}catch(x){writeErr(x)}openDisc();return;}
+  if(b.id==='daSave'){if(!canWrite)return;const t=dst.tab,v=id=>($('#'+id)||{}).value||'';const old=records.find(r=>r.id===dst.edit);
+    const r=t==='act'?{kind:'dact',date:v('daDate'),type:v('daType'),title:v('daTitle').trim(),aud:v('daAud'),n:v('daN'),desc:v('daDesc').trim().slice(0,600)}
+      :{kind:'dmeet',date:v('daDate'),no:v('daNo'),att:v('daAtt').trim().slice(0,600),ag:v('daAg').trim().slice(0,400),dec:v('daDec').trim().slice(0,1200),stu:v('daStu').trim().slice(0,400)};
+    if(t==='act'&&!r.title){toast('اكتبي عنوان النشاط');return;}if(t==='meet'&&!r.dec){toast('اكتبي القرارات والتوصيات');return;}
+    r.link=v('daLink').trim().slice(0,300);r.img=dst.img||(old&&old.img)||'';
+    b.disabled=true;try{if(old)await store.update(old.id,r);else await store.add({...r,by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});toast('حُفظ');dst.edit='';dst.img='';openDisc();}catch(x){writeErr(x);b.disabled=false;}return;}});
 
 /* ---------- الاستئذان: خروج الطالبة من الحصة (دورة المياه / الإدارة / إلى معلمة) مع عدّ الدقائق ---------- */
 const EXIT_D={wc:'دورة المياه',admin:'الإدارة',teacher:'إلى معلمة'},EXIT_MAX=10;

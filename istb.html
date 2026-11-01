@@ -46,12 +46,18 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
   const $=s=>document.querySelector(s);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const box=$('#box');
-  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!['needs','values','sat'].includes(P.t)){
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!['needs','values','sat','iltizam'].includes(P.t)){
     box.innerHTML='<h1>الرابط غير صالح</h1><p class="muted">استخدموا الرابط الذي وصلكم من المدرسة.</p>';return;
   }
   const STAGES=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
   const VALS=[['disc','الانضباط','تلتزم ابنتي بمواعيد النوم والاستيقاظ والحضور إلى المدرسة'],['will','العزيمة','تُكمل ابنتي مهامها وواجباتها رغم الصعوبات'],['hon','الأمانة','تصدق ابنتي في حديثها وتحافظ على ممتلكاتها وممتلكات غيرها'],['tol','التسامح','تحل ابنتي خلافاتها مع إخوتها وغيرهم باحترام'],['coop','التعاون','تساعد ابنتي في أعمال المنزل وتعمل مع الآخرين بروح الفريق'],['nat','الانتماء الوطني','تعتز ابنتي بوطنها وتحافظ على المرافق العامة']];
   const SC=['نادرًا','أحيانًا','غالبًا','دائمًا'];
+  const ILT=['اطلعتُ على أبرز ما ورد في قواعد السلوك والمواظبة، ومنها أن المخالفات السلوكية تُصنَّف في درجات تترتب عليها إجراءات وحسم من درجات السلوك.',
+   'ألتزم بمتابعة حضور ابنتي يوميًا ووصولها إلى المدرسة في الوقت المحدد، وأعلم أن التأخر الصباحي يُرصد مخالفةً سلوكية.',
+   'أُبلغ المدرسة بسبب غياب ابنتي وأقدّم ما يثبت العذر.',
+   'أعلم أن الغياب دون عذر تترتب عليه إجراءات نظامية تبدأ بالتحويل إلى الموجّهة الطلابية عند ثلاثة أيام، ثم لجنة التوجيه الطلابي عند خمسة أيام، وقد تصل إلى مخاطبة الجهات ذات الاختصاص عند عشرة أيام.',
+   'أحضر إلى المدرسة عند دعوتي، وأتعاون في الخطط التربوية وخطط تعديل السلوك.',
+   'أحثّ ابنتي على احترام زميلاتها ومنسوبات المدرسة والمحافظة على ممتلكاتها والالتزام بالزي المدرسي.'];
   const chk=(n,arr,type)=>`<div class="opts">${arr.map(x=>`<label class="opt"><input type="${type||'checkbox'}" name="${n}" value="${esc(x)}"> ${esc(x)}</label>`).join('')}</div>`;
   const scale=n=>`<div class="scale">${SC.map((x,i)=>`<label class="opt"><input type="radio" name="${n}" value="${i+1}"><span>${x}</span></label>`).join('')}</div>`;
   const stage=`<fieldset><legend>صف ابنتكم</legend>${chk('stage',STAGES,'radio')}</fieldset>`;
@@ -66,6 +72,14 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       html:stage+`<fieldset><legend>السلوك في المنزل</legend>${VALS.map(v=>`<div class="vq"><b>${v[1]}</b><span>${v[2]}</span>${scale('v_'+v[0])}</div>`).join('')}</fieldset>
       <fieldset><legend>هل شاركتم في لقاء أو برنامج من المدرسة هذا الفصل؟</legend>${chk('joined',['نعم','لا'],'radio')}</fieldset>
       <fieldset><label class="q" for="sug">ملاحظات تودون إيصالها للمدرسة (اختياري)</label><textarea id="sug" maxlength="400"></textarea></fieldset>`},
+    iltizam:{title:'نموذج الالتزام المدرسي',intro:'وفق قواعد السلوك والمواظبة لطلبة التعليم العام — الإصدار الخامس 1447هـ. نأمل قراءة البنود والتوقيع إلكترونيًا.',
+      html:`<fieldset><label class="q" for="sn">اسم الطالبة (الثلاثي أو الرباعي)</label><input type="text" id="sn" maxlength="80" autocomplete="off"></fieldset>
+      ${stage}<fieldset><label class="q" for="ss">الفصل</label><select id="ss"><option value="">— اختاروا —</option>${['1','2','3','4','5','6'].map(x=>`<option>${x}</option>`).join('')}</select></fieldset>
+      <fieldset><legend>بنود الالتزام</legend><div class="opts">${ILT.map((x,i)=>`<label class="opt"><input type="checkbox" name="il" value="${i}"> ${esc(x)}</label>`).join('')}</div>
+      <p class="muted">للاطلاع على القواعد كاملة: <a href="https://www.moe.gov.sa/ar/aboutus/aboutministry/RPRLibrary/%D9%82%D9%88%D8%A7%D8%B9%D8%AF%20%D8%A7%D9%84%D8%B3%D9%84%D9%88%D9%83%20%D9%88%D8%A7%D9%84%D9%85%D9%88%D8%A7%D8%B8%D8%A8%D8%A9%20%D9%84%D8%B7%D9%84%D8%A7%D8%A8%20%D9%88%D8%B7%D8%A7%D9%84%D8%A8%D8%A7%D8%AA%20%D8%A7%D9%84%D8%AA%D8%B9%D9%84%D9%8A%D9%85%20%D8%A7%D9%84%D8%B9%D8%A7%D9%85%201447.pdf" target="_blank" rel="noopener">قواعد السلوك والمواظبة 1447 (موقع وزارة التعليم)</a></p></fieldset>
+      <fieldset><label class="q" for="pn">اسم ولي الأمر</label><input type="text" id="pn" maxlength="60" autocomplete="name"></fieldset>
+      <fieldset><legend>صلة القرابة</legend>${chk('rel',['الأب','الأم','الأخ','أخرى'],'radio')}</fieldset>
+      <fieldset><label class="opt"><input type="checkbox" id="sgn"> <b>أقرّ بأني اطلعت على ما سبق وألتزم به، ويُعدّ هذا توقيعًا مني.</b></label></fieldset>`},
     sat:{title:'استبانة رضا الأسرة عن اللقاء',intro:P.pt?'اللقاء: '+P.pt:'رأيكم يساعدنا على تحسين لقاءاتنا.',
       html:`<fieldset><legend>إلى أي مدى أفادكم اللقاء؟</legend>${scale('use')}</fieldset>
       <fieldset><legend>هل كان المحتوى واضحًا؟</legend>${scale('clear')}</fieldset>
@@ -84,14 +98,21 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       if(!a.areas.length&&!a.topics.length&&!a.skills){$('#err').textContent='اختاروا مجالًا أو موضوعًا واحدًا على الأقل.';return;}}
     else if(P.t==='values'){a={stage:one('stage'),r:{},joined:one('joined'),sug:txt('sug')};let n=0;VALS.forEach(v=>{const x=one('v_'+v[0]);if(x){a.r[v[0]]=+x;n++;}});
       if(n<VALS.length){$('#err').textContent='أجيبوا عن القيم الست كلها، من فضلكم.';return;}}
+    else if(P.t==='iltizam'){a={name:txt('sn'),stage:one('stage'),sec:($('#ss')||{}).value||'',parent:txt('pn'),rel:one('rel'),items:many('il').length,sig:$('#sgn').checked?1:0};
+      if(a.name.split(/\s+/).filter(Boolean).length<2){$('#err').textContent='اكتبوا اسم الطالبة الثلاثي على الأقل.';return;}
+      if(!a.stage||!a.sec){$('#err').textContent='اختاروا الصف والفصل.';return;}
+      if(a.items<ILT.length){$('#err').textContent='ضعوا علامة على بنود الالتزام كلها، من فضلكم.';return;}
+      if(!a.parent||!a.sig){$('#err').textContent='اكتبوا اسم ولي الأمر وأقرّوا بالتوقيع.';return;}}
     else{a={use:+one('use')||0,clear:+one('clear')||0,apply:one('apply'),best:txt('best'),sug:txt('sug')};
       if(!a.use){$('#err').textContent='اختاروا مدى الفائدة من اللقاء.';return;}}
     const b=$('#send');b.disabled=true;b.textContent='جارٍ الإرسال…';
     try{
-      const r=await fetch(P.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'survey',type:P.t,prog:P.p,progTitle:P.pt,value:P.v,a})});
-      const j=await r.json();if(!j.ok)throw new Error(j.error||'x');
+      const send=body=>fetch(P.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(r=>r.json());
+      let j=await send({op:'survey',type:P.t,prog:P.p,progTitle:P.pt,value:P.v,a});
+      if(!j.ok&&P.t==='iltizam'&&j.error==='data')j=await send({op:'survey',type:'sat',prog:'ILT',progTitle:'إقرار الالتزام المدرسي',value:'',a});
+      if(!j.ok)throw new Error(j.error||'x');
       try{localStorage.setItem('istb_'+P.t+(P.p||''),'1');}catch(x){}
-      box.innerHTML='<p class="ok">✓ شكرًا لكم</p><p>وصلت إجابتكم إلى المدرسة. مشاركتكم تصنع الفرق في تربية بناتنا.</p>';
+      box.innerHTML=P.t==='iltizam'?'<p class="ok">✓ تم التوقيع</p><p>وصل إقراركم بالالتزام المدرسي إلى المدرسة. شكرًا لحرصكم على انتظام ابنتكم.</p>':'<p class="ok">✓ شكرًا لكم</p><p>وصلت إجابتكم إلى المدرسة. مشاركتكم تصنع الفرق في تربية بناتنا.</p>';
     }catch(x){$('#err').textContent='تعذّر الإرسال، تأكدوا من الاتصال بالإنترنت وحاولوا مرة أخرى.';b.disabled=false;b.textContent='إرسال';}
   });
 })();
