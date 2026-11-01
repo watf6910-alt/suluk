@@ -579,17 +579,17 @@ const store={mode:'pending',db:null,
     else{const i=records.findIndex(x=>x.id===id);if(i>=0)records[i]=r;else records.push(r);if(this.mode==='sheet')queueOp({op:'put',rec:r});}
   },
   saveLocal(){cacheAll();},
-  async add(r){
+  async add(r){DKV++;
     if(this.mode==='db'){await this.db.collection('records').add(r);return;}
     r.id='r'+Date.now()+Math.random().toString(36).slice(2,6);if(!r.dev)r.dev=DEV;records.push(r);
     if(this.mode==='sheet')queueOp({op:'put',rec:r});else{cacheAll();renderAll();}
   },
-  async update(id,p){
+  async update(id,p){DKV++;
     if(this.mode==='db'){await this.db.doc('records/'+id).update(p);return;}
     const r=records.find(x=>x.id===id);Object.assign(r,p);
     if(this.mode==='sheet')queueOp({op:'put',rec:r});else{cacheAll();renderAll();}
   },
-  async remove(id){
+  async remove(id){DKV++;
     if(this.mode==='db'){await this.db.doc('records/'+id).delete();return;}
     records=records.filter(x=>x.id!==id);
     if(this.mode==='sheet')queueOp({op:'del',id});else{cacheAll();renderAll();}
@@ -964,7 +964,7 @@ function recRow(r,showName=true){
 }
 const editBtn=r=>`<button class="btn sm ghost" data-edit="${r.id}">تعديل</button>`;
 const delBtn=r=>isAdmin?`<button class="btn sm danger" data-del="${r.id}">حذف</button>`:'';
-function renderAll(){
+function renderAll(){DKV++;
   try{renderMyDay();}catch(e){}
   const sch=settings.school||DEF_SCHOOL;
   $('#schoolLbl').textContent=sch+(settings.region?' · '+settings.region:'');
@@ -1701,12 +1701,20 @@ const ABS_PARENT={
   e5:'نأمل تنسيقكم مع المدرسة لمتابعة خطة التعلّم في أيام الغياب.',
   e10:'نأمل تشريفكم المدرسة للتنسيق حول انتظام ابنتكم ودعمها.'
 };
-const absRecs=()=>records.filter(r=>r.kind==='abs');
+/* فهرس مؤقت للسجلات: يُبنى مرة لكل تغيير في البيانات بدل تصفية كل السجلات آلاف المرات */
+var DKV=0,_ix={v:-1,n:-1};
+function IX(){if(_ix.v===DKV&&_ix.n===records.length)return _ix;const abs=[],byKey=new Map(),byDate=new Map(),sess=new Map();
+  for(const r of records){if(r.kind==='abs'){abs.push(r);const k=norm(r.name)+'|'+r.grade;(byKey.get(k)||byKey.set(k,[]).get(k)).push(r);(byDate.get(r.date)||byDate.set(r.date,[]).get(r.date)).push(r);}
+    else if(r.kind==='sess'){const k=r.date+'|'+r.grade+'|'+String(r.section||'');(sess.get(k)||sess.set(k,new Set()).get(k)).add(r.period);}}
+  _ix={v:DKV,n:records.length,abs,byKey,byDate,sess,dk:new Map(),as:new Map(),rng:new Map()};return _ix;}
+const sessSet=(d,g,s)=>IX().sess.get(d+'|'+g+'|'+String(s||''))||new Set();
+const absRecs=()=>IX().abs;
 const dayW=n=>n===1?'يوم واحد':n===2?'يومان':n>=3&&n<=10?n+' أيام':n+' يوماً';
 const absKeyOf=r=>norm(r.name)+'|'+r.grade;
 function nextSchoolDay(iso){const d=new Date(iso+'T12:00:00');do{d.setDate(d.getDate()+1);}while(d.getDay()===5||d.getDay()===6);return d.toISOString().slice(0,10);}
-function attStats(key){
-  const mine=absRecs().filter(r=>absKeyOf(r)===key);
+function attStats(key){const _c=IX().as;if(_c.has(key))return _c.get(key);const _r=attStats0(key);_c.set(key,_r);return _r;}
+function attStats0(key){
+  const mine=IX().byKey.get(key)||[];
   const dm=new Map();let lateDays=new Set();
   for(const r of mine){
     if(r.status==='late'){lateDays.add(r.date);continue;}
@@ -1717,7 +1725,7 @@ function attStats(key){
   /* اليوم يُحسب غيابًا فقط إذا غابت عن كل الحصص المرصودة لفصلها. إن حضرت حصة لاحقة فهو تأخر، وإن حضرت ثم غابت فغياب حصص */
   const PI=p=>(typeof PERIODS!=='undefined'?PERIODS.indexOf(p):-1);const part=[];
   for(const d of [...dm.values()]){if(d.periods.includes('اليوم كاملاً'))continue;const r0=mine.find(r=>r.date===d.date);if(!r0)continue;
-    const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===d.date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+    const rec=sessSet(d.date,r0.grade,r0.section);
     const pres=[...rec].filter(p=>!d.periods.includes(p)).map(PI).filter(i=>i>=0);if(!pres.length)continue;
     const ab=d.periods.map(PI).filter(i=>i>=0);const firstP=Math.min(...pres);
     if(ab.length>=pres.length)continue; /* غابت عن أكثر اليوم: يبقى غياب يوم */
@@ -1727,10 +1735,10 @@ function attStats(key){
   const un=days.filter(d=>!d.excuse).map(d=>d.date).sort();
   let maxRun=un.length?1:0,run=1;for(let i=1;i<un.length;i++){run=un[i]===nextSchoolDay(un[i-1])?run+1:1;maxRun=Math.max(maxRun,run);}
   let unexc=un.length, exc=days.length-unexc;const term=+settings.termDays||90;let noorV=null;
-  {const S=noorSnap();if(S&&S.m.has(key)){noorV=S.m.get(key);const af=days.filter(d=>d.date>S.date);unexc=noorV.u+af.filter(d=>!d.excuse).length;exc=noorV.e+af.filter(d=>d.excuse).length;for(const d of [...lateDays])if(d<=S.date)lateDays.delete(d);noorV={...noorV,date:S.date,pre:S.pre};}}
+  {const S=noorSnap();if(S&&S.m.has(key)){noorV=S.m.get(key);const af=days.filter(d=>d.date>S.date);unexc=noorV.u+af.filter(d=>!d.excuse).length;exc=noorV.e+af.filter(d=>d.excuse).length;noorV={...noorV,date:S.date,pre:S.pre};}}
   const done=new Set(records.filter(r=>r.kind==='absact'&&absKeyOf(r)===key).map(r=>r.stage));
   if(noorV&&noorV.pre){const b0={unexc:noorV.u,exc:noorV.e,maxRun:0};for(const k of Object.keys(ABS_STAGES))if(ABS_STAGES[k].test(b0))done.add(k);}
-  const a={days,partial:part.sort((a,b)=>b.date.localeCompare(a.date)),lateList:[...lateDays].sort().reverse(),unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done,noor:noorV};if(noorV)a.late+=noorV.l;
+  const a={days,partial:part.sort((a,b)=>b.date.localeCompare(a.date)),lateList:[...lateDays].sort().reverse(),unexc,exc,late:lateDays.size,maxRun,score:Math.max(0,100-unexc),pct:Math.round(unexc/term*1000)/10,limit:Math.floor(term*0.1),done,noor:noorV};
   a.pending=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a)&&!done.has(k));
   a.reached=Object.keys(ABS_STAGES).filter(k=>ABS_STAGES[k].test(a));
   return a;
@@ -1809,7 +1817,7 @@ function renderSup(){
   const keys=[...new Set(day.map(absKeyOf))];
   const PI=p=>(typeof PERIODS!=='undefined'?PERIODS.indexOf(p):-1);
   const kindOf=k=>{const rs=day.filter(r=>absKeyOf(r)===k);const ab=rs.filter(r=>r.status!=='late');if(!ab.length)return 'late';if(ab.some(r=>r.period==='اليوم كاملاً'))return 'abs';
-    const r0=rs[0];const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+    const r0=rs[0];const rec=sessSet(date,r0.grade,r0.section);
     const abP=ab.map(r=>r.period);const pres=[...rec].filter(p=>!abP.includes(p)).map(PI).filter(i=>i>=0);if(!pres.length)return 'abs';
     if(abP.length>=pres.length)return 'abs';
     return abP.map(PI).filter(i=>i>=0).every(i=>i<Math.min(...pres))?'late':'part';};
@@ -2485,7 +2493,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101111038';
+const APP_VER='20261101112830';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2821,7 +2829,7 @@ function iltMatch(){const R=allRoster(),sig=new Map(),un=[];
   if(SIGALL)for(const [n,g] of (SIGALL.list||[])){const k=norm(n)+'|'+g;if(!sig.has(k))sig.set(k,{paper:1,builtin:1,date:SIGALL.date});}
   return {sig,un};}
 function dImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{let w=Math.min(640,im.width),q=.6,out='';for(let k=0;k<8;k++){const h=Math.round(im.height*w/im.width),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);out=cv.toDataURL('image/jpeg',q);if(out.length<42000)break;q=Math.max(.3,q-.1);if(q<=.35)w=Math.round(w*.8);}res(out.length<48000?out:'');};im.src=fr.result;};fr.readAsDataURL(file);});}
-const hMo=d=>{try{return hijri(d).replace(/^\S+\s+/,'');}catch(e){return (d||'').slice(0,7);}};
+const _hm=new Map();const hMo=d=>{if(_hm.has(d))return _hm.get(d);let v;try{v=hijri(d).replace(/^\S+\s+/,'');}catch(e){v=(d||'').slice(0,7);}_hm.set(d,v);return v;};
 function dMonths(){const m=new Map();for(const r of records){if(r.date&&/^\d{4}-\d{2}-\d{2}/.test(r.date)&&r.date<=today()){const k=hMo(r.date);if(!m.has(k)||m.get(k)>r.date)m.set(k,r.date);}}const k=hMo(today());if(!m.has(k))m.set(k,today());return [...m.entries()].sort((a,b)=>a[1].localeCompare(b[1])).map(x=>x[0]);}
 const inMo=(d,mo)=>!!d&&hMo(d)===mo;
 function dStats(mo){const N=allRoster().reduce((a,c)=>a+(c.names||[]).length,0);
@@ -2917,7 +2925,8 @@ function dRange(pred){const N=allRoster().reduce((a,c)=>a+(c.names||[]).length,0
   let ab=0,lt=0;for(const d of days){const K=dayKinds(d);ab+=K.filter(x=>x.kind==='abs').length;lt+=K.filter(x=>x.kind==='late').length;}
   const viol=behRecs().filter(r=>!isExc(r)&&pred(r.date||'')).length;
   return {days:days.length,ab,lt,viol,att:N&&days.length?Math.round(1000-ab/(N*days.length)*1000)/10:null,latePer:days.length?Math.round(lt/days.length*10)/10:null,violPer:days.length?Math.round(viol/days.length*10)/10:null};}
-function discKpiHtml(){const ws=wkStart(today()),pws=addD(ws,-7),cm=hMo(today());
+function discKpiHtml(){const _c=IX().rng;if(_c.has('kpi'))return _c.get('kpi');const _h=discKpiHtml0();_c.set('kpi',_h);return _h;}
+function discKpiHtml0(){const ws=wkStart(today()),pws=addD(ws,-7),cm=hMo(today());
   const W=dRange(d=>d>=ws),PW=dRange(d=>d>=pws&&d<ws);
   const ms=dMonths(),pm=ms[ms.indexOf(cm)-1];const M=dRange(d=>inMo(d,cm)),PM=pm?dRange(d=>inMo(d,pm)):null;
   const arrow=(a,b,good,sfx)=>{if(a==null||b==null)return '<span class="hint">لا توجد مقارنة بعد</span>';const d=Math.round((a-b)*10)/10;if(!d)return '<span class="hint">ثابت '+(sfx||'')+'</span>';const up=d>0,ok=good==='up'?up:!up;return `<strong style="font-size:14px;color:${ok?'var(--ok)':'var(--d5)'}">${up?'▲':'▼'} ${Math.abs(d)}${good==='up'?'٪':''}</strong> <span class="hint">${ok?'تحسّن':'تراجع'} ${sfx||''}</span>`;};
@@ -3053,9 +3062,10 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
     const rows=nst2.data.res.map(r=>[r.n,r.g,r.cs||r.s,r.e,r.u,r.l]);
     const pre=!!($('#noorPre')&&$('#noorPre').checked);try{await store.add({kind:'noorsnap',date:today(),rows,n:rows.length,pre,by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});_ns.len=-1;toast('اعتُمدت أرقام نور لـ '+rows.length+' طالبة');nst2.data=null;openNoorRec();try{renderAll();}catch(x){}}catch(x){writeErr(x);b.disabled=false;}}});
 /* ---------- قائمة نور اليومية: غياب اليوم مرتبًا بالفصول لإدخاله في نظام نور، مع متابعة ما أُدخل ---------- */
-function dayKinds(date){const day=absRecs().filter(r=>r.date===date);const PI=p=>PERIODS.indexOf(p);const keys=[...new Set(day.map(absKeyOf))];
+function dayKinds(date){const _c=IX().dk;if(_c.has(date))return _c.get(date);const _r=dayKinds0(date);_c.set(date,_r);return _r;}
+function dayKinds0(date){const day=IX().byDate.get(date)||[];const PI=p=>PERIODS.indexOf(p);const keys=[...new Set(day.map(absKeyOf))];
   return keys.map(k=>{const rs=day.filter(r=>absKeyOf(r)===k);const r0=rs[0];const ab=rs.filter(r=>r.status!=='late');let kind='late';
-    if(ab.length){kind='abs';if(!ab.some(r=>r.period==='اليوم كاملاً')){const rec=new Set(records.filter(r=>r.kind==='sess'&&r.date===date&&r.grade===r0.grade&&String(r.section||'')===String(r0.section||'')).map(r=>r.period));
+    if(ab.length){kind='abs';if(!ab.some(r=>r.period==='اليوم كاملاً')){const rec=sessSet(date,r0.grade,r0.section);
       const abP=ab.map(r=>r.period);const pres=[...rec].filter(p=>!abP.includes(p)).map(PI).filter(i=>i>=0);
       if(pres.length&&abP.length<pres.length)kind=abP.map(PI).filter(i=>i>=0).every(i=>i<Math.min(...pres))?'late':'part';}}
     const ex=rs.find(r=>r.excuse);return {k,name:norm(r0.name),grade:r0.grade,sec:String(rs.find(r=>r.section)?.section||''),kind,excuse:ex?ex.excuse:'',periods:[...new Set(rs.map(r=>r.period).filter(Boolean))]};});}
