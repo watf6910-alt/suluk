@@ -373,6 +373,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div class="tile"><b id="sNeed">0</b><span>بحاجة إجراء غياب</span></div>
       <div class="tile"><b id="sViol">0</b><span>مخالفات اليوم</span></div>
     </div>
+    <div class="panel" id="discKpi" style="margin-top:12px"></div>
     <div class="panel" id="supUzr" style="margin-top:12px"></div>
     <h2>الغائبات</h2><div class="panel" id="supAbsList"></div>
     <h2>المتأخرات</h2><div class="panel" id="supLateList"></div>
@@ -1827,6 +1828,7 @@ function renderSup(){
   $('#supViolList').innerHTML=vd.length?vd.map(r=>recRow(r)).join(''):'<div class="empty">لا توجد مخالفات في هذا اليوم.</div>';
   const nn=behRecs().filter(r=>!isExc(r)&&!r.notified).sort(sortRec);
   $('#supNotifList').innerHTML=nn.length?nn.slice(0,15).map(r=>recRow(r)).join('')+(nn.length>15?`<div class="empty">و${nn.length-15} أخرى</div>`:''):'<div class="empty">كل المخالفات أُشعر أولياء أمورها.</div>';
+  try{$('#discKpi').innerHTML=discKpiHtml();}catch(e){}
   $('#sAbs').textContent=absentK.filter(k=>KIND.get(k)==='abs').length;$('#sLate').textContent=lateK.length;$('#sNeed').textContent=need.length;$('#sViol').textContent=vd.length;
   renderUzrPanel();
 }
@@ -2232,6 +2234,7 @@ function openImpact(){
     <span class="vimp" title="قياس الأثر" style="color:${P?P.vd.c:'var(--accent)'}">${IMP_ICON}<small>${P?P.vd.t:'قياس الأثر'}</small></span></button>`;}).join('');
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>القيم: المؤشرات والدعم والأثر</h3><div class="hint">القيم الست لمبادرة إشراك أولياء الأمور · نظام دعم متدرج وخطط علاجية</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="tiles" style="margin-top:12px"><div class="tile"><b style="color:${idxColor(avg)}">${avg}٪</b><span>المؤشر العام للقيم</span></div><div class="tile"><b>${t3}</b><span>طالبات في المستوى العلاجي</span></div><div class="tile"><b>${ap}</b><span>خطط جارية</span></div><div class="tile"><b>${progs().length}</b><span>لقاءات وبرامج للأسرة</span></div></div>
+  <div class="panel" style="margin-top:12px">${discKpiHtml()}</div>
   <div class="vgrid">${cards}</div>
   <details class="hint" style="margin-top:10px"><summary>كيف يُحسب المؤشر والمستويات؟</summary><p><b>مؤشر القيمة:</b> نسبة الطالبات اللواتي لم تُرصد عليهن مخالفة مرتبطة بالقيمة خلال آخر 30 يوماً (أخضر 90٪ فأكثر، برتقالي 75٪ فأكثر، أحمر أقل من ذلك).</p>${TIERS.slice(1).map(x=>`<p><b style="color:${x.c}">${x.n}:</b> ${x.d}.</p>`).join('')}</details>
   <div class="actions"><button class="btn" type="button" id="valSrv">استبانات الأهل (${surveys.length})</button><button class="btn ghost" type="button" id="valPrintAll">طباعة تقرير القيم</button></div>`;
@@ -2479,7 +2482,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101095138';
+const APP_VER='20261101100707';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2855,7 +2858,7 @@ function openDisc(tab){if(!canSup)return;if(tab)dst.tab=tab;openKey=null;imp.ope
       <h4 style="margin:14px 0 6px">${t==='act'?'الأنشطة المسجلة':'المحاضر المسجلة'} (${L.length})</h4>
       <div class="panel">${L.length?[...L].reverse().map(r=>`<div class="row">${r.img?`<img src="${r.img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`:''}<div class="main"><div class="t">${t==='act'?esc(r.title||r.type):'الاجتماع رقم '+esc(r.no||'')}</div><div class="s">${hijri(r.date)} · ${t==='act'?esc(r.type)+' · '+esc(r.aud||'')+(r.n?' · '+esc(r.n)+' مستفيدة':''):esc((r.dec||'').slice(0,90))}${r.link?' · <a href="'+esc(r.link)+'" target="_blank" rel="noopener">الشاهد</a>':''}</div></div>${canWrite?`<button class="btn sm ghost" type="button" data-daedit="${r.id}">تعديل</button><button class="btn sm danger" type="button" data-dadel="${r.id}" aria-label="حذف">✕</button>`:''}</div>`).join(''):'<div class="empty">لا يوجد شيء مسجّل بعد.</div>'}</div>`;}
   else{const M=dMonths(),S=M.map(dStats).reverse();
-    body=`<p class="hint">تُحسب آليًا من الرصد في المنصة. نسبة الحضور = 100 − (أيام غياب اليوم الكامل ÷ (عدد الطالبات × أيام الرصد)). الغياب الجزئي لا يُحسب غياب يوم، والتأخر يُعدّ منفصلًا.</p>
+    body=`<div class="panel" style="margin-bottom:10px">${discKpiHtml()}</div><p class="hint">تُحسب آليًا من الرصد في المنصة. نسبة الحضور = 100 − (أيام غياب اليوم الكامل ÷ (عدد الطالبات × أيام الرصد)). الغياب الجزئي لا يُحسب غياب يوم، والتأخر يُعدّ منفصلًا.</p>
     <div class="panel pv" style="overflow-x:auto"><table class="imptbl"><thead><tr><th>الشهر</th><th>أيام الرصد</th><th>الحضور</th><th>أيام الغياب</th><th>التأخر</th><th>المخالفات</th><th>السلوك المتميز</th><th>إجراءات الغياب المنفذة</th><th>أنشطة</th><th>اجتماعات</th></tr></thead><tbody>
     ${S.map(s=>`<tr><td>${esc(moName(s.mo))}</td><td>${s.days}</td><td><b>${s.att==null?'—':s.att+'٪'}</b></td><td>${s.ab}</td><td>${s.lt}</td><td>${s.viol}${s.viol?' <span class="hint">('+Object.keys(s.deg).sort().map(k=>'د'+k+':'+s.deg[k]).join(' ')+')</span>':''}</td><td>${s.good}</td><td>${s.acts}</td><td>${s.da}</td><td>${s.dm}</td></tr>`).join('')}</tbody></table></div>`;}
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>ملف الانضباط</h3><div class="hint">وفق قواعد السلوك والمواظبة — الإصدار الخامس 1447 · من بداية الفصل الدراسي</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
@@ -2891,6 +2894,27 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
     r.link=v('daLink').trim().slice(0,300);r.img=dst.img||(old&&old.img)||'';
     b.disabled=true;try{if(old)await store.update(old.id,r);else await store.add({...r,by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});toast('حُفظ');dst.edit='';dst.img='';openDisc();}catch(x){writeErr(x);b.disabled=false;}return;}});
 
+
+/* مؤشر الانضباط: الحضور والتأخر والمخالفات — هذا الأسبوع مقابل الماضي، وهذا الشهر الهجري مقابل الماضي */
+function dRange(pred){const N=allRoster().reduce((a,c)=>a+(c.names||[]).length,0);
+  const days=[...new Set(records.filter(r=>(r.kind==='sess'||r.kind==='abs')&&r.date&&r.date<=today()&&pred(r.date)).map(r=>r.date))];
+  let ab=0,lt=0;for(const d of days){const K=dayKinds(d);ab+=K.filter(x=>x.kind==='abs').length;lt+=K.filter(x=>x.kind==='late').length;}
+  const viol=behRecs().filter(r=>!isExc(r)&&pred(r.date||'')).length;
+  return {days:days.length,ab,lt,viol,att:N&&days.length?Math.round(1000-ab/(N*days.length)*1000)/10:null,latePer:days.length?Math.round(lt/days.length*10)/10:null,violPer:days.length?Math.round(viol/days.length*10)/10:null};}
+function discKpiHtml(){const ws=wkStart(today()),pws=addD(ws,-7),cm=hMo(today());
+  const W=dRange(d=>d>=ws),PW=dRange(d=>d>=pws&&d<ws);
+  const ms=dMonths(),pm=ms[ms.indexOf(cm)-1];const M=dRange(d=>inMo(d,cm)),PM=pm?dRange(d=>inMo(d,pm)):null;
+  const arrow=(a,b,good,sfx)=>{if(a==null||b==null)return '<span class="hint">لا توجد مقارنة بعد</span>';const d=Math.round((a-b)*10)/10;if(!d)return '<span class="hint">ثابت '+(sfx||'')+'</span>';const up=d>0,ok=good==='up'?up:!up;return `<strong style="font-size:14px;color:${ok?'var(--ok)':'var(--d5)'}">${up?'▲':'▼'} ${Math.abs(d)}${good==='up'?'٪':''}</strong> <span class="hint">${ok?'تحسّن':'تراجع'} ${sfx||''}</span>`;};
+  const cell=(t,v,cmpH,sub)=>`<div class="tile" style="text-align:right"><span>${t}</span><b>${v}</b><div class="s">${cmpH}</div>${sub?`<div class="hint">${sub}</div>`:''}</div>`;
+  const alert=(W.att!=null&&PW.att!=null&&W.att<PW.att)||(M.att!=null&&PM&&PM.att!=null&&M.att<PM.att);
+  return `<div class="row" style="align-items:center"><div class="main"><div class="t">مؤشر الانضباط${alert?' <span class="chip" style="background:var(--d5);color:#fff">انخفاض في نسبة الحضور</span>':''}</div><div class="s">يُحسب آليًا من رصد المعلمات · وفق قواعد السلوك والمواظبة 1447</div></div><button class="btn sm" type="button" id="supDisc2">ملف الانضباط</button></div>
+  <div class="tiles" style="padding:10px 12px">
+   ${cell('الحضور هذا الأسبوع',W.att==null?'—':W.att+'٪',arrow(W.att,PW.att,'up','عن الأسبوع الماضي'+(PW.att!=null?' ('+PW.att+'٪)':'')))}
+   ${cell('الحضور هذا الشهر',M.att==null?'—':M.att+'٪',arrow(M.att,PM&&PM.att,'up','عن '+(pm?esc(pm.replace(/\s*\d+\s*هـ$/,'')):'الشهر الماضي')),esc(cm))}
+   ${cell('التأخر (يوميًا)',W.latePer==null?'—':W.latePer,arrow(W.latePer,PW.latePer,'down','عن الأسبوع الماضي'))}
+   ${cell('المخالفات (يوميًا)',W.violPer==null?'—':W.violPer,arrow(W.violPer,PW.violPer,'down','عن الأسبوع الماضي'))}
+  </div>`;}
+document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('#supDisc2'):null;if(b&&canSup){dst.edit='';dst.img='';openDisc('ind');}});
 /* ---------- الاستئذان: خروج الطالبة من الحصة (دورة المياه / الإدارة / إلى معلمة) مع عدّ الدقائق ---------- */
 const EXIT_D={wc:'دورة المياه',admin:'الإدارة',teacher:'إلى معلمة'},EXIT_MAX=10;
 const exitRecs=()=>records.filter(r=>r.kind==='exit');
