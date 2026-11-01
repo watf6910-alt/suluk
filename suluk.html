@@ -926,7 +926,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet'||r.kind==='dsig';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -2482,7 +2482,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101100707';
+const APP_VER='20261101101413';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2814,6 +2814,7 @@ function iltMatch(){const R=allRoster(),sig=new Map(),un=[];
     for(const c of C)for(const n of (c.names||[])){const nt=new Set(dtok(n));if(tk.every(w=>nt.has(w)))hit.push({c,n});}
     if(hit.length>1&&a.sec)hit=hit.filter(h=>String(h.c.section)===String(a.sec).replace(/[^0-9]/g,'')||!String(a.sec).trim());
     if(hit.length===1)sig.set(norm(hit[0].n)+'|'+hit[0].c.grade,x);else un.push(x);}
+  for(const r of records)if(r.kind==='dsig'){const k=norm(r.name)+'|'+r.grade;if(!sig.has(k))sig.set(k,{paper:1,r});}
   return {sig,un};}
 function dImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{let w=Math.min(640,im.width),q=.6,out='';for(let k=0;k<8;k++){const h=Math.round(im.height*w/im.width),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);out=cv.toDataURL('image/jpeg',q);if(out.length<42000)break;q=Math.max(.3,q-.1);if(q<=.35)w=Math.round(w*.8);}res(out.length<48000?out:'');};im.src=fr.result;};fr.readAsDataURL(file);});}
 const hMo=d=>{try{return hijri(d).replace(/^\S+\s+/,'');}catch(e){return (d||'').slice(0,7);}};
@@ -2836,10 +2837,12 @@ function openDisc(tab){if(!canSup)return;if(tab)dst.tab=tab;openKey=null;imp.ope
   let body='';
   if(t==='sig'){const {sig,un}=iltMatch(),R=[...allRoster()].sort((a,b)=>GRADES.indexOf(a.grade)-GRADES.indexOf(b.grade)||String(a.section).localeCompare(String(b.section),'ar'));
     const tot=R.reduce((a,c)=>a+(c.names||[]).length,0),l=iltLink();
-    body=`<p class="hint">يفتح ولي الأمر الرابط، ويطّلع على ملخص قواعد السلوك والمواظبة، ويوقّع إلكترونيًا على نموذج الالتزام المدرسي باسمه. يصل التوقيع هنا ويُطابَق مع اسم الطالبة.</p>
+    body=`<p class="hint">التوقيع نوعان: <b>ورقي</b> — افتحي الفصل وعلّمي اسم الطالبة التي وقّع وليّ أمرها، أو «تسجيل الباقيات موقّعات ورقيًا» لفصل اكتمل؛ و<b>إلكتروني</b> — يفتح ولي الأمر الرابط ويوقّع، فيصل هنا ويُطابَق تلقائيًا.</p>
     ${l?`<div class="actions"><button class="btn sm" type="button" data-srvcopy="${esc(l)}">نسخ رابط التوقيع</button><a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(iltMsg(l))}">إرسال بواتساب</a><button class="btn sm ghost" type="button" id="dSync">تحديث التوقيعات</button></div>`:'<div class="empty">اربطي المنصة بقوقل شيت أولًا من الإعدادات.</div>'}
     <div class="row" style="margin-top:8px"><div class="main"><div class="t">وقّع ${sig.size} من ${tot} (${tot?Math.round(sig.size/tot*100):0}٪)</div><div class="s">${un.length?un.length+' توقيع لم يُطابَق باسم طالبة — راجعيه أسفل القائمة':'كل التوقيعات مطابَقة'}</div></div></div>
-    ${R.map(c=>{const ns=c.names||[],ok=ns.filter(n=>sig.has(norm(n)+'|'+c.grade)),no=ns.filter(n=>!sig.has(norm(n)+'|'+c.grade));return `<details class="panel" style="margin-top:8px;padding:8px 12px"><summary style="cursor:pointer"><b>${esc(c.grade)} / ${esc(c.section||'')}</b> — وقّع ${ok.length} من ${ns.length}</summary><div class="s" style="margin-top:6px"><b>لم يوقّع:</b> ${no.map(esc).join('، ')||'—'}</div></details>`;}).join('')}
+    ${R.map(c=>{const ns=c.names||[],ok=ns.filter(n=>sig.has(norm(n)+'|'+c.grade)),no=ns.filter(n=>!sig.has(norm(n)+'|'+c.grade));const pap=ok.filter(n=>(sig.get(norm(n)+'|'+c.grade)||{}).paper).length;return `<details class="panel" style="margin-top:8px;padding:8px 12px" ${dst.open===c.id?'open':''} data-dcls="${c.id}"><summary style="cursor:pointer"><b>${esc(c.grade)} / ${esc(c.section||'')}</b> — وقّع ${ok.length} من ${ns.length}${pap?` <span class="hint">(ورقي ${pap} · إلكتروني ${ok.length-pap})</span>`:''}</summary>
+      ${canWrite?`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-dsigall="${c.id}">✓ تسجيل الباقيات موقّعات ورقيًا (${no.length})</button></div>`:''}
+      <div style="margin-top:6px">${ns.map(n=>{const x=sig.get(norm(n)+'|'+c.grade);return `<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-top:1px solid var(--line);cursor:pointer"><input type="checkbox" style="width:20px;height:20px;flex:none" ${x?'checked':''} ${(!canWrite||(x&&!x.paper))?'disabled':''} data-dsig="${c.id}|${esc(n)}"><span style="flex:1;min-width:0">${esc(n)}</span><span class="hint">${x?(x.paper?'ورقي':'إلكتروني'):''}</span></label>`;}).join('')}</div></details>`;}).join('')}
     ${un.length?`<h4 style="margin:14px 0 6px">توقيعات لم تُطابَق</h4><div class="panel">${un.map(x=>`<div class="row"><div class="main"><div class="t">${esc(x.a.name||'')}</div><div class="s">${esc(x.a.stage||'')} ${esc(x.a.sec||'')} · ولي الأمر: ${esc(x.a.parent||'')} · ${hijri((x.at||'').slice(0,10))}</div></div></div>`).join('')}</div>`:''}`;}
   else if(t==='act'||t==='meet'){const L=t==='act'?dActs():dMeets(),e=L.find(r=>r.id===dst.edit)||{};
     const form=t==='act'?`<div class="fgrid"><div><label for="daDate">التاريخ</label><input id="daDate" type="date" value="${e.date||today()}"></div><div><label for="daType">النوع</label><select id="daType">${DACT_T.map(x=>`<option ${x===e.type?'selected':''}>${x}</option>`).join('')}</select></div>
@@ -2895,6 +2898,15 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
     b.disabled=true;try{if(old)await store.update(old.id,r);else await store.add({...r,by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});toast('حُفظ');dst.edit='';dst.img='';openDisc();}catch(x){writeErr(x);b.disabled=false;}return;}});
 
 
+
+document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.dcls){if(d.open)dst.open=d.dataset.dcls;else if(dst.open===d.dataset.dcls)dst.open='';}},true);
+document.addEventListener('change',async e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.dsig||!canWrite)return;const [cid,...rest]=t.dataset.dsig.split('|');const n=rest.join('|');const c=allRoster().find(x=>x.id===cid);if(!c)return;dst.open=cid;
+  t.disabled=true;try{const ex=records.find(r=>r.kind==='dsig'&&norm(r.name)===norm(n)&&r.grade===c.grade);
+    if(t.checked&&!ex)await store.add({kind:'dsig',name:n,grade:c.grade,section:c.section||'',method:'paper',date:today(),by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});
+    else if(!t.checked&&ex)await store.remove(ex.id);}catch(x){writeErr(x)}openDisc();});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-dsigall]'):null;if(!b||!canWrite||!canSup)return;const c=allRoster().find(x=>x.id===b.dataset.dsigall);if(!c)return;
+  if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='اضغطي مرة أخرى للتأكيد';return;}
+  b.disabled=true;dst.open=c.id;const {sig}=iltMatch();let k=0;try{for(const n of (c.names||[]))if(!sig.has(norm(n)+'|'+c.grade)){await store.add({kind:'dsig',name:n,grade:c.grade,section:c.section||'',method:'paper',date:today(),by:isAdmin?'الموجّهة الطلابية':supTitle(),dev:DEV,createdAt:new Date().toISOString()});k++;}toast('سُجّلت '+k+' موقّعة ورقيًا');}catch(x){writeErr(x)}openDisc();});
 /* مؤشر الانضباط: الحضور والتأخر والمخالفات — هذا الأسبوع مقابل الماضي، وهذا الشهر الهجري مقابل الماضي */
 function dRange(pred){const N=allRoster().reduce((a,c)=>a+(c.names||[]).length,0);
   const days=[...new Set(records.filter(r=>(r.kind==='sess'||r.kind==='abs')&&r.date&&r.date<=today()&&pred(r.date)).map(r=>r.date))];
