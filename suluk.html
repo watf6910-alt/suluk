@@ -2212,7 +2212,7 @@ function planCard(p,print){
    <div class="vbar" style="--ic:var(--accent);margin:8px 0 4px"><i style="width:${st.length?dn/st.length*100:0}%"></i></div><div class="s">${dn} من ${st.length} خطوات · ${PST[p.status]||''}</div>
    <div class="psteps">${st.map((x,i)=>`<label><input type="checkbox" data-pstep="${p.id}|${i}" ${x.d?'checked':''} ${canWrite&&p.status==='active'?'':'disabled'}> <span>${esc(x.t)}</span></label>`).join('')}</div>
    ${imp?`<div class="s" style="margin-top:6px">${imp}</div>`:''}${p.note?`<div class="s">${esc(p.note)}</div>`:''}
-   ${canWrite?`<div class="actions" style="margin-top:6px">${p.status==='active'?`<button class="btn sm" data-pend="${p.id}|done">إنهاء: تحسّنت</button><button class="btn sm ghost" data-pend="${p.id}|ref">إنهاء: إحالة للجنة</button>`:`<button class="btn sm ghost" data-pend="${p.id}|active">إعادة فتح</button>`}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`:''}</div>`;
+   ${canWrite?`<div class="actions" style="margin-top:6px">${p.status==='active'?`<button class="btn sm" data-pend="${p.id}|done">إنهاء: تحسّنت</button><button class="btn sm ghost" data-pend="${p.id}|ref">إنهاء: إحالة للجنة</button>`:`<button class="btn sm ghost" data-pend="${p.id}|active">إعادة فتح</button>`}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`:''}${canSup&&!hosted?`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-pnotice="${p.id}">📄 إشعار ولي الأمر والتوقيع${p.members&&p.members.length>1?' ('+p.members.length+' إشعار)':''}</button></div>`:''}</div>`;
 }
 function tierRow(o,v){
   const has=plansOf(v.k,o.name).some(p=>p.status==='active');
@@ -2495,7 +2495,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261101113043';
+const APP_VER='20261103104516';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3018,6 +3018,32 @@ document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest(
   if(b.id==='madInst'){copyText(MAD_BM,'نُسخ رمز الزر');return;}});
 
 
+
+/* ---------- إشعار ولي الأمر بالخطة (فردية أو جماعية) مع توقيع ولي الأمر والطالبة ---------- */
+function planNoticeHtml(p,name){const v=VALUES.find(x=>x.k===valKey(p.value))||{n:'',fam:'',obs:''};const T=TIERS[p.tier||3]||TIERS[3];
+  const info=rosterIdx.get(norm(name))||{};const grade=p.grade||info.grade||'',sec=p.section||info.section||'';
+  let st=null;try{st=attStats(norm(name)+'|'+(grade||info.grade||''));}catch(e){}
+  const kind=p.group?(p.tier>=3?'خطة علاجية جماعية':'خطة دعم جماعية'):(p.tier>=3?'خطة علاجية فردية':'خطة دعم فردية');
+  const absLine=st&&(st.unexc||st.exc)?`<p>وقد بلغ غياب ابنتكم حتى تاريخه: <b>${st.unexc?dayW(st.unexc):'لا يوجد'}</b> دون عذر، و<b>${st.exc?dayW(st.exc):'لا يوجد'}</b> بعذر${st.late?'، وتأخرت صباحًا '+st.late+' مرة':''}.</p>`:'';
+  const steps=(p.steps||[]).map((x,i)=>`<tr><td style="width:28px;text-align:center">${i+1}</td><td>${esc(x.t)}</td><td style="width:90px">${x.d?'✓ نُفّذ':''}</td></tr>`).join('');
+  return printHead('إشعار ولي أمر الطالبة ب'+kind)+`
+  <p>المكرم ولي أمر الطالبة: <b>${esc(name)}</b> &nbsp;&nbsp; الصف: <b>${esc(grade)}${sec?' / '+esc(sec):''}</b></p>
+  <p>السلام عليكم ورحمة الله وبركاته، وبعد:</p>
+  <p>انطلاقًا من حرص المدرسة على مصلحة ابنتكم وانتظامها، ووفق قواعد السلوك والمواظبة لطلبة التعليم العام (الإصدار الخامس 1447هـ)، نحيطكم علمًا بأن المدرسة وضعت لابنتكم <b>${kind}</b> في قيمة <b>${esc(v.n)}</b> (${esc(T.s)})، تبدأ في ${hijri(p.start)}${p.review?' وتُراجَع في '+hijri(p.review):''}.</p>
+  ${absLine}
+  <p><b>هدف الخطة:</b> ${esc(p.goal||v.obs||'')}</p>
+  <table><thead><tr><th>م</th><th>إجراءات الخطة</th><th>التنفيذ</th></tr></thead><tbody>${steps}</tbody></table>
+  <p style="margin-top:10px"><b>التزام الطالبة:</b> أتعهد بالالتزام بالحضور والانتظام وتنفيذ ما ورد في الخطة، والتعاون مع الموجّهة الطلابية.</p>
+  <p><b>التزام ولي الأمر:</b> أتعهد بمتابعة ابنتي ودعم تنفيذ الخطة${v.fam?'، و'+esc(v.fam):''}، والتواصل مع المدرسة والحضور عند الطلب، وإبلاغ المدرسة بعذر أي غياب مع ما يثبته.</p>
+  ${p.note?`<p><b>ملاحظات:</b> ${esc(p.note)}</p>`:''}
+  <table style="margin-top:14px"><thead><tr><th>الصفة</th><th>الاسم</th><th>التوقيع</th><th>التاريخ</th></tr></thead><tbody>
+   <tr><td>الطالبة</td><td>${esc(name)}</td><td style="height:34px"></td><td></td></tr>
+   <tr><td>ولي الأمر</td><td></td><td style="height:34px"></td><td></td></tr>
+   <tr><td>الموجّهة الطلابية</td><td></td><td style="height:34px"></td><td></td></tr>
+   <tr><td>مديرة المدرسة</td><td></td><td style="height:34px"></td><td></td></tr></tbody></table>`;}
+document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('[data-pnotice]'):null;if(!b||!canSup)return;const p=records.find(r=>r.id===b.dataset.pnotice);if(!p)return;
+  const names=p.members&&p.members.length?p.members:[p.name];
+  doPrint(names.map((n,i)=>`<div style="${i?'page-break-before:always;':''}">${planNoticeHtml(p,n)}</div>`).join(''));});
 /* ---------- قائمة المتابعة المرتّبة: عاجل فردي + مجموعات علاجية + مجموعات دعم + خطط للمراجعة ---------- */
 function groupSteps(v,tier){return tier>=3?[`جلسة إرشاد جمعي أسبوعية لمدة 4 أسابيع حول قيمة ${v.n}`,`عقد سلوكي جماعي هدفه: ${v.obs}`,`رسالة موحّدة لأولياء الأمور وطلب: ${v.fam}`,'مراجعة رصد المجموعة في المنصة كل أسبوع','بعد 4 أسابيع: من لم تتحسّن تُحوَّل إلى خطة علاجية فردية']
   :[`لقاء توجيه جمعي واحد حول قيمة ${v.n}`,`رسالة لأولياء الأمور: ${v.fam}`,`تعزيز السلوك الإيجابي فور ظهوره: ${v.obs}`,'متابعة أسبوعين ثم تقييم'];}
