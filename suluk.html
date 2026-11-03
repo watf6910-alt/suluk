@@ -717,7 +717,7 @@ const REC_H = ['id','النوع','اسم الطالبة','الصف','الفصل'
 const CLS_H = ['id','الصف','الفصل','عدد الطالبات','بيانات'];
 const UZR_H = ['id','تاريخ الإرسال','اسم الطالبة','الصف','الفصل','أيام الغياب','نوع العذر','ملاحظة','ولي الأمر','الجوال','المرفق','الحالة','سبب الرفض','اعتمدته','بيانات'];
 const SRV_H = ['id','تاريخ الإرسال','الاستبانة','القيمة','اللقاء','الصف','ملخص','بيانات'];
-const SRV_N = { needs: 'حصر الاحتياجات', values: 'القيم في المنزل', sat: 'رضا اللقاء', iltizam: 'إقرار الالتزام المدرسي' };
+const SRV_N = { needs: 'حصر الاحتياجات', values: 'القيم في المنزل', sat: 'رضا اللقاء', iltizam: 'إقرار الالتزام المدرسي', plansig: 'توقيع خطة' };
 const UZR_ST = { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
 
 function tab(name, head) {
@@ -834,7 +834,7 @@ function addSurvey(b) {
     const cut = v => typeof v === 'string' ? v.slice(0, 400) : Array.isArray(v) ? v.slice(0, 20).map(cut) : (v && typeof v === 'object') ? Object.fromEntries(Object.keys(v).slice(0, 20).map(k => [String(k).slice(0, 20), cut(v[k])])) : (typeof v === 'number' ? v : '');
     const a = cut(b.a || {});
     const x = { id: 's' + Date.now() + Math.floor(Math.random() * 1000), at: new Date().toISOString(), type: type, value: String(b.value || '').slice(0, 20), prog: String(b.prog || '').slice(0, 60), progTitle: String(b.progTitle || '').slice(0, 120), a: a };
-    const sum = type === 'iltizam' ? [a.name || '', a.stage || '', a.sec || '', 'ولي الأمر: ' + (a.parent || '')].join(' | ') : type === 'needs' ? [(a.areas || []).join('، '), (a.topics || []).join('، '), a.skills || ''].filter(String).join(' | ') : type === 'values' ? Object.keys(a.r || {}).map(k => k + ':' + a.r[k]).join(' ') + (a.joined ? ' | شاركت: ' + a.joined : '') : 'الفائدة ' + (a.use || '') + ' | يطبقون: ' + (a.apply || '');
+    const sum = type === 'plansig' ? [a.name || '', 'ولي الأمر: ' + (a.parent || ''), String(b.prog || '')].join(' | ') : type === 'iltizam' ? [a.name || '', a.stage || '', a.sec || '', 'ولي الأمر: ' + (a.parent || '')].join(' | ') : type === 'needs' ? [(a.areas || []).join('، '), (a.topics || []).join('، '), a.skills || ''].filter(String).join(' | ') : type === 'values' ? Object.keys(a.r || {}).map(k => k + ':' + a.r[k]).join(' ') + (a.joined ? ' | شاركت: ' + a.joined : '') : 'الفائدة ' + (a.use || '') + ' | يطبقون: ' + (a.apply || '');
     S.appendRow([x.id, new Date(), SRV_N[type], x.value, x.progTitle, a.stage || '', sum, JSON.stringify(x)]);
     return out({ ok: true });
   } finally {
@@ -2212,7 +2212,7 @@ function planCard(p,print){
    <div class="vbar" style="--ic:var(--accent);margin:8px 0 4px"><i style="width:${st.length?dn/st.length*100:0}%"></i></div><div class="s">${dn} من ${st.length} خطوات · ${PST[p.status]||''}</div>
    <div class="psteps">${st.map((x,i)=>`<label><input type="checkbox" data-pstep="${p.id}|${i}" ${x.d?'checked':''} ${canWrite&&p.status==='active'?'':'disabled'}> <span>${esc(x.t)}</span></label>`).join('')}</div>
    ${imp?`<div class="s" style="margin-top:6px">${imp}</div>`:''}${p.note?`<div class="s">${esc(p.note)}</div>`:''}
-   ${canWrite?`<div class="actions" style="margin-top:6px">${p.status==='active'?`<button class="btn sm" data-pend="${p.id}|done">إنهاء: تحسّنت</button><button class="btn sm ghost" data-pend="${p.id}|ref">إنهاء: إحالة للجنة</button>`:`<button class="btn sm ghost" data-pend="${p.id}|active">إعادة فتح</button>`}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`:''}${canSup&&!hosted?`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-pnotice="${p.id}">📄 إشعار ولي الأمر والتوقيع${p.members&&p.members.length>1?' ('+p.members.length+' إشعار)':''}</button></div>`:''}</div>`;
+   ${canWrite?`<div class="actions" style="margin-top:6px">${p.status==='active'?`<button class="btn sm" data-pend="${p.id}|done">إنهاء: تحسّنت</button><button class="btn sm ghost" data-pend="${p.id}|ref">إنهاء: إحالة للجنة</button>`:`<button class="btn sm ghost" data-pend="${p.id}|active">إعادة فتح</button>`}${isAdmin?`<button class="btn sm danger" data-pdel="${p.id}">حذف</button>`:''}</div><div data-confirm="${p.id}"></div>`:''}${canSup?planSigBox(p):''}</div>`;
 }
 function tierRow(o,v){
   const has=plansOf(v.k,o.name).some(p=>p.status==='active');
@@ -2495,7 +2495,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261103104516';
+const APP_VER='20261103111049';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3019,6 +3019,18 @@ document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest(
 
 
 
+
+/* إرسال إشعار الخطة بواتساب مع رابط توقيع إلكتروني لولي الأمر والطالبة */
+const planSigs=p=>surveys.filter(x=>x&&x.a&&(x.type==='plansig'||x.type==='sat')&&x.prog==='PLAN:'+p.id);
+function planKindTxt(p){return p.group?(p.tier>=3?'خطة علاجية جماعية':'خطة دعم جماعية'):(p.tier>=3?'خطة علاجية فردية':'خطة دعم فردية');}
+function planSigLink(p,name){if(!SYNC.url)return '';const v=VALUES.find(x=>x.k===valKey(p.value))||{n:'',fam:''};let st=null;const info=rosterIdx.get(norm(name))||{};try{st=attStats(norm(name)+'|'+(p.grade||info.grade||''));}catch(e){}
+  try{const u=new URL('istb.html',location.href);u.hash=new URLSearchParams({u:SYNC.url,t:'plansig',sc:settings.school||DEF_SCHOOL,ph:schoolPhone(),p:'PLAN:'+p.id,n:name,k:planKindTxt(p),v:v.n,g:p.goal||'',s:(p.steps||[]).map(x=>x.t).join('\n'),f:v.fam||'',d1:hijri(p.start),d2:p.review?hijri(p.review):'',ab:st&&(st.unexc||st.exc)?((st.unexc?dayW(st.unexc):'لا يوجد')+'|'+(st.exc?dayW(st.exc):'لا يوجد')):''}).toString();return u.toString();}catch(e){return '';}}
+function planWaMsg(p,name,link){const v=VALUES.find(x=>x.k===valKey(p.value))||{n:''};let st=null;const info=rosterIdx.get(norm(name))||{};try{st=attStats(norm(name)+'|'+(p.grade||info.grade||''));}catch(e){}
+  return `المكرم ولي أمر الطالبة: ${name}\nالسلام عليكم ورحمة الله وبركاته\n\nنحيطكم علمًا بأن المدرسة وضعت لابنتكم ${planKindTxt(p)} في قيمة ${v.n}، تبدأ ${hijri(p.start)}${p.review?' وتُراجَع '+hijri(p.review):''}.${st&&(st.unexc||st.exc)?`\nغيابها حتى اليوم: ${st.unexc?dayW(st.unexc):'لا يوجد'} دون عذر، و${st.exc?dayW(st.exc):'لا يوجد'} بعذر.`:''}\n\nنأمل الاطلاع على الخطة والتوقيع عليها منكم ومن ابنتكم عبر الرابط:\n${link}\n\nشاكرين تعاونكم\nالموجّهة الطلابية — ${settings.school||DEF_SCHOOL}${phoneLine()}`;}
+function planSigBox(p){const names=p.members&&p.members.length?p.members:[p.name];const S=planSigs(p);const signed=n=>S.find(x=>nsq(x.a.name||'')===nsq(n));
+  const rows=names.map(n=>{const x=signed(n);const l=x?'':planSigLink(p,n);return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)"><span style="flex:1;min-width:0">${esc(n)}</span>${x?`<span class="chip ok">✓ وقّع ولي الأمر (${esc(x.a.parent||'')}) والطالبة · ${hijri((x.at||'').slice(0,10))}</span>`:l?`<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(planWaMsg(p,n,l))}">إرسال بواتساب</a><button class="btn sm ghost" type="button" data-srvcopy="${esc(l)}">نسخ رابط التوقيع</button>`:'<span class="hint">اربطي المنصة بقوقل شيت لإرسال رابط التوقيع</span>'}</div>`;}).join('');
+  const done=names.filter(signed).length;
+  return `<details style="margin-top:8px" ${names.length===1?'open':''}><summary class="s" style="cursor:pointer"><b>إشعار ولي الأمر والتوقيع</b> — وقّع ${done} من ${names.length}</summary>${rows}${hosted?'':`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-pnotice="${p.id}">🖨 نسخة ورقية للتوقيع</button></div>`}</details>`;}
 /* ---------- إشعار ولي الأمر بالخطة (فردية أو جماعية) مع توقيع ولي الأمر والطالبة ---------- */
 function planNoticeHtml(p,name){const v=VALUES.find(x=>x.k===valKey(p.value))||{n:'',fam:'',obs:''};const T=TIERS[p.tier||3]||TIERS[3];
   const info=rosterIdx.get(norm(name))||{};const grade=p.grade||info.grade||'',sec=p.section||info.section||'';

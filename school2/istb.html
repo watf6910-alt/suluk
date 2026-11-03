@@ -42,11 +42,12 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
 <script>
 (function(){
   const q=new URLSearchParams(location.hash.slice(1));
+  const X={n:q.get('n')||'',k:q.get('k')||'',vn:q.get('v')||'',g:q.get('g')||'',s:(q.get('s')||'').split('\n').filter(Boolean),f:q.get('f')||'',d1:q.get('d1')||'',d2:q.get('d2')||'',ab:(q.get('ab')||'').split('|')};
   const P={u:q.get('u')||'',t:q.get('t')||'',sc:q.get('sc')||'',ph:(q.get('ph')||'').replace(/[^0-9+]/g,''),p:q.get('p')||'',pt:q.get('pt')||'',v:q.get('v')||''};
   const $=s=>document.querySelector(s);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const box=$('#box');
-  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!['needs','values','sat','iltizam'].includes(P.t)){
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(P.u)||!['needs','values','sat','iltizam','plansig'].includes(P.t)){
     box.innerHTML='<h1>الرابط غير صالح</h1><p class="muted">استخدموا الرابط الذي وصلكم من المدرسة.</p>';return;
   }
   const STAGES=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
@@ -80,6 +81,16 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       <fieldset><label class="q" for="pn">اسم ولي الأمر</label><input type="text" id="pn" maxlength="60" autocomplete="name"></fieldset>
       <fieldset><legend>صلة القرابة</legend>${chk('rel',['الأب','الأم','الأخ','أخرى'],'radio')}</fieldset>
       <fieldset><label class="opt"><input type="checkbox" id="sgn"> <b>أقرّ بأني اطلعت على ما سبق وألتزم به، ويُعدّ هذا توقيعًا مني.</b></label></fieldset>`},
+    plansig:{title:'إشعار ولي الأمر بخطة '+(X.k.includes('دعم')?'الدعم':'علاجية'),intro:'المكرم ولي أمر الطالبة: '+X.n,
+      html:`<p>نحيطكم علمًا بأن المدرسة وضعت لابنتكم <b>${esc(X.k)}</b>${X.vn?' في قيمة <b>'+esc(X.vn)+'</b>':''}${X.d1?'، تبدأ '+esc(X.d1):''}${X.d2?' وتُراجَع '+esc(X.d2):''}، وفق قواعد السلوك والمواظبة (الإصدار الخامس 1447هـ).</p>
+      ${X.ab[0]!==''&&X.ab.length===2?`<p>غياب ابنتكم حتى تاريخه: <b>${esc(X.ab[0])}</b> دون عذر، و<b>${esc(X.ab[1])}</b> بعذر.</p>`:''}
+      ${X.g?`<p><b>هدف الخطة:</b> ${esc(X.g)}</p>`:''}
+      ${X.s.length?`<fieldset><legend>إجراءات الخطة</legend><ol style="margin:0;padding-inline-start:20px">${X.s.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></fieldset>`:''}
+      <fieldset><legend>توقيع الطالبة</legend><label class="opt"><input type="checkbox" id="ss1"> اطلعتُ على الخطة وأتعهد بالالتزام بالحضور والانتظام وتنفيذ ما ورد فيها.</label>
+      <label class="q" for="sn2" style="margin-top:8px">اسم الطالبة (توقيعها)</label><input type="text" id="sn2" maxlength="80" value="${esc(X.n)}"></fieldset>
+      <fieldset><legend>توقيع ولي الأمر</legend><label class="opt"><input type="checkbox" id="ps1"> أتعهد بمتابعة ابنتي ودعم تنفيذ الخطة${X.f?' و'+esc(X.f):''}، والتواصل مع المدرسة والحضور عند الطلب.</label>
+      <label class="q" for="pn2" style="margin-top:8px">اسم ولي الأمر (توقيعه)</label><input type="text" id="pn2" maxlength="60" autocomplete="name" style="margin-bottom:8px">
+      ${chk('rel',['الأب','الأم','الأخ','أخرى'],'radio')}</fieldset>`},
     sat:{title:'استبانة رضا الأسرة عن اللقاء',intro:P.pt?'اللقاء: '+P.pt:'رأيكم يساعدنا على تحسين لقاءاتنا.',
       html:`<fieldset><legend>إلى أي مدى أفادكم اللقاء؟</legend>${scale('use')}</fieldset>
       <fieldset><legend>هل كان المحتوى واضحًا؟</legend>${scale('clear')}</fieldset>
@@ -98,6 +109,9 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       if(!a.areas.length&&!a.topics.length&&!a.skills){$('#err').textContent='اختاروا مجالًا أو موضوعًا واحدًا على الأقل.';return;}}
     else if(P.t==='values'){a={stage:one('stage'),r:{},joined:one('joined'),sug:txt('sug')};let n=0;VALS.forEach(v=>{const x=one('v_'+v[0]);if(x){a.r[v[0]]=+x;n++;}});
       if(n<VALS.length){$('#err').textContent='أجيبوا عن القيم الست كلها، من فضلكم.';return;}}
+    else if(P.t==='plansig'){a={name:X.n,stu:txt('sn2'),parent:txt('pn2'),rel:one('rel'),ss:$('#ss1').checked?1:0,ps:$('#ps1').checked?1:0};
+      if(!a.ss||a.stu.split(/\s+/).filter(Boolean).length<2){$('#err').textContent='تؤشّر الطالبة على التعهد وتكتب اسمها.';return;}
+      if(!a.ps||!a.parent){$('#err').textContent='يؤشّر ولي الأمر على التعهد ويكتب اسمه.';return;}}
     else if(P.t==='iltizam'){a={name:txt('sn'),stage:one('stage'),sec:($('#ss')||{}).value||'',parent:txt('pn'),rel:one('rel'),items:many('il').length,sig:$('#sgn').checked?1:0};
       if(a.name.split(/\s+/).filter(Boolean).length<2){$('#err').textContent='اكتبوا اسم الطالبة الثلاثي على الأقل.';return;}
       if(!a.stage||!a.sec){$('#err').textContent='اختاروا الصف والفصل.';return;}
@@ -110,9 +124,10 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
       const send=body=>fetch(P.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(r=>r.json());
       let j=await send({op:'survey',type:P.t,prog:P.p,progTitle:P.pt,value:P.v,a});
       if(!j.ok&&P.t==='iltizam'&&j.error==='data')j=await send({op:'survey',type:'sat',prog:'ILT',progTitle:'إقرار الالتزام المدرسي',value:'',a});
+      if(!j.ok&&P.t==='plansig'&&j.error==='data')j=await send({op:'survey',type:'sat',prog:P.p,progTitle:'توقيع خطة',value:'',a});
       if(!j.ok)throw new Error(j.error||'x');
       try{localStorage.setItem('istb_'+P.t+(P.p||''),'1');}catch(x){}
-      box.innerHTML=P.t==='iltizam'?'<p class="ok">✓ تم التوقيع</p><p>وصل إقراركم بالالتزام المدرسي إلى المدرسة. شكرًا لحرصكم على انتظام ابنتكم.</p>':'<p class="ok">✓ شكرًا لكم</p><p>وصلت إجابتكم إلى المدرسة. مشاركتكم تصنع الفرق في تربية بناتنا.</p>';
+      box.innerHTML=P.t==='plansig'?'<p class="ok">✓ تم التوقيع</p><p>وصل توقيعكم وتوقيع ابنتكم على الخطة إلى المدرسة. شكرًا لتعاونكم.</p>':P.t==='iltizam'?'<p class="ok">✓ تم التوقيع</p><p>وصل إقراركم بالالتزام المدرسي إلى المدرسة. شكرًا لحرصكم على انتظام ابنتكم.</p>':'<p class="ok">✓ شكرًا لكم</p><p>وصلت إجابتكم إلى المدرسة. مشاركتكم تصنع الفرق في تربية بناتنا.</p>';
     }catch(x){$('#err').textContent='تعذّر الإرسال، تأكدوا من الاتصال بالإنترنت وحاولوا مرة أخرى.';b.disabled=false;b.textContent='إرسال';}
   });
 })();
