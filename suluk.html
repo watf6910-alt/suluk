@@ -2497,7 +2497,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261104190951';
+const APP_VER='20261104193641';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3151,6 +3151,36 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
   if(b.dataset.uplan){const [name,k]=b.dataset.uplan.split('|');vimp.val=k;vimp.pf={name,tier:3};vimp.tab='plan';openImpactVal(k);$('#sheetCard').scrollTop=0;return;}
   if(b.dataset.gplan){if(!canWrite)return;const [kind,i]=b.dataset.gplan.split('|');const g=(openFollow.F||followData())[kind][+i];if(!g)return;const tier=kind==='g3'?3:2,t=today();
     b.disabled=true;try{await store.add({kind:'plan',group:1,value:g.v.k,name:'مجموعة '+g.v.n+(g.grade?' — '+g.grade:''),members:g.m.map(x=>x.name),grade:g.grade||'',section:'',tier,goal:g.v.obs,steps:groupSteps(g.v,tier).map(x=>({t:x,d:false})),start:t,date:t,review:addD(t,tier>=3?28:14),status:'active',note:'',by:isAdmin?'الموجّهة الطلابية':supTitle(),createdAt:new Date().toISOString()});toast('أُنشئت الخطة الجماعية لـ '+g.m.length+' طالبة');openFollow();}catch(x){writeErr(x);b.disabled=false;}}});
+
+/* ---------- مطابقة يومية مع نور: ملف «كشف المتابعة» (Excel) فيه لكل غائبة التاريخ ونوع الغياب (بعذر/دون عذر) ---------- */
+const ndst={D:null};
+function noorDayParse(buf){const wb=XLSX.read(new Uint8Array(buf),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const A=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});const out=[];
+  for(const r of A){const v=r.map(x=>String(x).trim()).filter(Boolean);if(v.length<4)continue;const m=v[0].match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*--\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(!m)continue;
+    const g=`${m[6]}-${m[5].padStart(2,'0')}-${m[4].padStart(2,'0')}`;const t=v[2];if(!/غياب|الغياب/.test(t))continue;out.push({date:g,type:t,exc:/بعذر/.test(t)&&!/بدون/.test(t),raw:v[3]});}
+  if(!out.length)throw new Error('format');return out;}
+function noorDayMatch(rows){const idx=[];for(const c of allRoster())for(const n of (c.names||[])){const t=norm(n).split(/\s+/).filter(w=>w&&w!=='بن'&&w!=='بنت').map(nsq);idx.push({c,n,t});}
+  const fits=(ns,t)=>{if(!ns.startsWith(t[0])||!ns.endsWith(t[t.length-1]))return false;let p=0;for(const w of t){const i=ns.indexOf(w,p);if(i<0)return false;p=i+w.length;}return true;};
+  const dates=[...new Set(rows.map(r=>r.date))].sort();const res=[],miss=[];
+  for(const r of rows){const C=idx.filter(x=>fits(nsq(r.raw),x.t));if(C.length===1)res.push({...r,n:C[0].n,g:C[0].c.grade,s:C[0].c.section});else miss.push(r);}
+  const per=dates.map(d=>{const K=dayKinds(d);const plat=K.filter(x=>x.kind==='abs');const nk=new Set(res.filter(r=>r.date===d).map(r=>norm(r.n)+'|'+r.g));
+    const onlyPlat=plat.filter(x=>!nk.has(x.k));const pk=new Set(K.map(x=>x.k));const notRec=res.filter(r=>r.date===d&&!pk.has(norm(r.n)+'|'+r.g));
+    const excFix=res.filter(r=>r.date===d&&r.exc).filter(r=>{const rs=absRecs().filter(a=>a.date===d&&absKeyOf(a)===norm(r.n)+'|'+r.g&&a.status!=='late');return rs.length&&rs.some(a=>!a.excuse);});
+    return {d,noor:res.filter(r=>r.date===d).length+miss.filter(r=>r.date===d).length,plat:plat.length,onlyPlat,notRec,excFix};});
+  return {res,miss,per};}
+function openNoorDay(){const D=ndst.D;if(!D)return;openKey=null;imp.open=false;absOpen=null;
+  const blocks=D.per.map(x=>`<h2>${DAYN[dIdx(x.d)]||''} ${hijri(x.d)}</h2>
+   <div class="tiles"><div class="tile"><b>${x.noor}</b><span>غائبات في نور</span></div><div class="tile"><b>${x.plat}</b><span>غياب يوم في المنصة</span></div><div class="tile"><b style="color:${x.excFix.length?'var(--d2)':'inherit'}">${x.excFix.length}</b><span>عذر في نور ودون عذر في المنصة</span></div></div>
+   ${x.excFix.length&&canWrite?`<div class="actions"><button class="btn sm" type="button" data-ndexc="${x.d}">اعتماد أعذار نور (${x.excFix.length})</button></div>`:''}
+   ${x.onlyPlat.length?`<details open style="margin-top:8px"><summary class="t" style="cursor:pointer">غائبة يومًا في المنصة وليست غائبة في نور (${x.onlyPlat.length})</summary><p class="hint">غالبًا حاضرة رُصدت غائبة في حصص قليلة، أو لم تُدخل في نور. افتحي اسمها لترَي حصصها.</p><div class="panel">${x.onlyPlat.map(a=>`<div class="row click" data-abs="${esc(a.k)}"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(a.grade)} / ${esc(a.sec)} · ${esc(a.periods.join('، '))}</div></div></div>`).join('')}</div></details>`:''}
+   ${x.notRec.length?`<details style="margin-top:8px"><summary class="t" style="cursor:pointer">غائبة في نور ولم تُرصد في المنصة (${x.notRec.length})</summary><div class="panel">${x.notRec.map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.n)}</div><div class="s">${esc(r.g)} / ${esc(r.s)} · ${r.exc?'بعذر':'دون عذر'}</div></div></div>`).join('')}</div></details>`:''}`).join('');
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>مطابقة الغياب اليومي مع نور</h3><div class="hint">من ملف «كشف المتابعة — مواظبة» المصدَّر من نور · ${D.res.length+D.miss.length} سجل غياب</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+   ${blocks}${D.miss.length?`<details style="margin-top:10px"><summary class="hint" style="cursor:pointer">أسماء في ملف نور لم تُطابَق مع المنصة (${D.miss.length})</summary><div class="s">${D.miss.map(r=>esc(r.raw)).join('، ')}</div></details>`:''}`;
+  $('#sheet').hidden=false;}
+document.addEventListener('change',async e=>{const t=e.target;if(!t||t.id!=='noorDayX'||!canSup)return;const f=t.files&&t.files[0];t.value='';if(!f)return;
+  try{if(!(await loadXLSX()))throw new Error('lib');const rows=noorDayParse(await f.arrayBuffer());ndst.D=noorDayMatch(rows);openNoorDay();}catch(x){toast(x&&x.message==='format'?'هذا الملف ليس «كشف المتابعة — مواظبة» من نور':x&&x.message==='lib'?'تعذّر تحميل قارئ Excel، تأكدي من الاتصال بالإنترنت':'تعذّرت قراءة الملف');}});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-ndexc]'):null;if(!b||!canSup||!canWrite||!ndst.D)return;const d=b.dataset.ndexc;const x=ndst.D.per.find(p=>p.d===d);if(!x)return;
+  b.disabled=true;let n=0;try{for(const r of x.excFix){for(const a of absRecs().filter(a=>a.date===d&&absKeyOf(a)===norm(r.n)+'|'+r.g&&a.status!=='late'&&!a.excuse)){await store.update(a.id,{excuse:'معتمد في نور'});}n++;}toast('اعتُمد عذر '+n+' طالبة من نور');}catch(y){writeErr(y)}
+  ndst.D=noorDayMatch(ndst.D.res.concat(ndst.D.miss).map(r=>({date:r.date,type:r.type,exc:r.exc,raw:r.raw})));openNoorDay();renderAll();});
 /* ---------- مطابقة نور: رفع «إحصائية الغياب والتأخير على مستوى الطالب» (PDF) واعتماد أرقامها أساسًا ---------- */
 var _ns={len:-1,v:null};
 function noorSnap(){if(_ns.len===records.length)return _ns.v;const L=records.filter(r=>r.kind==='noorsnap');if(NOORB)L.push({...NOORB,id:'builtin'});L.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));let v=null;
@@ -3213,7 +3243,7 @@ function openNoor(){if(!canSup)return;const date=noorSt.date||$('#supDate').valu
   const pendDays=[...new Set(absRecs().filter(r=>r.date<today()&&r.date>=addD(today(),-14)).map(r=>r.date))].filter(d=>{const cl=[...new Set(dayKinds(d).filter(x=>x.kind==='abs'||x.kind==='late').map(x=>x.grade+'|'+x.sec))];return cl.some(c=>!noorDone(d,c));}).sort().reverse();
   openKey=null;imp.open=false;absOpen=null;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>قائمة نور اليومية</h3><div class="hint">${DAYN[dIdx(date)]||''} ${hijri(date)} · غائبات ${nAbs} · متأخرات ${nLate}</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
-  <div class="actions" style="margin-top:8px"><button class="btn sm" type="button" id="noorRec">مطابقة مع نور (رفع تقرير PDF)</button></div>
+  <div class="actions" style="margin-top:8px"><button class="btn sm" type="button" id="noorRec">مطابقة مع نور (رفع تقرير PDF)</button><label class="btn sm ghost filebtn" for="noorDayX">مطابقة اليوم والأعذار (Excel من نور)<input id="noorDayX" type="file" accept=".xlsx,.xls"></label></div>
   <p class="hint" style="margin-top:10px">أدخلي الغياب في نظام نور من هذه القائمة، ثم علّمي كل فصل «أُدخل في نور». الغياب عن حصص مع حضور اليوم لا يُدخل غياب يوم.</p>
   <div class="split"><div><label for="noorDate">اليوم</label><input id="noorDate" type="date" value="${date}" max="${today()}"></div></div>
   ${pendDays.length?`<div class="row" style="display:block;border:1px solid var(--d5);border-radius:var(--r);margin-top:8px"><div class="t">أيام لم يكتمل إدخالها في نور</div><div class="s">${pendDays.map(d=>`<button class="btn sm ghost" type="button" data-noorday="${d}" style="margin:2px">${DAYN[dIdx(d)]||''} ${hijri(d)}</button>`).join('')}</div></div>`:''}
