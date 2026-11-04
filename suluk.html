@@ -361,6 +361,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
       <button class="btn sm ghost" type="button" id="supNoor">قائمة نور</button>
       <button class="btn sm ghost" type="button" id="supDisc">ملف الانضباط</button>
+      <button class="btn sm ghost" type="button" id="supMyLog" hidden>ملف الموجّهة</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
       <button class="btn sm ghost" type="button" id="supImpact">القيم: المؤشرات والدعم</button>
       <button class="btn sm ghost" type="button" id="supSrv">استبانات الأهل</button>
@@ -926,7 +927,7 @@ const degColor=d=>`var(--d${D(d)})`;
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 const keyOf=r=>norm(r.name)+'|'+r.grade;
 const isExc=r=>r.kind==='exc'||r.kind==='comp';
-const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet'||r.kind==='dsig'||r.kind==='noorsnap';
+const isAbsKind=r=>r.kind==='abs'||r.kind==='absact'||r.kind==='sess'||r.kind==='note'||r.kind==='prog'||r.kind==='plan'||r.kind==='case'||r.kind==='noor'||r.kind==='exit'||r.kind==='dact'||r.kind==='dmeet'||r.kind==='dsig'||r.kind==='noorsnap'||r.kind==='mylog';
 const behRecs=()=>records.filter(r=>!isAbsKind(r));
 const dedOf=r=>isExc(r)?0:(r.pts!=null?+r.pts:DEGPTS[D(r.degree)]);
 const sortRec=(a,b)=>((b.date||'')+(b.createdAt||'')).localeCompare((a.date||'')+(a.createdAt||''));
@@ -965,6 +966,7 @@ function recRow(r,showName=true){
 const editBtn=r=>`<button class="btn sm ghost" data-edit="${r.id}">تعديل</button>`;
 const delBtn=r=>isAdmin?`<button class="btn sm danger" data-del="${r.id}">حذف</button>`:'';
 function renderAll(){DKV++;
+  try{myLogBtn();}catch(e){}
   try{renderMyDay();}catch(e){}
   const sch=settings.school||DEF_SCHOOL;
   $('#schoolLbl').textContent=sch+(settings.region?' · '+settings.region:'');
@@ -2495,7 +2497,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261103111049';
+const APP_VER='20261104190951';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3031,6 +3033,56 @@ function planSigBox(p){const names=p.members&&p.members.length?p.members:[p.name
   const rows=names.map(n=>{const x=signed(n);const l=x?'':planSigLink(p,n);return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)"><span style="flex:1;min-width:0">${esc(n)}</span>${x?`<span class="chip ok">✓ وقّع ولي الأمر (${esc(x.a.parent||'')}) والطالبة · ${hijri((x.at||'').slice(0,10))}</span>`:l?`<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(planWaMsg(p,n,l))}">إرسال بواتساب</a><button class="btn sm ghost" type="button" data-srvcopy="${esc(l)}">نسخ رابط التوقيع</button>`:'<span class="hint">اربطي المنصة بقوقل شيت لإرسال رابط التوقيع</span>'}</div>`;}).join('');
   const done=names.filter(signed).length;
   return `<details style="margin-top:8px" ${names.length===1?'open':''}><summary class="s" style="cursor:pointer"><b>إشعار ولي الأمر والتوقيع</b> — وقّع ${done} من ${names.length}</summary>${rows}${hosted?'':`<div class="actions" style="margin-top:6px"><button class="btn sm ghost" type="button" data-pnotice="${p.id}">🖨 نسخة ورقية للتوقيع</button></div>`}</details>`;}
+
+/* ---------- ملف الموجّهة: سجل إجراءات مهنية بتاريخه وشواهده، تراه الموجّهة والمديرة فقط، والمديرة تعتمده ---------- */
+const isMgr=()=>!isAdmin&&role==='sup'&&/مدير/.test(supTitle());
+const canMyLog=()=>isAdmin||isMgr();
+const MYLOG_T=['محضر واقعة','إشعار ولي أمر','اتصال بولي الأمر','لقاء ولي الأمر','اجتماع لجنة التوجيه','رفع لإدارة التعليم','توجيه أو تكليف من الإدارة','خطاب أو مراسلة','شكوى','جلسة إرشادية','أخرى'];
+const myLogs=()=>records.filter(r=>r.kind==='mylog').sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+const mlst={edit:'',img:'',q:''};
+const fmtAt=iso=>{try{const d=new Date(iso);return hijri(iso.slice(0,10))+' '+d.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});}catch(e){return '';}};
+function myAuto(){return records.filter(r=>(r.by==='الموجّهة الطلابية'||r.by==='الموجّهة')&&['viol','absact','plan','dact','dmeet','noorsnap','exc'].includes(r.kind)).length;}
+function openMyLog(){if(!canMyLog())return;openKey=null;imp.open=false;absOpen=null;const L=myLogs(),e=L.find(r=>r.id===mlst.edit)||{};const q=nsq(mlst.q);
+  const F=q?L.filter(r=>nsq((r.stu||'')+(r.desc||'')+(r.type||'')).includes(q)):L;
+  const form=isAdmin?`<div class="panel" style="padding:12px"><div class="t" style="margin-bottom:6px">${e.id?'تعديل الإجراء':'تسجيل إجراء'}</div>
+   <div class="fgrid"><div><label for="mlDate">التاريخ</label><input id="mlDate" type="date" value="${e.date||today()}" max="${today()}"></div><div><label for="mlTime">الوقت</label><input id="mlTime" type="time" value="${esc(e.time||'')}"></div>
+   <div><label for="mlType">نوع الإجراء</label><select id="mlType">${MYLOG_T.map(x=>`<option ${x===e.type?'selected':''}>${x}</option>`).join('')}</select></div><div><label for="mlStu">الطالبة (إن وُجدت)</label><input id="mlStu" list="names" value="${esc(e.stu||'')}"></div>
+   <div class="full"><label for="mlDesc">ماذا حدث وماذا فعلتِ</label><textarea id="mlDesc" rows="3" placeholder="اكتبي الوقائع كما حدثت، بلغة محايدة">${esc(e.desc||'')}</textarea></div>
+   <div class="full"><label for="mlInf">من أُبلغ أو حضر (اختياري)</label><input id="mlInf" value="${esc(e.inf||'')}" placeholder="مثل: المديرة، الوكيلة، ولي الأمر هاتفيًا الساعة 10:15"></div>
+   <div class="full"><label for="mlImg">صورة المستند الموقّع (اختياري)</label><input id="mlImg" type="file" accept="image/*"><div id="mlPrev" style="margin-top:6px">${(mlst.img||e.img)?`<img src="${mlst.img||e.img}" alt="المستند" style="max-width:200px;border-radius:8px">`:''}</div></div>
+   <div class="full"><label for="mlLink">رابط المستند الأصلي (درايف، اختياري)</label><input id="mlLink" dir="ltr" value="${esc(e.link||'')}" placeholder="https://"></div></div>
+   <div class="actions"><button class="btn" type="button" id="mlSave">${e.id?'حفظ التعديل':'حفظ'}</button>${e.id?'<button class="btn ghost" type="button" id="mlCancel">إلغاء</button>':''}</div>
+   <p class="hint">يُحفظ مع كل إجراء وقت تسجيله في المنصة تلقائيًا، ولا يتغير بالتعديل. الإجراء الذي اعتمدته المديرة لا يُعدَّل ولا يُحذف.</p></div>`:'';
+  const row=r=>`<div class="row" style="align-items:flex-start">${r.img?`<img src="${r.img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`:''}<div class="main"><div class="t">${esc(r.type||'')}${r.stu?' — '+esc(r.stu):''}</div>
+   <div class="s">${hijri(r.date)}${r.time?' · الساعة '+esc(r.time):''} · سُجّل في المنصة: ${fmtAt(r.createdAt||'')}${r.editedAt?' · عُدّل: '+fmtAt(r.editedAt):''}</div>
+   <div class="s" style="white-space:pre-wrap">${esc(r.desc||'')}</div>${r.inf?`<div class="s"><b>أُبلغ/حضر:</b> ${esc(r.inf)}</div>`:''}${r.link?`<div class="s"><a href="${esc(r.link)}" target="_blank" rel="noopener">المستند الأصلي</a></div>`:''}
+   ${r.apAt?`<span class="chip ok">✓ اعتمدته ${esc(r.apBy||'المديرة')} · ${fmtAt(r.apAt)}</span>`:'<span class="chip pend">بانتظار اعتماد المديرة</span>'}</div>
+   <div style="display:flex;flex-direction:column;gap:4px">${isMgr()&&canWrite&&!r.apAt?`<button class="btn sm" type="button" data-mlap="${r.id}">اعتماد</button>`:''}${isAdmin&&canWrite&&!r.apAt?`<button class="btn sm ghost" type="button" data-mledit="${r.id}">تعديل</button><button class="btn sm danger" type="button" data-mldel="${r.id}" aria-label="حذف">✕</button>`:''}</div></div>`;
+  const pend=L.filter(r=>!r.apAt).length;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>ملف الموجّهة الطلابية</h3><div class="hint">سجل الإجراءات المهنية بتواريخها وشواهدها · تراه الموجّهة ومديرة المدرسة فقط</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+  <div class="tiles" style="margin-top:10px"><div class="tile"><b>${L.length}</b><span>إجراء مسجّل</span></div><div class="tile"><b style="color:${pend?'var(--d2)':'inherit'}">${pend}</b><span>بانتظار الاعتماد</span></div><div class="tile"><b>${myAuto()}</b><span>إجراء رصدته في المنصة</span></div></div>
+  ${form}
+  <div class="split" style="margin-top:12px"><div><label for="mlQ">بحث (اسم طالبة أو كلمة)</label><input id="mlQ" value="${esc(mlst.q)}"></div></div>
+  <div class="panel" style="margin-top:8px">${F.length?F.map(row).join(''):'<div class="empty">لا توجد إجراءات مسجّلة بعد.</div>'}</div>
+  ${hosted?'':`<div class="actions"><button class="btn ghost" type="button" id="mlPrint">🖨 طباعة الملف${q?' (نتيجة البحث)':''}</button></div>`}`;
+  $('#sheet').hidden=false;}
+function printMyLog(){const q=nsq(mlst.q);const L=myLogs().filter(r=>!q||nsq((r.stu||'')+(r.desc||'')+(r.type||'')).includes(q)).reverse();
+  doPrint(printHead('سجل إجراءات الموجّهة الطلابية'+(mlst.q?' — '+esc(mlst.q):''))+`<table><thead><tr><th>م</th><th>التاريخ والوقت</th><th>الإجراء</th><th>الطالبة</th><th>الوقائع</th><th>أُبلغ/حضر</th><th>الاعتماد</th></tr></thead><tbody>
+  ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${hijri(r.date)}${r.time?'<br>'+esc(r.time):''}<br><small>سُجّل: ${fmtAt(r.createdAt||'')}</small></td><td>${esc(r.type||'')}</td><td>${esc(r.stu||'')}</td><td style="white-space:pre-wrap">${esc(r.desc||'')}${r.img?`<br><img src="${r.img}" style="max-width:160px;margin-top:4px">`:''}</td><td>${esc(r.inf||'')}</td><td>${r.apAt?'✓ '+fmtAt(r.apAt):'—'}</td></tr>`).join('')}</tbody></table>
+  <div style="display:flex;justify-content:space-between;margin-top:30px"><div>الموجّهة الطلابية<br><br>..........................</div><div>مديرة المدرسة<br><br>..........................</div></div>`);}
+function myLogBtn(){const b=$('#supMyLog');if(b){b.hidden=!canMyLog();b.textContent=isAdmin?'ملفي (الموجّهة)':'ملف الموجّهة';}}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='mlQ'){mlst.q=e.target.value;clearTimeout(mlst.t);mlst.t=setTimeout(()=>{const pos=e.target.selectionStart;openMyLog();const x=$('#mlQ');if(x){x.focus();try{x.setSelectionRange(pos,pos);}catch(_){}}},350);}});
+document.addEventListener('change',async e=>{if(e.target&&e.target.id==='mlImg'){const f=e.target.files&&e.target.files[0];if(!f)return;try{mlst.img=await dImg(f);$('#mlPrev').innerHTML=mlst.img?`<img src="${mlst.img}" alt="المستند" style="max-width:200px;border-radius:8px">`:'<span class="hint">تعذّر تصغير الصورة</span>';}catch(x){toast('تعذّر قراءة الصورة');}}});
+document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('#supMyLog,#mlSave,#mlCancel,[data-mledit],[data-mldel],[data-mlap],#mlPrint'):null;if(!b||!canMyLog())return;
+  if(b.id==='supMyLog'){mlst.edit='';mlst.img='';openMyLog();return;}
+  if(b.id==='mlPrint'){printMyLog();return;}
+  if(b.id==='mlCancel'){mlst.edit='';mlst.img='';openMyLog();return;}
+  if(b.dataset.mledit){mlst.edit=b.dataset.mledit;mlst.img='';openMyLog();$('#sheetCard').scrollTop=0;return;}
+  if(b.dataset.mldel){if(!isAdmin||!canWrite)return;const r=records.find(x=>x.id===b.dataset.mldel);if(!r||r.apAt)return;if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='تأكيد';return;}try{await store.remove(r.id);}catch(x){writeErr(x)}openMyLog();return;}
+  if(b.dataset.mlap){if(!isMgr()||!canWrite)return;b.disabled=true;try{await store.update(b.dataset.mlap,{apAt:new Date().toISOString(),apBy:supTitle()});toast('اعتُمد');}catch(x){writeErr(x)}openMyLog();return;}
+  if(b.id==='mlSave'){if(!isAdmin||!canWrite)return;const v=id=>(($('#'+id)||{}).value||'').trim();const d={date:v('mlDate')||today(),time:v('mlTime'),type:v('mlType'),stu:v('mlStu').slice(0,80),desc:v('mlDesc').slice(0,1500),inf:v('mlInf').slice(0,300),link:v('mlLink').slice(0,300)};
+    if(!d.desc){toast('اكتبي ماذا حدث');return;}const old=records.find(r=>r.id===mlst.edit);if(old&&old.apAt){toast('الإجراء معتمد ولا يُعدَّل');return;}d.img=mlst.img||(old&&old.img)||'';
+    b.disabled=true;try{if(old)await store.update(old.id,{...d,editedAt:new Date().toISOString()});else await store.add({kind:'mylog',...d,by:'الموجّهة الطلابية',dev:DEV,createdAt:new Date().toISOString()});toast('حُفظ');mlst.edit='';mlst.img='';openMyLog();}catch(x){writeErr(x);b.disabled=false;}}});
 /* ---------- إشعار ولي الأمر بالخطة (فردية أو جماعية) مع توقيع ولي الأمر والطالبة ---------- */
 function planNoticeHtml(p,name){const v=VALUES.find(x=>x.k===valKey(p.value))||{n:'',fam:'',obs:''};const T=TIERS[p.tier||3]||TIERS[3];
   const info=rosterIdx.get(norm(name))||{};const grade=p.grade||info.grade||'',sec=p.section||info.section||'';
