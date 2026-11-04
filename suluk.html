@@ -2497,7 +2497,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261104202053';
+const APP_VER='20261104203526';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3057,7 +3057,7 @@ function myAutoList(){const A=[];const ok=(r)=>r&&!r.deleted;
 function openMyLog(){if(!canMyLog())return;openKey=null;imp.open=false;absOpen=null;const L0=myLogs(),e=L0.find(r=>r.id===mlst.edit)||{};const q=nsq(mlst.q);
   const L=mlst.auto===false?L0:L0.concat(myAutoList()).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
   const F=q?L.filter(r=>nsq((r.stu||'')+(r.desc||'')+(r.type||'')).includes(q)):L;
-  const form=isAdmin?`<div class="panel" style="padding:12px"><div class="t" style="margin-bottom:6px">${e.id?'تعديل الإجراء':'تسجيل إجراء'}</div>
+  const form=isAdmin?`<details class="panel" style="padding:12px" ${e.id||mlst.open?'open':''}><summary class="t" style="cursor:pointer;margin-bottom:6px">${e.id?'تعديل الإجراء':'＋ تسجيل إجراء جديد'}</summary>
    <div class="fgrid"><div><label for="mlDate">التاريخ</label><input id="mlDate" type="date" value="${e.date||today()}" max="${today()}"></div><div><label for="mlTime">الوقت</label><input id="mlTime" type="time" value="${esc(e.time||'')}"></div>
    <div><label for="mlType">نوع الإجراء</label><select id="mlType">${MYLOG_T.map(x=>`<option ${x===e.type?'selected':''}>${x}</option>`).join('')}</select></div><div><label for="mlStu">الطالبة (إن وُجدت)</label><input id="mlStu" list="names" value="${esc(e.stu||'')}"></div>
    <div class="full"><label for="mlDesc">ماذا حدث وماذا فعلتِ</label><textarea id="mlDesc" rows="3" placeholder="اكتبي الوقائع كما حدثت، بلغة محايدة">${esc(e.desc||'')}</textarea></div>
@@ -3065,7 +3065,7 @@ function openMyLog(){if(!canMyLog())return;openKey=null;imp.open=false;absOpen=n
    <div class="full"><label for="mlImg">صورة المستند الموقّع (اختياري)</label><input id="mlImg" type="file" accept="image/*"><div id="mlPrev" style="margin-top:6px">${(mlst.img||e.img)?`<img src="${mlst.img||e.img}" alt="المستند" style="max-width:200px;border-radius:8px">`:''}</div></div>
    <div class="full"><label for="mlLink">رابط المستند الأصلي (درايف، اختياري)</label><input id="mlLink" dir="ltr" value="${esc(e.link||'')}" placeholder="https://"></div></div>
    <div class="actions"><button class="btn" type="button" id="mlSave">${e.id?'حفظ التعديل':'حفظ'}</button>${e.id?'<button class="btn ghost" type="button" id="mlCancel">إلغاء</button>':''}</div>
-   <p class="hint">يُحفظ مع كل إجراء وقت تسجيله في المنصة تلقائيًا، ولا يتغير بالتعديل. الإجراء الذي اعتمدته المديرة لا يُعدَّل ولا يُحذف.</p></div>`:'';
+   <p class="hint">يُحفظ مع كل إجراء وقت تسجيله في المنصة تلقائيًا، ولا يتغير بالتعديل. الإجراء الذي اعتمدته المديرة لا يُعدَّل ولا يُحذف.</p></details>`:'';
   const row=r=>`<div class="row" style="align-items:flex-start">${r.img?`<img src="${r.img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`:''}<div class="main"><div class="t">${esc(r.type||'')}${r.stu?' — '+esc(r.stu):''}</div>
    <div class="s">${hijri(r.date)}${r.time?' · الساعة '+esc(r.time):''}${r.createdAt?' · سُجّل في المنصة: '+fmtAt(r.createdAt):''}${r.editedAt?' · عُدّل: '+fmtAt(r.editedAt):''}</div>
    <div class="s" style="white-space:pre-wrap">${esc(r.desc||'')}</div>${r.inf?`<div class="s"><b>${r.auto?'بواسطة':'أُبلغ/حضر'}:</b> ${esc(r.inf)}</div>`:''}${r.link?`<div class="s"><a href="${esc(r.link)}" target="_blank" rel="noopener">المستند الأصلي</a></div>`:''}
@@ -3074,10 +3074,11 @@ function openMyLog(){if(!canMyLog())return;openKey=null;imp.open=false;absOpen=n
   const pend=L0.filter(r=>!r.apAt).length;const nAuto=myAutoList().length;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>ملف الموجّهة الطلابية</h3><div class="hint">سجل الإجراءات المهنية بتواريخها وشواهدها · تراه الموجّهة ومديرة المدرسة فقط</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
   <div class="tiles" style="margin-top:10px"><div class="tile"><b>${L0.length}</b><span>إجراء سجّلتِه هنا</span></div><div class="tile"><b style="color:${pend?'var(--d2)':'inherit'}">${pend}</b><span>بانتظار الاعتماد</span></div><div class="tile"><b>${nAuto}</b><span>إجراء من أقسام المنصة</span></div></div>
-  ${form}
   <div class="split" style="margin-top:12px"><div><label for="mlQ">بحث (اسم طالبة أو كلمة)</label><input id="mlQ" value="${esc(mlst.q)}"></div></div>
   <label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="mlAuto" ${mlst.auto===false?'':'checked'}> إظهار الإجراءات المسجّلة في أقسام المنصة (الخطط، إجراءات الغياب، دراسة الحالة، التوقيعات)</label>
+  ${e.id?form:''}
   <div class="panel" style="margin-top:8px">${F.length?F.map(row).join(''):'<div class="empty">لا توجد إجراءات مسجّلة بعد.</div>'}</div>
+  ${e.id?'':form}
   ${hosted?'':`<div class="actions"><button class="btn ghost" type="button" id="mlPrint">🖨 طباعة الملف${q?' (نتيجة البحث)':''}</button></div>`}`;
   $('#sheet').hidden=false;}
 function printMyLog(){const q=nsq(mlst.q);const L=(mlst.auto===false?myLogs():myLogs().concat(myAutoList()).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''))).filter(r=>!q||nsq((r.stu||'')+(r.desc||'')+(r.type||'')).includes(q)).reverse();
