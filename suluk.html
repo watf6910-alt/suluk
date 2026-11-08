@@ -657,7 +657,7 @@ async function flush(){
 async function pull(){
   if(!SYNC.url||SYNC.busy)return;SYNC.busy=true;
   try{
-    const j=await getRemote(SYNC.url);
+    const j=await getRemote(SYNC.url);SYNC.v=j.v||3;
     const m=new Map((j.records||[]).map(x=>[x.id,x]));
     const cm=new Map((j.roster||[]).map(x=>[x.id,x]));
     let ps=null;
@@ -712,7 +712,7 @@ function setSaveNote(){
     ?'المنصة مرتبطة بسجل المدرسة في Google Sheets: كل رصد يُرفع تلقائياً ويظهر عند الجميع، وإن انقطع الإنترنت يُحفظ على الجهاز ويُرفع عند عودته.'
     :'البيانات محفوظة في متصفح هذا الجهاز. لجعل رصد كل المعلمات في سجل واحد، اربطي المنصة بجدول Google Sheets من القسم أعلاه.';
 }
-const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets (الإصدار 3: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل)
+const GAS_CODE=`// منصة رصد السلوك — ربط Google Sheets (الإصدار 4: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل + أيقونة الإداريات)
 // إعداد الموجّهة الطلابية عواطف الحربي
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 const PROPS = PropertiesService.getScriptProperties();
@@ -753,6 +753,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   const owner = Session.getEffectiveUser().getEmail();
   if (p.who) return out({ ok: true, owner: owner });
+  if (p.adm) return admGet(p);
   if (!keyOk(p.key)) return out({ ok: false, error: 'key' });
   if (p.img) {
     const f = DriveApp.getFileById(String(p.img));
@@ -769,7 +770,43 @@ function doGet(e) {
   const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
   const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(Boolean);
   const sv = rows(tab('الاستبانات', SRV_H), 8).map(r => parse(r[7])).filter(Boolean);
-  return out({ ok: true, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
+  return out({ ok: true, v: 4, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
+}
+
+// أيقونة الإداريات: رمز خاص لا يفتح إلا غياب اليوم لصف واحد، وتسجيل إرسال الإشعار
+function admOk(k) { const K = PROPS.getProperty('ADMKEY'); return !!K && String(k || '') === K; }
+function admToday() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+function admGet(p) {
+  if (!admOk(p.adm)) return out({ ok: false, error: 'adm' });
+  const today = admToday(), g = String(p.g || '');
+  const abs = [], sess = [];
+  rows(tab('السجلات', REC_H), 13).forEach(r => {
+    const x = parse(r[12]);
+    if (!x || x.date !== today || x.grade !== g) return;
+    if (x.kind === 'abs') abs.push({ id: x.id, name: x.name || '', section: String(x.section || ''), period: x.period || '', status: x.status || '', excuse: x.excuse || '', notified: !!x.notified, nAt: x.nAt || '', nBy: x.nBy || '' });
+    else if (x.kind === 'sess') sess.push({ section: String(x.section || ''), period: x.period || '' });
+  });
+  const st = parse(tab('الإعدادات', ['بيانات']).getRange('A2').getValue()) || {};
+  return out({ ok: true, v: 4, d: today, abs: abs, sess: sess, st: { school: st.school || '', region: st.region || '', principal: st.principal || '', phone: st.phone || '' } });
+}
+function admSent(b) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (!admOk(b.adm)) return out({ ok: false, error: 'adm' });
+    const today = admToday(), R = tab('السجلات', REC_H);
+    (b.ids || []).slice(0, 40).forEach(id => {
+      const row = findRow(R, id); if (!row) return;
+      const x = parse(R.getRange(row, 13).getValue());
+      if (!x || x.kind !== 'abs' || x.date !== today) return;
+      if (b.undo) { x.notified = false; delete x.nAt; delete x.nBy; }
+      else { x.notified = true; x.nAt = new Date().toISOString(); x.nBy = String(b.by || '').slice(0, 40); }
+      R.getRange(row, 1, 1, 13).setValues([recRow(x)]);
+    });
+    return out({ ok: true });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function findRow(s, id) {
@@ -849,6 +886,7 @@ function doPost(e) {
   const body = JSON.parse(e.postData.contents);
   if (body.op === 'excuse') return addExcuse(body);
   if (body.op === 'survey') return addSurvey(body);
+  if (body.op === 'admsent') return admSent(body);
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
@@ -860,6 +898,7 @@ function doPost(e) {
       else if (op.op === 'del') { const r = findRow(R, op.id); if (r) R.deleteRow(r); }
       else if (op.op === 'class') upsert(C, op.cls.id, [op.cls.id, op.cls.grade, op.cls.section || '', (op.cls.names || []).length, JSON.stringify(op.cls)]);
       else if (op.op === 'delclass') { const r = findRow(C, op.id); if (r) C.deleteRow(r); }
+      else if (op.op === 'admkey') PROPS.setProperty('ADMKEY', String(op.code || ''));
       else if (op.op === 'settings') tab('الإعدادات', ['بيانات']).getRange('A2').setValue(JSON.stringify(op.settings));
       else if (op.op === 'uzr') {
         const r = findRow(U, op.id);
@@ -878,6 +917,25 @@ function doPost(e) {
   }
 }
 `;
+/* أيقونة الإداريات: رمز خاص يفتح غياب اليوم لصف واحد فقط */
+function admLink(){try{const u=new URL('adm.html',location.href);u.hash=new URLSearchParams({u:SYNC.url}).toString();return u.toString();}catch(e){return '';}}
+function admPanelHtml(){const code=lsGet('rasd_admcode','');const old=(SYNC.v||3)<4;
+  return `<div class="row" style="display:block"><div class="t">📨 أيقونة الإداريات لإشعارات الغياب</div>
+  ${old?`<div class="s" style="color:var(--d5);margin:6px 0">يلزم تحديث كود الربط في جدول المدرسة أولًا (مرة واحدة):</div>
+  <ol class="steps"><li>اضغطي «نسخ كود الربط المحدّث».</li><li>افتحي جدول «سجل السلوك» ← <b>Extensions ← Apps Script</b>، احذفي الكود الموجود والصقي الجديد، ثم احفظي.</li>
+  <li><b>Deploy ← Manage deployments</b>، ثم اضغطي ✏️ على النشر الحالي، واختاري في <b>Version</b>: <b>New version</b>، ثم <b>Deploy</b>.</li>
+  <li><b>تنبيه:</b> لا تختاري «New deployment»، لأنه ينشئ رابطًا جديدًا ويقطع ربط كل المعلمات.</li><li>ارجعي هنا واضغطي «تحديث الآن».</li></ol>
+  <div class="actions"><button class="btn sm" type="button" id="copyGas2">نسخ كود الربط المحدّث</button></div>`:
+  `<div class="s" style="margin:6px 0">تثبّتها الإدارية على كمبيوترها، وتكتب فيها رمز الإداريات مرة واحدة، فتظهر لها غائبات اليوم لصفّها فقط، وترسل الإشعارات من واتساب الكمبيوتر. الرمز لا يفتح المنصة.</div>
+  ${code?`<div class="s">رمز الإداريات الحالي: <b dir="ltr" style="font-size:18px;letter-spacing:2px">${esc(code)}</b></div>`:''}
+  <div class="actions"><button class="btn sm" type="button" id="admNew">${code?'تغيير رمز الإداريات':'إنشاء رمز الإداريات'}</button>${code?`<button class="btn sm ghost" type="button" id="admCopy">نسخ رابط الأيقونة</button>`:''}</div>
+  ${code?'<div class="s">عند تغيير الرمز تتوقف الأيقونات القديمة حتى يُكتب فيها الرمز الجديد.</div>':''}`}</div>`;}
+document.addEventListener('click',async e=>{const t=e.target.closest?e.target.closest('#copyGas2,#admNew,#admCopy'):null;if(!t||!isAdmin)return;
+  if(t.id==='copyGas2'){copyText(GAS_CODE,'نُسخ كود الربط المحدّث، الصقيه في Apps Script');return;}
+  if(t.id==='admCopy'){copyText(admLink(),'نُسخ رابط الأيقونة، أرسليه للإداريات مع الرمز');return;}
+  if(t.id==='admNew'){if(t.dataset.sure!=='1'&&lsGet('rasd_admcode','')){t.dataset.sure='1';t.textContent='تأكيد تغيير الرمز';return;}
+    const a=new Uint32Array(1);crypto.getRandomValues(a);const code=String(100000+a[0]%900000);
+    lsSet('rasd_admcode',code);queueOp({op:'admkey',code});toast('أُنشئ رمز الإداريات');drawSyncPanel();}});
 function drawSyncPanel(){
   const p=$('#syncPanel');if(!p)return;
   if(hosted){p.innerHTML=`<div class="row"><div class="main"><div class="s">الربط بـ Google Sheets يعمل في ملف المنصة المرفوع على موقعك (مثل GitHub)، لا داخل Claude.</div></div></div>`;return;}
@@ -885,6 +943,7 @@ function drawSyncPanel(){
     const n=SYNC.queue.length;
     p.innerHTML=`<div class="row"><span class="stripe" style="background:var(--ok)"></span><div class="main"><div class="t">متصلة بسجل المدرسة</div><div class="s">${SYNC.last?'آخر تحديث '+SYNC.last.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'}):'جارٍ الاتصال…'}${n?` · ${n} بانتظار الرفع`:''}</div></div><button class="btn sm ghost" id="syncNow">تحديث الآن</button></div>
     <div class="row"><div class="main"><div class="t">رابط الدعوة للمعلمات</div><div class="s">أرسليه لزميلاتك؛ من يفتحه يرتبط بنفس السجل تلقائياً. لا ترسليه لغير منسوبات المدرسة.</div></div><button class="btn sm" id="copyInvite">نسخ الرابط</button></div>
+    ${isAdmin?admPanelHtml():''}
     <div class="row"><div class="main"><div class="s">فك ربط هذا الجهاز فقط، والسجل في الجدول لا يتأثر.</div><div data-confirm="unlink"></div></div><button class="btn sm danger" id="unlink">فك الربط</button></div>`;
     return;
   }
@@ -2504,7 +2563,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261108214220';
+const APP_VER='20261108214919';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3003,11 +3062,12 @@ async function openAbsQ(){if(!canSup)return;openKey=null;imp.open=false;absOpen=
   const rows=await Promise.all(GRADES.map(async g=>{const L=absqList(date,g);let link='';
     if(L.length){const x=L.map(r=>({n:r.name,c:r.sec,t:(()=>{const a=attStats(r.k);return absNoticeText({name:r.name,grade:r.grade,sec:r.sec},{...a,days:a.days.filter(d=>d.date===date)});})()}));
       link=new URL('absq.html',location.href).toString().split('#')[0]+'#'+await absqPack({d:date,ts:Date.now(),h:hijri(date),g,sc:settings.school||DEF_SCHOOL,x});}
-    return {g,n:L.length,link};}));
+    const sentN=L.filter(x=>absRecs().some(r=>r.date===date&&absKeyOf(r)===x.k&&r.notified)).length;
+    return {g,n:L.length,link,sentN};}));
   const msg=r=>`إشعارات غياب اليوم — ${r.g}\n${hijri(date)} · عدد الطالبات: ${r.n}\n\nافتحي الرابط، وأرسلي لكل ولي أمر إشعاره من زر «واتساب». الرابط يعمل 9 ساعات فقط، فلا تعيدي إرساله لأحد.\n${r.link}`;
   $('#sheetCard').innerHTML=`<div class="head"><div><h3>📨 روابط إشعارات الغياب</h3><div class="hint">${hijri(date)} · رابط لكل صف ترسلينه للإدارية</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
    <p class="hint">يُرسل الرابط إلى محادثة رقم المدرسة (${esc(schoolPhone())})، فتفتحه الإدارية من واتساب الكمبيوتر المرتبط به. وزر «نسخ» لإرساله إلى أي محادثة أخرى.</p><p class="hint">أرسلي الروابط بعد الحصة الثالثة، حتى لا يصل إشعار عن طالبة متأخرة. تشمل القائمة من غابت اليوم كاملًا ولم يُسجَّل لها عذر. والرابط يعمل 9 ساعات من إنشائه.</p>
-   <div class="panel">${rows.map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.g)}</div><div class="s">${!r.n?'لا غائبات':r.n===1?'طالبة واحدة':r.n===2?'طالبتان':r.n<=10?r.n+' طالبات':r.n+' طالبة'}</div></div>${r.n?`<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/${waPhone(schoolPhone())}?text=${encodeURIComponent(msg(r))}">إرسال لرقم المدرسة</a><button class="btn sm ghost" type="button" data-absqcopy="${esc(msg(r))}">نسخ</button>`:''}</div>`).join('')}</div>`;
+   <div class="panel">${rows.map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.g)}</div><div class="s">${!r.n?'لا غائبات':r.n===1?'طالبة واحدة':r.n===2?'طالبتان':r.n<=10?r.n+' طالبات':r.n+' طالبة'}${r.n?' · أُرسل '+r.sentN+' من '+r.n:''}</div></div>${r.n?`<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/${waPhone(schoolPhone())}?text=${encodeURIComponent(msg(r))}">إرسال لرقم المدرسة</a><button class="btn sm ghost" type="button" data-absqcopy="${esc(msg(r))}">نسخ</button>`:''}</div>`).join('')}</div>`;
   $('#sheet').hidden=false;}
 document.addEventListener('click',async e=>{const t=e.target.closest?e.target.closest('#supAbsQ,[data-absqcopy]'):null;if(!t)return;
   if(t.id==='supAbsQ'){openAbsQ();return;}

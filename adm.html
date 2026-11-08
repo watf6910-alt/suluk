@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0d6b60">
+<link rel="manifest" href="adm.webmanifest"><link rel="icon" href="adm-192.png"><link rel="apple-touch-icon" href="adm-192.png">
+<title>إشعارات الغياب</title>
+<style>
+:root{--bg:#f3f6f5;--card:#fff;--ink:#1f2a2e;--mut:#5d6b70;--line:#d6dedc;--pri:#0d6b60;--wa:#1fa855;--ok:#2e7d32;--warn:#b5541a}
+@media (prefers-color-scheme:dark){:root{--bg:#121a1a;--card:#1b2526;--ink:#eef2f1;--mut:#a6b3b6;--line:#2f3d3d;--pri:#4fb39a;--wa:#25c264;--ok:#66bb6a;--warn:#e39a5f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}h1{font-size:21px;margin:4px 0}.hint{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sec{font-weight:700;margin:18px 0 6px;color:var(--pri)}
+.row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;display:flex;align-items:center;gap:10px}
+.row.sent{opacity:.6}.row .n{flex:1;min-width:0}.row .n b{display:block}.s{font-size:13px;color:var(--mut)}
+.btn{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+.pri{background:var(--pri);color:#fff}.wa{background:var(--wa);color:#fff}.gh{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.big{font-size:18px;padding:14px 22px}.ok{color:var(--ok);font-weight:700;font-size:13px}.err{color:var(--warn);font-weight:600}
+input,select{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:4px 0 10px}
+label{font-weight:600;font-size:14px}
+</style></head><body><main id="app"></main>
+<script>
+(function(){
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const G=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
+const P=['الحصة الأولى','الحصة الثانية','الحصة الثالثة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة'];
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||'';if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return '';}};
+const hijri=iso=>{try{return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));}catch(e){return iso;}};
+const tm=iso=>{try{return new Date(iso).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});}catch(e){return '';}};
+const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
+/* رابط الإعداد يحمل رابط جدول المدرسة فقط */
+try{const h=new URLSearchParams(location.hash.slice(1));const u=h.get('u');if(u&&/^https:\/\/script\.google(usercontent)?\.com\//.test(u))ls('adm_url',u);history.replaceState(null,'',location.pathname);}catch(e){}
+let S={data:null,busy:false,err:'',last:null,known:new Set()};
+const cfg=()=>({url:ls('adm_url'),code:ls('adm_code'),g:ls('adm_grade')});
+
+function setup(msg){const c=cfg();
+  app.innerHTML=`<h1>📨 إشعارات الغياب</h1><div class="hint">إعداد هذا الجهاز مرة واحدة</div>
+  <div class="card">${!c.url?'<p class="err">افتحي الأيقونة أول مرة من الرابط الذي أرسلته الموجّهة الطلابية.</p>':''}
+  ${msg?`<p class="err">${esc(msg)}</p>`:''}
+  <label for="cd">رمز الإداريات</label><input id="cd" inputmode="numeric" autocomplete="off" dir="ltr" value="${esc(c.code)}">
+  <label for="gr">الصف</label><select id="gr">${G.map(g=>`<option${g===c.g?' selected':''}>${g}</option>`).join('')}</select>
+  <button class="btn pri" id="save" ${c.url?'':'disabled'}>حفظ</button></div>
+  <p class="hint">هذا الرمز لا يفتح منصة السلوك، بل يعرض غياب اليوم لصفّكِ فقط.</p>`;}
+async function load(){const c=cfg();if(!c.url||!c.code||!c.g)return setup();if(S.busy)return;S.busy=true;S.err='';draw();
+  try{const r=await fetch(c.url+'?adm='+encodeURIComponent(c.code)+'&g='+encodeURIComponent(c.g)+'&t='+Date.now());const j=await r.json();
+    if(!j.ok){S.busy=false;if(j.error==='adm'){ls('adm_code',null);return setup('الرمز غير صحيح أو تغيّر. اطلبي الرمز الجديد من الموجّهة الطلابية.');}throw 0;}
+    S.data=j;S.last=new Date();}catch(e){S.err='تعذّر الاتصال. تأكدي من الإنترنت ثم اضغطي «غياب اليوم».';}
+  S.busy=false;draw();alertNew();}
+/* من غابت اليوم كاملًا: نفس قاعدة المنصة */
+function list(){const j=S.data;if(!j)return [];const by=new Map();
+  for(const r of j.abs){const k=norm(r.name);if(!by.has(k))by.set(k,[]);by.get(k).push(r);}
+  const out=[];for(const [name,rs] of by){const ab=rs.filter(r=>r.status!=='late');if(!ab.length)continue;const sec=String((rs.find(r=>r.section)||{}).section||'');
+    let kind='abs';if(!ab.some(r=>r.period==='اليوم كاملاً')){const rec=new Set(j.sess.filter(x=>x.section===sec).map(x=>x.period));const abP=ab.map(r=>r.period);
+      const pres=[...rec].filter(p=>!abP.includes(p)).map(p=>P.indexOf(p)).filter(i=>i>=0);
+      if(pres.length&&abP.length<pres.length)kind=abP.map(p=>P.indexOf(p)).filter(i=>i>=0).every(i=>i<Math.min(...pres))?'late':'part';}
+    if(kind!=='abs'||rs.some(r=>r.excuse))continue;const sent=ab.find(r=>r.notified);
+    out.push({name,sec,ids:ab.map(r=>r.id),sent:sent?{at:sent.nAt,by:sent.nBy}:null});}
+  return out.sort((a,b)=>a.sec.localeCompare(b.sec,'ar',{numeric:true})||a.name.localeCompare(b.name,'ar'));}
+function notice(x){const j=S.data,st=j.st||{},c=cfg();const ph=String(st.phone||'0540300641').replace(/[^0-9+]/g,'');let link='';
+  try{const u=new URL('uzr.html',location.href);u.hash=new URLSearchParams({u:c.url,n:x.name,g:c.g,s:x.sec,d:j.d,sc:st.school||'الثانوية الأولى بقبة',ph}).toString();link=u.toString();}catch(e){}
+  return `المملكة العربية السعودية
+وزارة التعليم${st.region?'\n'+st.region:''}
+${st.school||'الثانوية الأولى بقبة'}
+
+إشعار ولي أمر الطالبة بالغياب
+
+المكرم ولي أمر الطالبة / ${x.name}        الصف: ${c.g}${x.sec?' / '+x.sec:''}
+السلام عليكم ورحمة الله وبركاته،
+
+نُشعركم بغياب ابنتكم عن المدرسة، ونتمنى أن تكون في أتمّ صحة وعافية.
+
+ولم يصلنا عذرها بعدُ عن يوم:
+- ${hijri(j.d)}
+
+ولحفظ حقّ ابنتكم، نأمل تزويدنا بالعذر خلال ثلاثة أيام عمل من الغياب${link?'، عبر الرابط التالي:\n'+link:'.'}
+
+ونذكّركم بلطف بأن انتظام ابنتكم يدعم تقدّمها الدراسي.
+
+شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${ph?'\nللتواصل مع المدرسة: '+ph:''}
+
+مديرة المدرسة: ${st.principal||'....................'}`;}
+function draw(){const c=cfg();const L=list(),n=L.length,m=L.filter(x=>x.sent).length;const secs=[...new Set(L.map(x=>x.sec))];
+  document.title=(n-m>0?'🔔 '+(n-m)+' — ':'')+'إشعارات الغياب';
+  app.innerHTML=`<div class="top"><div><h1>📨 إشعارات الغياب — ${esc(c.g)}</h1><div class="hint">${S.data?hijri(S.data.d):''}${S.last?' · آخر تحديث '+tm(S.last.toISOString()):''}</div></div>
+   <button class="btn pri big" id="go" ${S.busy?'disabled':''}>${S.busy?'جارٍ التحميل…':'🔄 غياب اليوم'}</button></div>
+  ${S.err?`<div class="card err">${esc(S.err)}</div>`:''}
+  ${S.data?`<div class="card"><b>أُرسل ${m} من ${n}</b><div class="hint">اضغطي «واتساب» فيفتح تطبيق واتساب على الكمبيوتر والإشعار جاهز، اختاري ولي الأمر وأرسلي. تُسجَّل علامة «أُرسل» في سجل المدرسة.</div></div>
+   ${n?secs.map(sc=>`<div class="sec">${esc(c.g)}${sc?' / '+esc(sc):''}</div>`+L.filter(x=>x.sec===sc).map(x=>{const i=L.indexOf(x);return `<div class="row${x.sent?' sent':''}"><div class="n"><b>${esc(x.name)}</b>${x.sent?`<span class="ok">✓ أُرسل ${esc(tm(x.sent.at))}${x.sent.by?' · '+esc(x.sent.by):''}</span>`:'<span class="s">لم يُرسل بعد</span>'}</div>
+     <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(notice(x))}" target="_blank" rel="noopener" data-i="${i}">واتساب</a>${x.sent?`<button class="btn gh" data-u="${i}">تراجع</button>`:''}</div>`;}).join('')).join(''):'<div class="card">لا توجد غائبات بلا عذر في هذا الصف حتى الآن. أعيدي التحديث بعد الحصة الثالثة.</div>'}`:''}
+  <p class="hint" style="margin-top:22px">تُعرض من غابت اليوم كاملًا ولم يُسجَّل لها عذر. حدّثي القائمة بعد الحصة الثالثة. والصفحة تتحدّث وحدها كل 15 دقيقة ما دامت مفتوحة.</p>
+  <p class="hint"><button class="btn gh" id="reset">تغيير الصف أو الرمز</button></p>`;}
+async function mark(ids,undo){const c=cfg();try{const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'admsent',adm:c.code,ids,undo:!!undo,by:'إدارية '+c.g})});const j=await r.json();if(!j.ok)throw 0;}catch(e){S.err='لم تُسجَّل علامة الإرسال. تأكدي من الإنترنت.';}load();}
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime);o.start();o.stop(a.currentTime+.35);}catch(e){}}
+function alertNew(){const L=list().filter(x=>!x.sent);const fresh=L.filter(x=>!S.known.has(x.name));L.forEach(x=>S.known.add(x.name));
+  if(fresh.length&&S.started){beep();try{if(window.Notification&&Notification.permission==='granted')new Notification('إشعارات الغياب',{body:fresh.length+' إشعار جديد جاهز للإرسال',icon:'adm-192.png'});}catch(e){}}S.started=1;}
+app.addEventListener('click',e=>{const t=e.target.closest('button,a');if(!t)return;
+  if(t.id==='save'){const code=$('#cd').value.replace(/\D/g,''),g=$('#gr').value;if(!code){$('#cd').focus();return;}ls('adm_code',code);ls('adm_grade',g);
+    try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission();}catch(x){}S.known=new Set();S.started=0;load();return;}
+  if(t.id==='go'){load();return;}
+  if(t.id==='reset'){setup();return;}
+  if(t.dataset.i!=null){const x=list()[+t.dataset.i];if(x&&!x.sent)setTimeout(()=>mark(x.ids),400);return;}
+  if(t.dataset.u!=null){const x=list()[+t.dataset.u];if(x)mark(x.ids,true);}});
+setInterval(()=>{if(cfg().code&&!S.busy)load();},15*60*1000);
+load();
+})();
+</script></body></html>
