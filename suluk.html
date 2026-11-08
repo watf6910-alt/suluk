@@ -2502,7 +2502,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261108131250';
+const APP_VER='20261108132239';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -3121,8 +3121,10 @@ function openMyLog(){if(!canMyLog())return;openKey=null;imp.open=false;absOpen=n
   <div class="panel" style="margin-top:8px">${F.length?F.map(row).join(''):'<div class="empty">لا توجد إجراءات مسجّلة بعد.</div>'}</div>
   ${e.id?'':form}
   ${isAdmin&&canWrite&&!e.id?`<details class="panel" style="padding:12px;margin-top:8px"><summary class="t" style="cursor:pointer">📥 تطبيق دفعة تعديلات جاهزة</summary><p class="hint">الصقي هنا النص الذي أعدّه لكِ المساعد كما هو، ثم اضغطي «تطبيق». الإجراء المعتمد لا يتغير.</p><label for="mlBatchF" class="hint">اختاري ملف الدفعة (من «الملفات»):</label><input id="mlBatchF" type="file" accept=".txt,.json,text/plain,application/json"><p class="hint">أو الصقي النص هنا:</p><textarea id="mlBatch" rows="4" dir="ltr" style="font-size:12px"></textarea><div class="actions"><button class="btn" type="button" id="mlBatchGo">تطبيق</button></div></details>`:''}
+  ${hosted||!isAdmin?'':`<div class="panel" style="padding:10px;margin-top:8px"><div class="t">✍️ توقيعي الإلكتروني في الطباعة</div>${mySig()?`<img src="${mySig()}" style="max-height:60px;max-width:180px;background:#fff;display:block;margin:6px 0" alt="توقيعي"><button class="btn sm ghost" type="button" id="mlSigDel">حذف التوقيع</button>`:`<p class="hint">صوّري توقيعكِ بالحبر على ورقة بيضاء، ثم اختاري الصورة. يُحفظ على هذا الجهاز فقط.</p>`}<label class="btn sm" style="display:inline-block;margin-top:6px">${mySig()?'تغيير التوقيع':'رفع التوقيع'}<input id="mlSig" type="file" accept="image/*" hidden></label></div>`}
   ${hosted?'':`<div class="actions"><button class="btn ghost" type="button" id="mlPrint">🖨 طباعة الملف${q?' (نتيجة البحث)':''}</button></div>`}`;
   $('#sheet').hidden=false;}
+function mySig(){try{return localStorage.getItem('rasd_mysig')||'';}catch(e){return '';}}
 function printMyLog(){const q=nsq(mlst.q);const L=(mlst.auto===false?myLogs():myLogs().concat(myAutoList()).sort(mlCmp)).filter(r=>!q||nsq((r.stu||'')+(r.members||'')+(r.desc||'')+(r.type||'')).includes(q)).reverse();
   const ap=r=>r.auto?'سجل آلي من المنصة':r.apAt?'✓ اعتمدته '+esc(r.apBy||'المديرة')+' · '+fmtAt(r.apAt):'بانتظار الاعتماد';
   const card=(r,i)=>`<div class="mlc"><div class="mlh"><span class="mln">${i+1}</span><b>${hijriW(r.date)}${r.time?' · الساعة '+esc(r.time):''}</b><span class="mlt">${esc(r.type||'')}</span><span class="mla">${ap(r)}</span></div>
@@ -3142,9 +3144,9 @@ function printMyLog(){const q=nsq(mlst.q);const L=(mlst.auto===false?myLogs():my
   .mln{display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;border:1px solid #666;border-radius:50%;font-size:12px}
   .mlt{font-weight:700}.mla{margin-inline-start:auto;font-size:11px}.mlm{font-size:11px;color:#444}
   .mlb{white-space:pre-wrap;margin-top:4px;line-height:1.7}.mlf{font-size:12px;margin-top:4px}</style>
-  ${L.some(r=>!r.auto&&r.date&&r.date<MYLOG_START&&(r.createdAt||'').slice(0,10)>=MYLOG_START)?`<p style="font-size:12px;border:1px dashed #999;border-radius:6px;padding:6px 10px;margin:0 0 10px">ملاحظة: يجمع هذا الملف في سجل واحد، وبتسلسلها الزمني، إجراءات الحالة الموثّقة في أقسام المنصة (محضر الواقعة الإلكتروني، والخطة العلاجية، ومحاضر اللجنة) وفي السجلات الورقية. ويظهر مع كل إجراء تاريخ وقوعه، وتاريخ إدخاله في الملف.</p>`:''}
+  ${L.some(r=>!r.auto&&r.date&&r.date<MYLOG_START&&(r.createdAt||'').slice(0,10)>=MYLOG_START)?`<p style="font-size:12px;border:1px dashed #999;border-radius:6px;padding:6px 10px;margin:0 0 10px">ملاحظة: يجمع هذا الملف في سجل واحد، وبتسلسلها الزمني، إجراءات الحالة الموثّقة في أقسام المنصة (سجل دراسة الحالة الإلكتروني، والخطة العلاجية، ومحاضر اللجنة) وفي السجلات الورقية. ويظهر مع كل إجراء تاريخ وقوعه، وتاريخ إدخاله في الملف.</p>`:''}
   ${L.map(card).join('')}
-  <div style="display:flex;justify-content:space-between;margin-top:30px;page-break-inside:avoid"><div>الموجّهة الطلابية<br><br>..........................</div><div>مديرة المدرسة<br><br>..........................</div></div>`);}
+  <div style="display:flex;justify-content:space-between;margin-top:30px;page-break-inside:avoid"><div>الموجّهة الطلابية<br>${mySig()?'<img src="'+mySig()+'" style="max-height:60px;max-width:180px;display:block" alt="التوقيع">':'<br>..........................'}</div><div>مديرة المدرسة<br><br>..........................</div></div>`);}
 function myLogBtn(){const b=$('#supMyLog');if(b){b.hidden=!canMyLog();b.textContent=isAdmin?'ملفي (الموجّهة)':'ملف الموجّهة';}}
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='mlQ'){mlst.q=e.target.value;clearTimeout(mlst.t);mlst.t=setTimeout(()=>{const pos=e.target.selectionStart;openMyLog();const x=$('#mlQ');if(x){x.focus();try{x.setSelectionRange(pos,pos);}catch(_){}}},350);}});
 document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('[data-mlopen]'):null;if(!b)return;const [t,id]=b.dataset.mlopen.split('|');if(t==='case')openCase(id);else if(t==='plan'&&id)openImpactVal(id);});
@@ -3174,6 +3176,16 @@ async function mlBatchApply(txt){if(!isAdmin||!canWrite)return;let ops;try{ops=J
     else if(o.t==='plan'||o.t==='dmeet'){const hit=records.find(r=>r.kind===o.t&&!r.deleted&&has(r,o.s)&&(!o.no||String(r.no)===String(o.no)));if(!hit){sk++;continue;}if(hit.apAt){apSk++;continue;}if(o.t==='plan'&&d.comment)d.commentAt=now();await store.update(hit.id,d);up++;}
     else sk++;}catch(x){sk++;}}
   toast('طُبّق: '+up+' تعديل، '+ad+' إضافة'+(sk?'، لم يُعثر على '+sk:'')+(apSk?'، و'+apSk+' معتمد لم يتغيّر':''));openMyLog();}
+async function sigImg(file){const url=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);});
+  const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+  const W=Math.min(600,im.width),H=Math.round(im.height*W/im.width);const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.drawImage(im,0,0,W,H);
+  const d=x.getImageData(0,0,W,H),a=d.data;let minX=W,minY=H,maxX=0,maxY=0;
+  for(let y=0;y<H;y++)for(let k=0;k<W;k++){const o=(y*W+k)*4,l=(a[o]*.3+a[o+1]*.59+a[o+2]*.11);if(l>150){a[o+3]=0;}else{a[o]=a[o+1]=a[o+2]=Math.min(60,l*.4);a[o+3]=255;if(k<minX)minX=k;if(k>maxX)maxX=k;if(y<minY)minY=y;if(y>maxY)maxY=y;}}
+  x.putImageData(d,0,0);if(maxX<=minX||maxY<=minY)throw new Error('empty');const p=8;minX=Math.max(0,minX-p);minY=Math.max(0,minY-p);maxX=Math.min(W-1,maxX+p);maxY=Math.min(H-1,maxY+p);
+  const c2=document.createElement('canvas');c2.width=maxX-minX+1;c2.height=maxY-minY+1;c2.getContext('2d').drawImage(c,minX,minY,c2.width,c2.height,0,0,c2.width,c2.height);return c2.toDataURL('image/png');}
+document.addEventListener('change',async e=>{if(!e.target||e.target.id!=='mlSig'||!isAdmin)return;const f=e.target.files&&e.target.files[0];if(!f)return;
+  try{const d=await sigImg(f);localStorage.setItem('rasd_mysig',d);toast('حُفظ التوقيع');}catch(x){toast('تعذّر قراءة التوقيع، صوّريه على ورقة بيضاء بإضاءة جيدة');}openMyLog();});
+document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('#mlSigDel'):null;if(!b)return;try{localStorage.removeItem('rasd_mysig');}catch(x){}toast('حُذف التوقيع');openMyLog();});
 document.addEventListener('change',e=>{if(!e.target||e.target.id!=='mlBatchF')return;const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{toast('جارٍ التطبيق…');mlBatchApply(fr.result);};fr.onerror=()=>toast('تعذّر قراءة الملف');fr.readAsText(f);});
 document.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('#mlBatchGo'):null;if(!b)return;b.disabled=true;mlBatchApply(($('#mlBatch')||{}).value).finally(()=>{b.disabled=false;});});
 /* تسجيل تلقائي في ملف الموجّهة عند إرسال إشعار لولي الأمر أو طباعته، حتى لا يضيع إجراء نُفّذ */
