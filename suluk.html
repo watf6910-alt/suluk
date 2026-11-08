@@ -1972,6 +1972,8 @@ function openAbs(k,refresh){
 function absNoticeText(s,a){
   const un=a.days.filter(d=>!d.excuse), ex=a.days.filter(d=>d.excuse);
   const lastK=a.reached.length?(a.reached.filter(k=>k[0]==='u').pop()||a.reached[a.reached.length-1]):null;
+  const dl=n=>n>1?'الأيام التالية':'يوم';const L=x=>x.map(d=>'- '+hijri(d.date)+(d.excuse?' ('+d.excuse+')':'')).join('\n');
+  const link=un.length?uzrLink(s,un):'';
   return `المملكة العربية السعودية
 وزارة التعليم${settings.region?'\n'+settings.region:''}
 ${settings.school||DEF_SCHOOL}
@@ -1981,13 +1983,12 @@ ${settings.school||DEF_SCHOOL}
 المكرم ولي أمر الطالبة / ${s.name}        الصف: ${s.grade}${s.sec?' / '+s.sec:''}
 السلام عليكم ورحمة الله وبركاته،
 
-نحيطكم علماً بأن ابنتكم تغيّبت عن المدرسة ${un.length?'دون عذر في الأيام التالية:\n'+un.map(d=>'- '+hijri(d.date)).join('\n'):''}${ex.length?(un.length?'\n\nوبعذر في الأيام التالية:\n':'بعذر في الأيام التالية:\n')+ex.map(d=>'- '+hijri(d.date)+' ('+d.excuse+')').join('\n'):''}
+نُشعركم بغياب ابنتكم عن المدرسة، ونتمنى أن تكون في أتمّ صحة وعافية.
+${un.length?'\nولم يصلنا عذرها بعدُ عن '+dl(un.length)+':\n'+L(un):''}${ex.length?'\n\nووصلنا عذرها عن '+dl(ex.length)+'، شاكرين لكم:\n'+L(ex):''}
+${un.length?'\nولحفظ حقّ ابنتكم، نأمل تزويدنا بالعذر خلال ثلاثة أيام عمل من الغياب'+(link?'، عبر الرابط التالي:\n'+link:'.')+'\n':''}${lastK&&ABS_PARENT[lastK]?'\n'+ABS_PARENT[lastK]+'\n':''}${a.unexc>=5?'\nعلمًا بأن تجاوز الغياب دون عذر 10% من أيام الدراسة يترتب عليه حرمان الطالبة من الانتقال للفصل التالي.\n':''}
+ونذكّركم بلطف بأن انتظام ابنتكم يدعم تقدّمها الدراسي.
 
-إجمالي الغياب دون عذر: ${dayW(a.unexc)}، وبعذر: ${a.exc?dayW(a.exc):'لا يوجد'}، ودرجة المواظبة الحالية: ${a.score} من 100.
-${lastK&&ABS_PARENT[lastK]?'\n'+ABS_PARENT[lastK]+'\n':''}
-علماً بأن تجاوز الغياب دون عذر 10% من أيام الدراسة يترتب عليه حرمان الطالبة من الانتقال للفصل التالي، ونأمل تقديم ما يثبت العذر خلال ثلاثة أيام عمل من الغياب.${uzrLink(s,un)?'\n\nلتقديم العذر وإرفاق التقرير إلكترونيًا:\n'+uzrLink(s,un):''}
-
-شاكرين تعاونكم في متابعة انتظام ابنتكم.${phoneLine()}
+شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${phoneLine()}
 
 مديرة المدرسة: ${settings.principal||'....................'}`;
 }
@@ -2502,7 +2503,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261108133315';
+const APP_VER='20261108211930';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
