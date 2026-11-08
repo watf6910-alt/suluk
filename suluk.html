@@ -361,6 +361,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <button class="btn sm ghost" type="button" id="supTeach">رصد المعلمات</button>
       <button class="btn sm ghost" type="button" id="supNoor">قائمة نور</button>
       <button class="btn sm ghost" type="button" id="supExit">🚪 الاستئذان</button>
+      <button class="btn sm ghost" type="button" id="supAbsQ">📨 روابط إشعارات الغياب</button>
       <button class="btn sm ghost" type="button" id="supDisc">ملف الانضباط</button>
       <button class="btn sm ghost" type="button" id="supMyLog" hidden>ملف الموجّهة</button>
       <button class="btn sm ghost" type="button" id="supMonth">التقرير الشهري</button>
@@ -2503,7 +2504,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261108211930';
+const APP_VER='20261108212602';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2993,6 +2994,24 @@ document.addEventListener('click',async e=>{const b=e.target.closest?e.target.cl
 const exs={d:''};
 function exitSupBtn(){const b=$('#supExit');if(!b)return;const n=exitRecs().filter(r=>!r.back&&r.date===today()).length;const o=over10(exitRecs().filter(r=>!r.back&&r.date===today()));
   b.innerHTML='🚪 الاستئذان'+(n?` <span class="chip ${o?'pend':''}" style="${o?'background:var(--d5);color:#fff':''}">${n} خارج الفصل</span>`:'');b.classList.toggle('ghost',!n);}
+/* روابط إشعارات الغياب للإداريات: رابط لكل صف ليومه فقط، يحمل نصوص الإشعارات داخل الرابط (لا يُرسل للخادم) */
+async function absqPack(obj){const txt=JSON.stringify(obj);const b2u=b=>{let s='';const u=new Uint8Array(b);for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
+  try{if(typeof CompressionStream!=='undefined'){const st=new Blob([txt]).stream().pipeThrough(new CompressionStream('deflate-raw'));return 'z'+b2u(await new Response(st).arrayBuffer());}}catch(e){}
+  return 'p'+b2u(new TextEncoder().encode(txt));}
+function absqList(date,grade){return dayKinds(date).filter(x=>x.kind==='abs'&&!x.excuse&&x.grade===grade).sort((a,b)=>String(a.sec).localeCompare(String(b.sec))||a.name.localeCompare(b.name,'ar'));}
+async function openAbsQ(){if(!canSup)return;openKey=null;imp.open=false;absOpen=null;const date=today();
+  const rows=await Promise.all(GRADES.map(async g=>{const L=absqList(date,g);let link='';
+    if(L.length){const x=L.map(r=>({n:r.name,c:r.sec,t:absNoticeText({name:r.name,grade:r.grade,sec:r.sec},attStats(r.k))}));
+      link=new URL('absq.html',location.href).toString().split('#')[0]+'#'+await absqPack({d:date,h:hijri(date),g,sc:settings.school||DEF_SCHOOL,x});}
+    return {g,n:L.length,link};}));
+  const msg=r=>`إشعارات غياب اليوم — ${r.g}\n${hijri(date)} · عدد الطالبات: ${r.n}\n\nافتحي الرابط، وأرسلي لكل ولي أمر إشعاره من زر «واتساب». الرابط لليوم فقط، فلا تعيدي إرساله لأحد.\n${r.link}`;
+  $('#sheetCard').innerHTML=`<div class="head"><div><h3>📨 روابط إشعارات الغياب</h3><div class="hint">${hijri(date)} · رابط لكل صف ترسلينه للإدارية</div></div><button class="x" id="closeS" aria-label="إغلاق">×</button></div>
+   <p class="hint">أرسلي الروابط بعد الحصة الثالثة، حتى لا يصل إشعار عن طالبة متأخرة. تشمل القائمة من غابت اليوم كاملًا ولم يُسجَّل لها عذر. والرابط يعمل اليوم فقط.</p>
+   <div class="panel">${rows.map(r=>`<div class="row"><div class="main"><div class="t">${esc(r.g)}</div><div class="s">${!r.n?'لا غائبات':r.n===1?'طالبة واحدة':r.n===2?'طالبتان':r.n<=10?r.n+' طالبات':r.n+' طالبة'}</div></div>${r.n?`<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg(r))}">إرسال للإدارية</a><button class="btn sm ghost" type="button" data-absqcopy="${esc(msg(r))}">نسخ</button>`:''}</div>`).join('')}</div>`;
+  $('#sheet').hidden=false;}
+document.addEventListener('click',async e=>{const t=e.target.closest?e.target.closest('#supAbsQ,[data-absqcopy]'):null;if(!t)return;
+  if(t.id==='supAbsQ'){openAbsQ();return;}
+  try{await navigator.clipboard.writeText(t.dataset.absqcopy);toast('نُسخ الرابط');}catch(x){toast('تعذّر النسخ');}});
 function openExitSup(){if(!canSup)return;openKey=null;imp.open=false;absOpen=null;const d=exs.d||today();
   const L=exitRecs().filter(r=>r.date===d).sort((a,b)=>(a.back?1:0)-(b.back?1:0)||b.out.localeCompare(a.out));
   const act=L.filter(r=>!r.back),done=L.filter(r=>r.back),tm=iso=>new Date(iso).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});
