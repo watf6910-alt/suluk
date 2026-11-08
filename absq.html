@@ -26,7 +26,7 @@ if(!h)return fail('الرابط غير مكتمل. اطلبي من الوكيل�
 let D;try{const b64=h.slice(1).replace(/-/g,'+').replace(/_/g,'/');const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
   let txt;if(h[0]==='z'){const st=new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate-raw'));txt=await new Response(st).text();}else txt=new TextDecoder().decode(bin);
   D=JSON.parse(txt);}catch(e){return fail('تعذّر فتح الرابط. حدّثي المتصفح، أو اطلبي من الوكيلة إرساله من جديد.');}
-if(D.d!==today()){try{sessionStorage.removeItem('absq');}catch(e){}return fail('انتهت صلاحية هذا الرابط. روابط الإشعارات تعمل في يومها فقط، حفاظًا على خصوصية الطالبات.');}
+if(D.d!==today()||(D.ts&&Date.now()-D.ts>9*3600e3)){try{sessionStorage.removeItem('absq');}catch(e){}return fail('انتهت صلاحية هذا الرابط. روابط الإشعارات تعمل 9 ساعات فقط من إنشائها، حفاظًا على خصوصية الطالبات.');}
 const KEY='absq_sent_'+D.d;let sent={};try{sent=JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(sent));for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('absq_sent_')===0&&k!==KEY)localStorage.removeItem(k);}}catch(e){}};
 function draw(){const X=D.x;const n=X.length,m=X.filter(x=>sent[x.n]).length;const secs=[...new Set(X.map(x=>x.c))];
@@ -34,7 +34,7 @@ function draw(){const X=D.x;const n=X.length,m=X.filter(x=>sent[x.n]).length;con
   <div class="bar"><div><b>أُرسل ${m} من ${n}</b><div class="hint">اضغطي «واتساب» ثم اختاري محادثة ولي الأمر، وبعد الإرسال ارجعي هنا.</div></div></div>
   ${n?secs.map(c=>`<div class="sec">${esc(D.g)}${c?' / '+esc(c):''}</div>`+X.filter(x=>x.c===c).map(x=>{const i=X.indexOf(x);return `<div class="row${sent[x.n]?' sent':''}"><div class="n"><b>${esc(x.n)}</b>${sent[x.n]?`<span class="ok">✓ أُرسل الساعة ${esc(sent[x.n])}</span>`:'<span class="s">لم يُرسل بعد</span>'}</div>
     <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(x.t)}" target="_blank" rel="noopener" data-i="${i}">واتساب</a>${sent[x.n]?`<button class="btn gh" data-u="${i}">تراجع</button>`:''}</div>`;}).join('')).join(''):'<div class="bar">لا توجد غائبات في هذا الصف اليوم.</div>'}
-  <p class="hint" style="margin-top:20px">لا تعيدي إرسال هذا الرابط لأحد. فيه أسماء طالبات، وينتهي اليوم.</p>`;}
+  <p class="hint" style="margin-top:20px">لا تعيدي إرسال هذا الرابط لأحد. فيه أسماء طالبات، وينتهي بعد 9 ساعات من إنشائه.</p>`;}
 app.addEventListener('click',e=>{const a=e.target.closest('[data-i]');if(a){const x=D.x[+a.dataset.i];sent[x.n]=new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});save();setTimeout(draw,300);return;}
   const u=e.target.closest('[data-u]');if(u){delete sent[D.x[+u.dataset.u].n];save();draw();}});
 draw();})();
