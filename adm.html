@@ -45,6 +45,8 @@ function setup(msg){const c=cfg();
 async function load(){const c=cfg();if(!c.url||!c.code||!c.g)return setup();if(S.busy)return;S.busy=true;S.err='';draw();
   try{const r=await fetch(c.url+'?adm='+encodeURIComponent(c.code)+'&g='+encodeURIComponent(c.g)+'&t='+Date.now());const j=await r.json();
     if(!j.ok){S.busy=false;if(j.error==='adm'){ls('adm_code',null);return setup('الرمز غير صحيح أو تغيّر. اطلبي الرمز الجديد من الموجّهة الطلابية.');}throw 0;}
+    const rt=(()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return j.d;}})();
+    if(j.d!==rt){S.data=null;S.busy=false;S.err='تاريخ سجل المدرسة ('+j.d+') لا يطابق تاريخ اليوم في الرياض ('+rt+')، فلم تُعرض القائمة حتى لا تُرسل إشعارات عن يوم آخر. أبلغي الموجّهة الطلابية.';draw();return;}
     S.data=j;S.last=new Date();}catch(e){S.err='تعذّر الاتصال. تأكدي من الإنترنت ثم اضغطي «غياب اليوم».';}
   S.busy=false;draw();alertNew();}
 /* من غابت اليوم كاملًا: نفس قاعدة المنصة */
