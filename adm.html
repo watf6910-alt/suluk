@@ -88,7 +88,7 @@ function draw(){const c=cfg();const L=list(),n=L.length,m=L.filter(x=>x.sent).le
   ${S.data?`<div class="card"><b>أُرسل ${m} من ${n}</b><div class="hint">اضغطي «واتساب» فيفتح تطبيق واتساب على الكمبيوتر والإشعار جاهز، اختاري ولي الأمر وأرسلي. تُسجَّل علامة «أُرسل» في سجل المدرسة.</div></div>
    ${n?secs.map(sc=>`<div class="sec">${esc(c.g)}${sc?' / '+esc(sc):''}</div>`+L.filter(x=>x.sec===sc).map(x=>{const i=L.indexOf(x);return `<div class="row${x.sent?' sent':''}"><div class="n"><b>${esc(x.name)}</b>${x.sent?`<span class="ok">✓ أُرسل ${esc(tm(x.sent.at))}${x.sent.by?' · '+esc(x.sent.by):''}</span>`:'<span class="s">لم يُرسل بعد</span>'}</div>
      <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(notice(x))}" target="_blank" rel="noopener" data-i="${i}">واتساب</a>${x.sent?`<button class="btn gh" data-u="${i}">تراجع</button>`:''}</div>`;}).join('')).join(''):'<div class="card">لا توجد غائبات بلا عذر في هذا الصف حتى الآن. أعيدي التحديث بعد الحصة الثالثة.</div>'}`:''}
-  <p class="hint" style="margin-top:22px">تُعرض من غابت اليوم كاملًا ولم يُسجَّل لها عذر. حدّثي القائمة بعد الحصة الثالثة. والصفحة تتحدّث وحدها كل 15 دقيقة ما دامت مفتوحة.</p>
+  <p class="hint" style="margin-top:22px">تُعرض من غابت اليوم كاملًا ولم يُسجَّل لها عذر. حدّثي القائمة بعد الحصة الثالثة. والصفحة تتزامن مع سجل المدرسة وحدها كل 3 دقائق، وكلما رجعتِ إليها.</p>
   <p class="hint"><button class="btn gh" id="reset">تغيير الصف أو الرمز</button></p>`;}
 async function mark(ids,undo){const c=cfg();try{const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'admsent',adm:c.code,ids,undo:!!undo,by:'إدارية '+c.g})});const j=await r.json();if(!j.ok)throw 0;}catch(e){S.err='لم تُسجَّل علامة الإرسال. تأكدي من الإنترنت.';}load();}
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime);o.start();o.stop(a.currentTime+.35);}catch(e){}}
@@ -101,7 +101,9 @@ app.addEventListener('click',e=>{const t=e.target.closest('button,a');if(!t)retu
   if(t.id==='reset'){setup();return;}
   if(t.dataset.i!=null){const x=list()[+t.dataset.i];if(x&&!x.sent)setTimeout(()=>mark(x.ids),400);return;}
   if(t.dataset.u!=null){const x=list()[+t.dataset.u];if(x)mark(x.ids,true);}});
-setInterval(()=>{if(cfg().code&&!S.busy)load();},15*60*1000);
+setInterval(()=>{if(cfg().code&&!S.busy&&!document.hidden)load();},3*60*1000);
+let lastFocus=0;const onBack=()=>{if(!document.hidden&&cfg().code&&!S.busy&&Date.now()-lastFocus>30000){lastFocus=Date.now();load();}};
+document.addEventListener('visibilitychange',onBack);window.addEventListener('focus',onBack);
 load();
 })();
 </script></body></html>
