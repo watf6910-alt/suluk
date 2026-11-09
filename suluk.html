@@ -1176,7 +1176,21 @@ document.addEventListener('submit',async e=>{
     toast('حُفظ التعديل');openStudent(openKey,true);
   }catch(x){writeErr(x)}
 });
-function noticeText(r,s){
+/* التأخر: إشعار قصير ودّي في أول مرتين، والإشعار الرسمي الكامل من المرة الثالثة وفي الطباعة */
+function lateCount(r,s){const n=norm(s.name);return records.filter(x=>x.violation===r.violation&&norm(x.name)===n&&!x.deleted&&(x.date<r.date||(x.date===r.date&&(!r.createdAt||(x.createdAt||'')<=r.createdAt)))).length||1;}
+function lateShort(r,s){const morning=r.violation==='التأخر الصباحي';
+  return `السلام عليكم ورحمة الله وبركاته
+صباحكم خير 🌤
+
+${morning?'إشعار تأخر صباحي':'إشعار تأخر عن الحصة'}
+نودّ إحاطتكم بتأخر ابنتكم ${s.name} – الصف: ${s.grade}${s.sec?' / '+s.sec:''} – ${morning?'عن بداية الدوام':'عن '+(r.period||'الحصة')} بتاريخ ${hijri(r.date)}، ولا يُحتسب ذلك غيابًا.
+
+${morning?'والانضباط في الحضور من أجمل ما تغرسه الأسرة في بناتها، فالصباح الذي يبدأ في وقته يمنح ابنتكم يومًا هادئًا، ويعينها على الاستفادة من حصصها كاملة.':'والانضباط في الحضور إلى الحصص من أجمل ما تغرسه الأسرة في بناتها، فالدخول في الموعد يعين ابنتكم على متابعة دروسها كاملة.'}
+
+نثق بحرصكم، شاكرين تعاونكم.${phoneLine()}
+${settings.school||DEF_SCHOOL}`;}
+function noticeText(r,s,full){
+  if(!full&&/^التأخر/.test(r.violation||'')&&lateCount(r,s)<=2)return lateShort(r,s);
   const p=r.proc&&PROCS[D(r.degree)][r.proc-1];
   const steps=r.steps||(p?p.steps:[]);
   return `المملكة العربية السعودية
@@ -1192,9 +1206,7 @@ ${r.violation==='التأخر الصباحي'?'إشعار تأخر صباحي':r
 والإجراءات المقررة لها وفق قواعد السلوك والمواظبة${r.proc?' (الإجراء '+PROCNAMES[r.proc]+')':''} هي:
 ${steps.length?steps.map((x,i)=>(i+1)+'. '+x).join('\n'):'—'}
 
-وقد قال النبي ﷺ: «إن من أحبّكم إليّ أحسنكم أخلاقًا»، والسلوك الحسن ثمرة غرسٍ يتعاون عليه البيت والمدرسة.
-
-ونثق بحرصكم واهتمامكم، ويسعدنا تعاونكم معنا بما يعين ابنتكم على تجاوز ذلك، علمًا بأن لها فرصة تعويض الدرجات المحسومة بممارسات السلوك المتميز. ونرحّب بتواصلكم في أي وقت.
+${/^التأخر/.test(r.violation||'')?'':'وقد قال النبي ﷺ: «إن من أحبّكم إليّ أحسنكم أخلاقًا»، والسلوك الحسن ثمرة غرسٍ يتعاون عليه البيت والمدرسة.\n\n'}ونثق بحرصكم واهتمامكم، ويسعدنا تعاونكم معنا بما يعين ابنتكم على تجاوز ذلك، علمًا بأن لها فرصة تعويض الدرجات المحسومة بممارسات السلوك المتميز. ونرحّب بتواصلكم في أي وقت.
 
 شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${phoneLine()}
 
@@ -1476,7 +1488,7 @@ function printHead(title){
 }
 function doPrint(html){$('#printArea').innerHTML=html+`<div class="foot">منصة السلوك والانضباط · إعداد عواطف الوسيدي · جميع الحقوق محفوظة ©</div>`;window.print();}
 function printNotice(r,s){
-  const body=noticeText(r,s).split('\n\n').slice(2).join('\n\n');
+  const body=noticeText(r,s,true).split('\n\n').slice(2).join('\n\n');
   doPrint(printHead('إشعار ولي أمر الطالبة بملاحظة سلوكية')+`<div class="pre">${esc(body)}</div><div class="sig"><span>توقيع ولي الأمر: ....................</span><span>الختم</span></div>`);
 }
 function printReport(s){
@@ -2567,7 +2579,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261109081131';
+const APP_VER='20261109082238';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
