@@ -79,7 +79,7 @@ ${st.school||'الثانوية الأولى بقبة'}
 
 شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${ph?'\nللتواصل مع المدرسة: '+ph:''}
 
-مديرة المدرسة: ${st.principal||'....................'}`;}
+مديرة المدرسة: ${st.principal||'موضي الحربي'}`;}
 function draw(){const c=cfg();const L=list(),n=L.length,m=L.filter(x=>x.sent).length;const secs=[...new Set(L.map(x=>x.sec))];
   document.title=(n-m>0?'🔔 '+(n-m)+' — ':'')+'إشعارات الغياب';
   app.innerHTML=`<div class="top"><div><h1>📨 إشعارات الغياب — ${esc(c.g)}</h1><div class="hint">${S.data?hijri(S.data.d):''}${S.last?' · آخر تحديث '+tm(S.last.toISOString()):''}</div></div>

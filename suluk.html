@@ -508,6 +508,7 @@ const EXC=[
 const GRADES=['الأول الثانوي','الثاني الثانوي','الثالث الثانوي'];
 const DEF_SCHOOL='الثانوية الأولى بقبة';
 const DEF_SET={school:DEF_SCHOOL,region:'',principal:'',termDays:90};
+const DEF_PRINCIPAL='موضي الحربي';
 const DEF_PHONE='0540300641';
 const schoolPhone=()=>String(settings.phone||DEF_PHONE||'').replace(/[^0-9+]/g,'');
 const phoneLine=()=>schoolPhone()?'\nللتواصل مع المدرسة: '+schoolPhone():'';
@@ -1210,7 +1211,7 @@ ${/^التأخر/.test(r.violation||'')?'':'وقد قال النبي ﷺ: «إن
 
 شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${phoneLine()}
 
-مديرة المدرسة: ${settings.principal||'....................'}`;
+مديرة المدرسة: ${settings.principal||DEF_PRINCIPAL}`;
 }
 
 /* ---------- violation form ---------- */
@@ -1498,7 +1499,7 @@ function printReport(s){
   doPrint(printHead('تقرير سلوك طالبة')+`<p><b>الاسم:</b> ${esc(s.name)} &nbsp; <b>الصف:</b> ${esc(s.grade)}${s.sec?' / '+esc(s.sec):''}</p>
   <p><b>درجة السلوك:</b> ${s.score} من 100 &nbsp; (السلوك الإيجابي ${Math.max(0,80-s.ded)} من 80، السلوك المتميز +${s.excPts})</p>
   <table><thead><tr><th>م</th><th>النوع</th><th>المخالفة / الممارسة</th><th>الإجراء</th><th>الدرجات</th><th>التاريخ</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||'....................')}</span></div>`);
+  <div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||DEF_PRINCIPAL)}</span></div>`);
 }
 
 /* ---------- monthly report ---------- */
@@ -1556,7 +1557,7 @@ document.addEventListener('click',async e=>{
   }
   if(t.id==='mrepPrint'){
     const rows=monthRows(mrep.ym,mrep.cls).filter(x=>!mrep.only||x.mViol||x.mUn||x.mLate||x.mEx);closeSheet();
-    doPrint(printHead((mrep.mode==='w'?'التقرير الأسبوعي — ':'التقرير الشهري — ')+pName(mrep.ym))+`<table><thead><tr><th>م</th><th>اسم الطالبة</th><th>الصف</th><th>السلوك</th><th>المواظبة</th><th>التميّز</th><th>مخالفات</th><th>غياب دون عذر</th><th>تأخر</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.grade)}${x.sec?' / '+esc(x.sec):''}</td><td>${x.beh}</td><td>${x.att}</td><td>+${x.mExc}</td><td>${x.mViol}</td><td>${x.mUn}</td><td>${x.mLate}</td></tr>`).join('')}</tbody></table><div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||'....................')}</span></div>`);
+    doPrint(printHead((mrep.mode==='w'?'التقرير الأسبوعي — ':'التقرير الشهري — ')+pName(mrep.ym))+`<table><thead><tr><th>م</th><th>اسم الطالبة</th><th>الصف</th><th>السلوك</th><th>المواظبة</th><th>التميّز</th><th>مخالفات</th><th>غياب دون عذر</th><th>تأخر</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${esc(x.grade)}${x.sec?' / '+esc(x.sec):''}</td><td>${x.beh}</td><td>${x.att}</td><td>+${x.mExc}</td><td>${x.mViol}</td><td>${x.mUn}</td><td>${x.mLate}</td></tr>`).join('')}</tbody></table><div class="sig"><span>الموجّهة الطلابية: ....................</span><span>مديرة المدرسة: ${esc(settings.principal||DEF_PRINCIPAL)}</span></div>`);
   }
 });
 
@@ -2066,7 +2067,7 @@ ${un.length?'\nولحفظ حقّ ابنتكم، نأمل تزويدنا بالع
 
 شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${phoneLine()}
 
-مديرة المدرسة: ${settings.principal||'....................'}`;
+مديرة المدرسة: ${settings.principal||DEF_PRINCIPAL}`;
 }
 $('#changePin').addEventListener('click',()=>openPin('change'));
 $('#teacherBackup').addEventListener('click',()=>$('#backupBtn').click());
@@ -2579,7 +2580,7 @@ async function markSess(date,period,cls,by){
   if(!ex)await store.add({kind:'sess',grade:cls.grade,section:cls.section||'',date,period,by,teacher:myName(),dev:DEV,createdAt:new Date().toISOString()});
 }
 const trep={ws:'',day:null};
-const APP_VER='20261109082238';
+const APP_VER='20261109083144';
 function showUpd(){if($('#updBar'))return;const b=document.createElement('button');b.id='updBar';b.type='button';b.textContent='يوجد تحديث للمنصة — اضغطي هنا للتحديث';b.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--d5,#b4532a);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.onclick=()=>location.reload();document.body.appendChild(b);}
 function checkVer(auto){if(location.protocol!=='https:'||APP_VER.startsWith('__'))return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const APP_VER='([0-9]+)'/);if(!m||m[1]<=APP_VER)return;
   const busy=(typeof SYNC!=='undefined'&&SYNC.queue&&SYNC.queue.length)||(typeof absMarks!=='undefined'&&absMarks.size);if(auto&&!busy)location.reload();else showUpd();}).catch(()=>{});}
@@ -2881,7 +2882,7 @@ function printCase(v,d){const row=(l,t)=>`<h4 style="margin:14px 0 4px">${esc(l)
   doPrint(printHead('محضر واقعة سلوكية')+`<table><tbody><tr><th>اسم الطالبة</th><td>${esc(v.name)}</td><th>الصف</th><td>${esc(v.grade)}${v.section?' / '+esc(v.section):''}</td></tr><tr><th>التاريخ</th><td>${hijri(v.date)}</td><th>الحصة</th><td>${esc(v.period||'')}</td></tr><tr><th>المخالفة</th><td colspan="3">${esc(v.violation)} (الدرجة ${DEGNAMES[D(v.degree)]}${v.proc?'، الإجراء '+PROCNAMES[v.proc]:''})</td></tr></tbody></table>`
    +row('ملخص المخالفة',caseAuto(v))+row('مطابقة الواقعة للمخالفة المسجّلة',({yes:'مطابق',part:'مطابق جزئيًا',no:'غير مطابق'})[d.match]?(({yes:'مطابق',part:'مطابق جزئيًا',no:'غير مطابق'})[d.match]+(d.alt&&d.match!=='yes'?' — التصنيف الأنسب: '+d.alt:'')):'')
    +CASE_F.map(([k,l])=>row(k==='staff'&&/المعلمات|الإداريات/.test(v.violation||'')?'إفادة الطرف المتضرر':l,d[k])).join('')
-   +`<div class="sig"><span>الطالبة: ..........</span><span>الموجّهة الطلابية: ..........</span><span>وكيلة شؤون الطالبات: ..........</span><span>مديرة المدرسة: ${esc(settings.principal||'..........')}</span></div>`);}
+   +`<div class="sig"><span>الطالبة: ..........</span><span>الموجّهة الطلابية: ..........</span><span>وكيلة شؤون الطالبات: ..........</span><span>مديرة المدرسة: ${esc(settings.principal||DEF_PRINCIPAL)}</span></div>`);}
 document.addEventListener('change',e=>{if(e.target&&e.target.name==='cfMatch'){const bx=$('#cfAltBox');if(bx)bx.hidden=e.target.value==='yes';}});
 document.addEventListener('click',async e=>{const b=e.target.closest?e.target.closest('[data-case],#ccMake,#ccOpen,#cfSave,#cfPrint,#cfPlanGo'):null;if(!b)return;
   if(b.dataset.case){e.stopPropagation();openCase(b.dataset.case);return;}
