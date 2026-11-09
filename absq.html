@@ -19,7 +19,7 @@ main{max-width:640px;margin:0 auto;padding:16px}h1{font-size:20px;margin:4px 0}.
 (async function(){
 const app=document.getElementById('app');const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fail=m=>{app.innerHTML='<h1>إشعارات غياب اليوم</h1><div class="err">'+m+'</div>';};
-const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const today=()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}};
 let h=location.hash.slice(1);try{history.replaceState(null,'',location.pathname);}catch(e){}
 if(!h){try{h=sessionStorage.getItem('absq')||'';}catch(e){}}else{try{sessionStorage.setItem('absq',h);}catch(e){}}
 if(!h)return fail('الرابط غير مكتمل. اطلبي من الوكيلة إرساله من جديد.');
@@ -35,7 +35,7 @@ function draw(){const X=D.x;const n=X.length,m=X.filter(x=>sent[x.n]).length;con
   ${n?secs.map(c=>`<div class="sec">${esc(D.g)}${c?' / '+esc(c):''}</div>`+X.filter(x=>x.c===c).map(x=>{const i=X.indexOf(x);return `<div class="row${sent[x.n]?' sent':''}"><div class="n"><b>${esc(x.n)}</b>${sent[x.n]?`<span class="ok">✓ أُرسل الساعة ${esc(sent[x.n])}</span>`:'<span class="s">لم يُرسل بعد</span>'}</div>
     <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(x.t)}" target="_blank" rel="noopener" data-i="${i}">واتساب</a>${sent[x.n]?`<button class="btn gh" data-u="${i}">تراجع</button>`:''}</div>`;}).join('')).join(''):'<div class="bar">لا توجد غائبات في هذا الصف اليوم.</div>'}
   <p class="hint" style="margin-top:20px">لا تعيدي إرسال هذا الرابط لأحد. فيه أسماء طالبات، وينتهي بعد 9 ساعات من إنشائه.</p>`;}
-app.addEventListener('click',e=>{const a=e.target.closest('[data-i]');if(a){const x=D.x[+a.dataset.i];sent[x.n]=new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});save();setTimeout(draw,300);return;}
+app.addEventListener('click',e=>{const a=e.target.closest('[data-i]');if(a){const x=D.x[+a.dataset.i];sent[x.n]=new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});save();setTimeout(draw,300);return;}
   const u=e.target.closest('[data-u]');if(u){delete sent[D.x[+u.dataset.u].n];save();draw();}});
 draw();})();
 </script></body></html>

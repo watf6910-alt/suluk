@@ -27,7 +27,7 @@ const G=['الأول الثانوي','الثاني الثانوي','الثالث
 const P=['الحصة الأولى','الحصة الثانية','الحصة الثالثة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة'];
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||'';if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return '';}};
 const hijri=iso=>{try{return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));}catch(e){return iso;}};
-const tm=iso=>{try{return new Date(iso).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'});}catch(e){return '';}};
+const tm=iso=>{try{return new Date(iso).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});}catch(e){return '';}};
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ');
 /* رابط الإعداد يحمل رابط جدول المدرسة فقط */
 try{const h=new URLSearchParams(location.hash.slice(1));const u=h.get('u');if(u&&/^https:\/\/script\.google(usercontent)?\.com\//.test(u))ls('adm_url',u);history.replaceState(null,'',location.pathname);}catch(e){}
