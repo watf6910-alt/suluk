@@ -82,11 +82,30 @@ ${st.school||'الثانوية الأولى بقبة'}
 شاكرين تعاونكم، وأنتم شركاؤنا في رعايتها.${ph?'\nللتواصل مع المدرسة: '+ph:''}
 
 مديرة المدرسة: ${st.principal||'موضي الحربي'}`;}
+function uzrHtml(){const U=S.data.uzr;const c=cfg();
+  return `<div class="sec">📄 أعذار أولياء الأمور بانتظار المراجعة (${U.length})</div><div class="hint">راجعي العذر والمرفق، ثم اكتبي توصيتكِ، وتعتمده وكيلة شؤون الطالبات.</div>`+U.map((x,i)=>`<div class="card" style="margin:8px 0">
+   <div class="top"><div><b>${esc(x.name)}</b> <span class="s">${esc(c.g)}${x.section?' / '+esc(x.section):''}</span></div>${x.rec?`<span class="${x.rec==='approve'?'ok':'err'}">${x.rec==='approve'?'✓ أوصيتِ بالاعتماد':'✗ أوصيتِ بالرفض'}</span>`:'<span class="s">لم تُراجع بعد</span>'}</div>
+   <div class="s"><b>أيام الغياب:</b> ${(x.dates||[]).map(d=>esc(hijri(d))).join('، ')}</div>
+   <div class="s"><b>العذر:</b> ${esc(x.type)}${x.note?' — '+esc(x.note):''}</div>
+   <div class="s"><b>ولي الأمر:</b> ${esc(x.parent||'—')}</div>
+   ${x.recNote?`<div class="s"><b>ملاحظتكِ:</b> ${esc(x.recNote)}</div>`:''}
+   <div id="uimg-${i}"></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">${x.file?`<button class="btn gh" data-uimg="${i}">عرض المرفق</button>`:'<span class="s">بدون مرفق</span>'}
+    <input data-unote="${i}" placeholder="ملاحظة (اختيارية، ومطلوبة عند الرفض)" style="flex:1;min-width:180px;margin:0">
+    <button class="btn pri" data-urec="${i}" data-v="approve">يُوصى بالاعتماد</button><button class="btn gh" data-urec="${i}" data-v="reject">يُوصى بالرفض</button></div></div>`).join('');}
+async function uImg(i){const c=cfg(),x=S.data.uzr[i],box=$('#uimg-'+i);if(!box)return;box.innerHTML='<div class="s">جارٍ تحميل المرفق…</div>';
+  try{const r=await fetch(c.url+'?adm='+encodeURIComponent(c.code)+'&g='+encodeURIComponent(c.g)+'&uimg='+encodeURIComponent(x.id)+'&t='+Date.now());const j=await r.json();if(!j.ok)throw 0;
+    box.innerHTML=`<img alt="مرفق العذر" src="data:${esc(j.mime)};base64,${j.data}" style="max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line)">`;}catch(e){box.innerHTML='<div class="err">تعذّر تحميل المرفق.</div>';}}
+async function uRec(i,v){const c=cfg(),x=S.data.uzr[i],note=(($('[data-unote="'+i+'"]')||{}).value||'').trim();
+  if(v==='reject'&&!note){alert('اكتبي سبب التوصية بالرفض في خانة الملاحظة.');return;}
+  try{const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({op:'admrec',adm:c.code,g:c.g,id:x.id,rec:v,note,by:'إدارية '+c.g})});const j=await r.json();if(!j.ok)throw 0;}
+  catch(e){S.err='لم تُحفظ التوصية. تأكدي من الإنترنت، أو ربما اعتُمد العذر قبل قليل.';}load();}
 function draw(){const c=cfg();const ALL=list(),L=ALL,P=[],n=L.length,m=L.filter(x=>x.sent).length;const secs=[...new Set(L.map(x=>x.sec))];
   document.title=(n-m>0?'🔔 '+(n-m)+' — ':'')+'إشعارات الغياب';
   app.innerHTML=`<div class="top"><div><h1>📨 إشعارات الغياب — ${esc(c.g)}</h1><div class="hint">${S.data?hijri(S.data.d):''}${S.last?' · آخر تحديث '+tm(S.last.toISOString()):''}</div></div>
    <button class="btn pri big" id="go" ${S.busy?'disabled':''}>${S.busy?'جارٍ التحميل…':'🔄 غياب اليوم'}</button></div>
   ${S.err?`<div class="card err">${esc(S.err)}</div>`:''}
+  ${S.data&&S.data.uzr&&S.data.uzr.length?uzrHtml():''}
   ${S.data?`<div class="card"><b>أُرسل ${m} من ${n}</b><div class="hint">اضغطي «واتساب» فيفتح تطبيق واتساب على الكمبيوتر والإشعار جاهز، اختاري ولي الأمر وأرسلي. تُسجَّل علامة «أُرسل» في سجل المدرسة.</div></div>
    ${n?secs.map(sc=>`<div class="sec">${esc(c.g)}${sc?' / '+esc(sc):''}</div>`+L.filter(x=>x.sec===sc).map(x=>{const i=L.indexOf(x);return `<div class="row${x.sent?' sent':''}"><div class="n"><b>${esc(x.name)}</b>${x.sent?`<span class="ok">✓ أُرسل ${esc(tm(x.sent.at))}${x.sent.by?' · '+esc(x.sent.by):''}</span>`:'<span class="s">لم يُرسل بعد</span>'}${x.late&&!x.sent?'<span class="err" style="display:block;font-size:13px">⚠️ رُصدت حاضرة في '+esc(x.late.join('، '))+'، فقد تكون متأخرة لا غائبة. تأكدي قبل الإرسال</span>':''}${x.pending&&!x.sent?'<span class="err" style="display:block;font-size:13px">⚠️ لم تُرصد لفصلها إلا حصة أو حصتان، تأكدي أنها غائبة لا متأخرة قبل الإرسال</span>':''}</div>
      <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(notice(x))}" target="_blank" rel="noopener" data-i="${i}">واتساب</a>${x.sent?`<button class="btn gh" data-u="${i}">تراجع</button>`:''}</div>`;}).join('')).join(''):'<div class="card">لا توجد غائبات بلا عذر في هذا الصف حتى الآن. أعيدي التحديث بعد الحصة الثالثة.</div>'}`:''}
@@ -97,11 +116,13 @@ async function mark(ids,undo){const c=cfg();try{const r=await fetch(c.url,{metho
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime);o.start();o.stop(a.currentTime+.35);}catch(e){}}
 function alertNew(){const L=list().filter(x=>!x.sent);const fresh=L.filter(x=>!S.known.has(x.name));L.forEach(x=>S.known.add(x.name));
   if(fresh.length&&S.started){beep();try{if(window.Notification&&Notification.permission==='granted')new Notification('إشعارات الغياب',{body:fresh.length+' إشعار جديد جاهز للإرسال',icon:'adm-192.png'});}catch(e){}}S.started=1;}
-app.addEventListener('click',e=>{const t=e.target.closest('button,a');if(!t)return;
+app.addEventListener('click',e=>{const t=e.target.closest('button,a');if(t&&t.tagName==='INPUT')return;if(!t)return;
   if(t.id==='save'){const code=$('#cd').value.replace(/\D/g,''),g=$('#gr').value;if(!code){$('#cd').focus();return;}ls('adm_code',code);ls('adm_grade',g);
     try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission();}catch(x){}S.known=new Set();S.started=0;load();return;}
   if(t.id==='go'){load();return;}
   if(t.id==='reset'){setup();return;}
+  if(t.dataset.uimg!=null){uImg(+t.dataset.uimg);return;}
+  if(t.dataset.urec!=null){t.disabled=true;uRec(+t.dataset.urec,t.dataset.v);return;}
   if(t.dataset.i!=null){const x=list()[+t.dataset.i];if(x&&!x.sent)setTimeout(()=>mark(x.ids),400);return;}
   if(t.dataset.u!=null){const x=list()[+t.dataset.u];if(x)mark(x.ids,true);}});
 setInterval(()=>{if(cfg().code&&!S.busy&&!document.hidden)load();},3*60*1000);

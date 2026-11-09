@@ -1,4 +1,4 @@
-// منصة رصد السلوك — ربط Google Sheets (الإصدار 4: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل + أيقونة الإداريات)
+// منصة رصد السلوك — ربط Google Sheets (الإصدار 5: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل + أيقونة الإداريات ومراجعة الأعذار)
 // إعداد الموجّهة الطلابية عواطف الحربي
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 const PROPS = PropertiesService.getScriptProperties();
@@ -56,7 +56,7 @@ function doGet(e) {
   const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
   const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(Boolean);
   const sv = rows(tab('الاستبانات', SRV_H), 8).map(r => parse(r[7])).filter(Boolean);
-  return out({ ok: true, v: 4, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
+  return out({ ok: true, v: 5, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
 }
 
 // أيقونة الإداريات: رمز خاص لا يفتح إلا غياب اليوم لصف واحد، وتسجيل إرسال الإشعار
@@ -64,6 +64,13 @@ function admOk(k) { const K = PROPS.getProperty('ADMKEY'); return !!K && String(
 function admToday() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function admGet(p) {
   if (!admOk(p.adm)) return out({ ok: false, error: 'adm' });
+  if (p.uimg) {
+    const U = tab('الأعذار', UZR_H), row = findRow(U, String(p.uimg));
+    const x = row ? parse(U.getRange(row, 15).getValue()) : null;
+    if (!x || !x.file || x.grade !== String(p.g || '')) return out({ ok: false, error: 'file' });
+    const b = DriveApp.getFileById(x.file).getBlob();
+    return out({ ok: true, mime: b.getContentType(), data: Utilities.base64Encode(b.getBytes()) });
+  }
   const today = admToday(), g = String(p.g || '');
   const abs = [], sess = [];
   rows(tab('السجلات', REC_H), 13).forEach(r => {
@@ -72,8 +79,10 @@ function admGet(p) {
     if (x.kind === 'abs') abs.push({ id: x.id, name: x.name || '', section: String(x.section || ''), period: x.period || '', status: x.status || '', excuse: x.excuse || '', notified: !!x.notified, nAt: x.nAt || '', nBy: x.nBy || '' });
     else if (x.kind === 'sess') sess.push({ section: String(x.section || ''), period: x.period || '' });
   });
+  const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(x => x && x.status === 'pending' && x.grade === g)
+    .map(x => ({ id: x.id, at: x.at, name: x.name, section: x.section || '', dates: x.dates || [], type: x.type || '', note: x.note || '', parent: x.parent || '', file: !!x.file, rec: x.rec || '', recNote: x.recNote || '', recBy: x.recBy || '', recAt: x.recAt || '' }));
   const st = parse(tab('الإعدادات', ['بيانات']).getRange('A2').getValue()) || {};
-  return out({ ok: true, v: 4, d: today, abs: abs, sess: sess, st: { school: st.school || '', region: st.region || '', principal: st.principal || '', phone: st.phone || '' } });
+  return out({ ok: true, v: 5, d: today, abs: abs, sess: sess, uzr: uz, st: { school: st.school || '', region: st.region || '', principal: st.principal || '', phone: st.phone || '' } });
 }
 function admSent(b) {
   const lock = LockService.getScriptLock();
@@ -89,6 +98,25 @@ function admSent(b) {
       else { x.notified = true; x.nAt = new Date().toISOString(); x.nBy = String(b.by || '').slice(0, 40); }
       R.getRange(row, 1, 1, 13).setValues([recRow(x)]);
     });
+    return out({ ok: true });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function admRec(b) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (!admOk(b.adm)) return out({ ok: false, error: 'adm' });
+    const U = tab('الأعذار', UZR_H), row = findRow(U, String(b.id || ''));
+    if (!row) return out({ ok: false, error: 'id' });
+    const x = parse(U.getRange(row, 15).getValue());
+    if (!x || x.status !== 'pending' || x.grade !== String(b.g || '')) return out({ ok: false, error: 'state' });
+    x.rec = b.rec === 'approve' ? 'approve' : b.rec === 'reject' ? 'reject' : '';
+    x.recNote = String(b.note || '').slice(0, 200); x.recBy = String(b.by || '').slice(0, 40); x.recAt = new Date().toISOString();
+    U.getRange(row, 15).setValue(JSON.stringify(x));
+    U.getRange(row, 13).setValue(x.rec ? ('توصية الإدارية: ' + (x.rec === 'approve' ? 'اعتماد' : 'رفض') + (x.recNote ? ' — ' + x.recNote : '')) : '');
     return out({ ok: true });
   } finally {
     lock.releaseLock();
@@ -173,6 +201,7 @@ function doPost(e) {
   if (body.op === 'excuse') return addExcuse(body);
   if (body.op === 'survey') return addSurvey(body);
   if (body.op === 'admsent') return admSent(body);
+  if (body.op === 'admrec') return admRec(body);
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
