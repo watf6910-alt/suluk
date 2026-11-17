@@ -65,7 +65,7 @@ function waitGet(p) {
   const st = parse(tab('الإعدادات', ['بيانات']).getRange('A2').getValue()) || {};
   if (!st.waitKey || String(p.wt) !== String(st.waitKey)) return out({ ok: false, error: 'wt' });
   const d = admToday(), w = (st.wait || {})[d] || {};
-  return out({ ok: true, v: 6, d: d, as: w.as || {}, adv: w.adv || {}, school: st.school || '' });
+  return out({ ok: true, v: 6, d: d, as: w.as || {}, adv: w.adv || {}, md: w.md || {}, school: st.school || '' });
 }
 
 // أيقونة الإداريات: رمز خاص لا يفتح إلا غياب اليوم لصف واحد، وتسجيل إرسال الإشعار
