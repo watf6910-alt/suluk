@@ -1,4 +1,4 @@
-// منصة رصد السلوك — ربط Google Sheets (الإصدار 5: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل + أيقونة الإداريات ومراجعة الأعذار)
+// منصة رصد السلوك — ربط Google Sheets (الإصدار 6: حماية بالرمز + أعذار أولياء الأمور + استبانات الأهل + أيقونة الإداريات ومراجعة الأعذار + رابط الانتظار للمعلمات)
 // إعداد الموجّهة الطلابية عواطف الحربي
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 const PROPS = PropertiesService.getScriptProperties();
@@ -40,6 +40,7 @@ function doGet(e) {
   const owner = Session.getEffectiveUser().getEmail();
   if (p.who) return out({ ok: true, owner: owner });
   if (p.adm) return admGet(p);
+  if (p.wt) return waitGet(p);
   if (!keyOk(p.key)) return out({ ok: false, error: 'key' });
   if (p.img) {
     const f = DriveApp.getFileById(String(p.img));
@@ -56,7 +57,15 @@ function doGet(e) {
   const st = tab('الإعدادات', ['بيانات']).getRange('A2').getValue();
   const uz = rows(tab('الأعذار', UZR_H), 15).map(r => parse(r[14])).filter(Boolean);
   const sv = rows(tab('الاستبانات', SRV_H), 8).map(r => parse(r[7])).filter(Boolean);
-  return out({ ok: true, v: 5, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
+  return out({ ok: true, v: 6, owner: owner, records: recs, roster: cls, settings: st ? parse(st) : null, excuses: uz, surveys: sv });
+}
+
+// رابط الانتظار للمعلمات: رمز خاص لا يفتح إلا توزيع حصص الانتظار لليوم (أسماء المعلمات والفصول فقط)
+function waitGet(p) {
+  const st = parse(tab('الإعدادات', ['بيانات']).getRange('A2').getValue()) || {};
+  if (!st.waitKey || String(p.wt) !== String(st.waitKey)) return out({ ok: false, error: 'wt' });
+  const d = admToday(), w = (st.wait || {})[d] || {};
+  return out({ ok: true, v: 6, d: d, as: w.as || {}, adv: w.adv || {}, school: st.school || '' });
 }
 
 // أيقونة الإداريات: رمز خاص لا يفتح إلا غياب اليوم لصف واحد، وتسجيل إرسال الإشعار

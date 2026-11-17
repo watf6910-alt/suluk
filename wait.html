@@ -24,15 +24,23 @@ if(!h)return fail('الرابط غير مكتمل. اطلبي إرساله من 
 let D;try{const b64=h.slice(1).replace(/-/g,'+').replace(/_/g,'/');const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
   let txt;if(h[0]==='z'){const st=new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate-raw'));txt=await new Response(st).text();}else txt=new TextDecoder().decode(bin);
   D=JSON.parse(txt);}catch(e){return fail('تعذّر فتح الرابط. حدّثي المتصفح، أو اطلبي إرساله من جديد.');}
-if(D.d<today())return fail('هذا الرابط لحصص انتظار يوم '+esc(D.h)+' وقد مضى.');
+const PN=['الحصة الأولى','الحصة الثانية','الحصة الثالثة','الحصة الرابعة','الحصة الخامسة','الحصة السادسة','الحصة السابعة'];
+const DN=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const hij=iso=>{try{return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));}catch(e){return iso;}};
+const tm=()=>new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
+let live=!!(D.u&&D.k),liveErr='';
+async function pull(){if(!live)return;try{const r=await fetch(D.u+'?wt='+encodeURIComponent(D.k),{cache:'no-store'});const j=await r.json();
+  if(!j.ok){liveErr=j.error==='wt'?'الرابط القديم أُلغي. اطلبي الرابط الجديد.':'تعذّر التحديث';if(!j.v||j.v<6){live=false;liveErr='';}draw();return;}
+  liveErr='';const dw=new Date(j.d+'T12:00:00').getDay();D={...D,d:j.d,day:DN[dw],h:hij(j.d),sc:j.school||D.sc,v:tm(),x:Object.entries(j.as||{}).filter(([k,v])=>v).map(([k,v])=>{const p=+k.split('|')[2];return {w:v,p,pn:PN[p],c:k.split('|')[0]+' / '+k.split('|')[1],a:(j.adv||{})[k]?1:0};})};draw();}
+  catch(e){liveErr='لا يوجد اتصال، يظهر آخر توزيع';draw();}}
+if(!live&&D.d<today())return fail('هذا الرابط لحصص انتظار يوم '+esc(D.h)+' وقد مضى.');
 let me='';try{me=localStorage.getItem('wait_me')||'';}catch(e){}
-const T=[...new Set(D.x.map(x=>x.w))].sort((a,b)=>a.localeCompare(b,'ar'));
-function draw(){const X=D.x.slice().sort((a,b)=>a.p-b.p);const mine=X.filter(x=>x.w===me);
-  app.innerHTML=`<h1>حصص الانتظار — ${esc(D.day)}</h1><div class="hint">${esc(D.h)} · ${esc(D.sc||'')}${D.v?' · آخر تحديث '+esc(D.v):''}</div>
+function draw(){const T=[...new Set(D.x.map(x=>x.w).concat(D.t||[],me?[me]:[]))].sort((a,b)=>a.localeCompare(b,'ar'));const X=D.x.slice().sort((a,b)=>a.p-b.p);const mine=X.filter(x=>x.w===me);
+  app.innerHTML=`<h1>حصص الانتظار — ${esc(D.day)}</h1><div class="hint">${esc(D.h)} · ${esc(D.sc||'')}${D.v?' · آخر تحديث '+esc(D.v):''}</div>${live?`<div class="hint">${liveErr?'⚠️ '+esc(liveErr):'🔄 مربوط بالمنصة ويتحدث كل دقيقتين'}</div>`:''}
   <div class="bar"><label for="me"><b>اسمك</b> (لتظهر حصصك أولًا)</label><select id="me"><option value="">— كل المعلمات —</option>${T.map(t=>`<option ${t===me?'selected':''}>${esc(t)}</option>`).join('')}</select>
   ${me?`<div style="margin-top:10px">${mine.length?`<b>لديكِ ${mine.length} ${mine.length>1?'حصص':'حصة'} اليوم:</b>`+mine.map(x=>`<div>• ${esc(x.pn)} — ${esc(x.c)}${x.a?' (بدل حصتك السابعة المحذوفة)':''}</div>`).join(''):'لا توجد عليكِ حصص انتظار اليوم.'}</div>`:''}</div>
   ${X.length?[...new Set(X.map(x=>x.pn))].map(pn=>`<div class="sec">${esc(pn)}</div>`+X.filter(x=>x.pn===pn).map(x=>`<div class="row${x.w===me?' me':''}"><div class="n"><b>${esc(x.w)}</b><span class="s">${esc(x.c)}${x.a?' · تقديم بدل الحصة السابعة':''}</span></div></div>`).join('')).join(''):'<div class="bar">لا توجد حصص انتظار اليوم.</div>'}
-  <p class="hint" style="margin-top:20px">إن تغيّر التوزيع تُرسل الوكيلة رابطًا جديدًا، فاعتمدي آخر رابط.</p>`;}
+  ${live?'':'<p class="hint" style="margin-top:20px">إن تغيّر التوزيع تُرسل الوكيلة رابطًا جديدًا، فاعتمدي آخر رابط.</p>'}`;}
 app.addEventListener('change',e=>{if(e.target.id==='me'){me=e.target.value;try{localStorage.setItem('wait_me',me);}catch(x){}draw();}});
-draw();})();
+draw();if(live){if(D.d!==today())D.x=[];pull();setInterval(pull,120e3);addEventListener('focus',pull);document.addEventListener('visibilitychange',()=>{if(!document.hidden)pull();});}})();
 </script></body></html>
