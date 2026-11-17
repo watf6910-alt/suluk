@@ -224,6 +224,12 @@ function doPost(e) {
       else if (op.op === 'delclass') { const r = findRow(C, op.id); if (r) C.deleteRow(r); }
       else if (op.op === 'admkey') PROPS.setProperty('ADMKEY', String(op.code || ''));
       else if (op.op === 'settings') tab('الإعدادات', ['بيانات']).getRange('A2').setValue(JSON.stringify(op.settings));
+      else if (op.op === 'waitday') {
+        const S = tab('الإعدادات', ['بيانات']).getRange('A2');
+        const st = parse(S.getValue()) || {};
+        st.wait = st.wait || {}; st.wait[String(op.date)] = op.w || {};
+        S.setValue(JSON.stringify(st));
+      }
       else if (op.op === 'uzr') {
         const r = findRow(U, op.id);
         if (r) {
