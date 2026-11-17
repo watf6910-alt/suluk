@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>حصص الانتظار اليوم</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2a2e;--mut:#5d6b70;--line:#d9d4ca;--pri:#1f6f5c;--hi:#fff6dc;--warn:#a5521b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}h1{font-size:20px;margin:4px 0}.hint{color:var(--mut);font-size:14px}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+select{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:6px}
+.sec{font-weight:700;margin:16px 0 6px;color:var(--pri)}
+.row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;display:flex;align-items:center;gap:10px}
+.row.me{background:var(--hi);border-color:#e0c46c}.row .n{flex:1;min-width:0}.row .n b{display:block}.row .s{font-size:13px;color:var(--mut)}
+.p{font-weight:700;color:var(--pri);min-width:72px}
+.err{background:var(--card);border:1px solid var(--warn);color:var(--warn);border-radius:12px;padding:14px;margin-top:20px}
+</style></head><body><main id="app"><p class="hint">جارٍ الفتح…</p></main>
+<script>
+(async function(){
+const app=document.getElementById('app');const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fail=m=>{app.innerHTML='<h1>حصص الانتظار</h1><div class="err">'+m+'</div>';};
+const today=()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}};
+const h=location.hash.slice(1);
+if(!h)return fail('الرابط غير مكتمل. اطلبي إرساله من جديد.');
+let D;try{const b64=h.slice(1).replace(/-/g,'+').replace(/_/g,'/');const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  let txt;if(h[0]==='z'){const st=new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate-raw'));txt=await new Response(st).text();}else txt=new TextDecoder().decode(bin);
+  D=JSON.parse(txt);}catch(e){return fail('تعذّر فتح الرابط. حدّثي المتصفح، أو اطلبي إرساله من جديد.');}
+if(D.d<today())return fail('هذا الرابط لحصص انتظار يوم '+esc(D.h)+' وقد مضى.');
+let me='';try{me=localStorage.getItem('wait_me')||'';}catch(e){}
+const T=[...new Set(D.x.map(x=>x.w))].sort((a,b)=>a.localeCompare(b,'ar'));
+function draw(){const X=D.x.slice().sort((a,b)=>a.p-b.p);const mine=X.filter(x=>x.w===me);
+  app.innerHTML=`<h1>حصص الانتظار — ${esc(D.day)}</h1><div class="hint">${esc(D.h)} · ${esc(D.sc||'')}${D.v?' · آخر تحديث '+esc(D.v):''}</div>
+  <div class="bar"><label for="me"><b>اسمك</b> (لتظهر حصصك أولًا)</label><select id="me"><option value="">— كل المعلمات —</option>${T.map(t=>`<option ${t===me?'selected':''}>${esc(t)}</option>`).join('')}</select>
+  ${me?`<div style="margin-top:10px">${mine.length?`<b>لديكِ ${mine.length} ${mine.length>1?'حصص':'حصة'} اليوم:</b>`+mine.map(x=>`<div>• ${esc(x.pn)} — ${esc(x.c)}${x.a?' (بدل حصتك السابعة المحذوفة)':''}</div>`).join(''):'لا توجد عليكِ حصص انتظار اليوم.'}</div>`:''}</div>
+  ${X.length?[...new Set(X.map(x=>x.pn))].map(pn=>`<div class="sec">${esc(pn)}</div>`+X.filter(x=>x.pn===pn).map(x=>`<div class="row${x.w===me?' me':''}"><div class="n"><b>${esc(x.w)}</b><span class="s">${esc(x.c)}${x.a?' · تقديم بدل الحصة السابعة':''}</span></div></div>`).join('')).join(''):'<div class="bar">لا توجد حصص انتظار اليوم.</div>'}
+  <p class="hint" style="margin-top:20px">إن تغيّر التوزيع تُرسل الوكيلة رابطًا جديدًا، فاعتمدي آخر رابط.</p>`;}
+app.addEventListener('change',e=>{if(e.target.id==='me'){me=e.target.value;try{localStorage.setItem('wait_me',me);}catch(x){}draw();}});
+draw();})();
+</script></body></html>
